@@ -1,0 +1,35 @@
+== SGS-UI design ==
+-------- core -----
+
+expected features:
+- event-based system with realtime visual updating of specific regions
+
+a basic example:
+> initialize UI
+> set frame color to gray, thus invalidating that region
+> add button to frame, at position {x=200,y=200,width=200,height=100}, thus invalidating that region
+> -- render pass --
+> -- event: mousemove -> on button --
+	> frame receives mouse-leave event
+	> button receives mouse-enter event
+		> some magic is done to change states, button region is invalidated
+> -- render pass -- (button now has a hover style and it is rendered accordingly)
+> -- event: mousedown -> ...
+.... event: mouseup -> button receives event, cursor still on button, button emits an internal "click" event
+	> subscribers of that event are called
+
+
+rendering:
+- a paint event is called that does the rendering
+- it should be possible to have some abstract way to handle rendering, so that it would just be possible to define what's expected..
+.. and pass that to the underlying rendering system that is hooked up
+
+expected features:
+- texture rectangle rendering
+- gradient rendering
+- texture masks
+- shape masks
+
+renderers are expected to optimize at least shape masks + tex.rect. rendering => textured polygons for GPUs
+texture masks pretty much cannot be optimized (except for stencil + scissor rect)
+shape masks + gradient rendering can be optimized if the gradient is first converted to an appropriately big texture (not safe)

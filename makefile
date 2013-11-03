@@ -3,8 +3,8 @@ ifdef SystemRoot
 	RM = del /Q
 	CP = copy
 	FixPath = $(subst /,\,$1)
-	PLATFLAGS = -lkernel32 -lmingw32
-	LINKPATHS =
+	PLATFLAGS = -lkernel32
+	LINKPATHS = -Lsgscript/bin
 	COMPATHS =
 	PLATPOST =
 	LIBPFX=
@@ -14,7 +14,7 @@ else
 	CP = cp
 	FixPath = $1
 	PLATFLAGS = -lm -Wl,-rpath,'$$ORIGIN' -Wl,-z,origin
-	LINKPATHS = 
+	LINKPATHS = -Lsgscript/bin
 	COMPATHS =
 	PLATPOST =
 	LIBPFX=lib
