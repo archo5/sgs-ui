@@ -6,14 +6,20 @@
 
 
 
-void UIFrame::render()
+UIEvent::UIEvent() : type(0), key(0), button(0), uchar(0), x(0), y(0), rx(0), ry(0)
 {
-	if( root )
-		root->render();
 }
 
-void UIFrame::event( UIEvent* event )
+
+UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999)
 {
+}
+
+
+void UIFrame::event( UIEvent* e )
+{
+	if( root )
+		root->_event( e );
 }
 
 int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
@@ -33,12 +39,15 @@ UIControl::UIControl() :
 {
 }
 
-void UIControl::render()
+void UIControl::_event( UIEvent* e )
 {
+	sgs_PushVar( C, e );
+	sgs_Call( C, 1, 0 );
+	
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
 		if( *it )
-			(*it)->render();
+			(*it)->_event( e );
 	}
 }
 
@@ -122,4 +131,7 @@ int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 		it->gcmark();
 	return SGS_SUCCESS;
 }
+
+
+
 

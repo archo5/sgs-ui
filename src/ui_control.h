@@ -10,6 +10,7 @@
 
 
 #define EV_Paint      1
+#define EV_Layout     2
 #define EV_KeyDown    10
 #define EV_KeyUp      11
 #define EV_Char       12
@@ -21,6 +22,8 @@
 struct UIEvent
 {
 	SGS_OBJECT;
+	
+	UIEvent();
 	
 	SGS_PROPERTY int type;
 	SGS_PROPERTY int key;
@@ -40,8 +43,9 @@ struct UIFrame
 	
 	SGS_OBJECT;
 	
-	SGS_METHOD void render();
-	SGS_METHOD void event( UIEvent* event );
+	UIFrame();
+	
+	SGS_METHOD void event( UIEvent* e );
 	
 	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
 	
@@ -65,7 +69,7 @@ struct UIControl
 	
 	UIControl();
 	
-	void render();
+	void _event( UIEvent* event );
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
@@ -88,10 +92,15 @@ struct UIControl
 	SGS_PROPERTY int index;
 	SGS_PROPERTY READ Handle parent;
 	SGS_PROPERTY READ Handle frame;
+	SGS_PROPERTY sgsVariable callback;
 	
 	HandleArray m_children;
 	HandleArray m_sorted;
 };
+
+
+
+inline void UI_PushEvent( SGS_CTX, UIEvent* e ){ sgs_PushClassFrom( C, e ); }
 
 
 #endif // __SGS_UI_CONTROL__
