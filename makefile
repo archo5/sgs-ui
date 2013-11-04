@@ -38,7 +38,7 @@ CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti -DBUILDING_SGS_UI
 _DEPS = ui_control.h
 DEPS = $(patsubst %,$(SRCDIR)/%,$(_DEPS))
 
-_OBJ = ui_control.o cppbc_ui_control.o
+_OBJ = ui_control.o cppbc_ui_control.o ui_main.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
 
