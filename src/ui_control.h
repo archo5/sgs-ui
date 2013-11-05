@@ -17,6 +17,9 @@
 #define EV_ButtonDown 20
 #define EV_ButtonUp   21
 #define EV_MouseMove  22
+#define EV_Attach     30
+#define EV_Detach     31
+#define EV_HitTest    32
 
 
 struct UIEvent
@@ -69,7 +72,7 @@ struct UIControl
 	
 	UIControl();
 	
-	void _event( UIEvent* event );
+	int niEvent( UIEvent* event );
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
@@ -91,8 +94,10 @@ struct UIControl
 	SGS_PROPERTY float q1y;
 	SGS_PROPERTY int index;
 	SGS_PROPERTY READ Handle parent;
-	SGS_PROPERTY READ Handle frame;
+	SGS_PROPERTY READ UIFrame::Handle frame;
 	SGS_PROPERTY sgsVariable callback;
+	
+	float rx0, rx1, ry0, ry1;
 	
 	HandleArray m_children;
 	HandleArray m_sorted;
