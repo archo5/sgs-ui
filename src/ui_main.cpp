@@ -20,7 +20,13 @@ int ui_create_frame( SGS_CTX )
 
 int ui_create_control( SGS_CTX )
 {
-	SGS_PUSHCLASS( C, UIControl, () );
+	char* str;
+	sgs_SizeVal size;
+	if( !sgs_LoadArgs( C, "m", &str, &size ) )
+		return 0;
+	
+	UIControl* ctrl = SGS_PUSHCLASS( C, UIControl, () );
+	ctrl->type = std::string( str, size );
 	return 1;
 }
 

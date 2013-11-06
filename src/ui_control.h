@@ -49,6 +49,7 @@ struct UIFrame
 	UIFrame();
 	
 	SGS_METHOD void event( UIEvent* e );
+	SGS_METHOD void render();
 	
 	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
 	
@@ -73,6 +74,7 @@ struct UIControl
 	UIControl();
 	
 	int niEvent( UIEvent* event );
+	void niRender();
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
@@ -93,11 +95,16 @@ struct UIControl
 	SGS_PROPERTY float q1x;
 	SGS_PROPERTY float q1y;
 	SGS_PROPERTY int index;
+	SGS_PROPERTY std::string type;
 	SGS_PROPERTY READ Handle parent;
 	SGS_PROPERTY READ UIFrame::Handle frame;
 	SGS_PROPERTY sgsVariable callback;
+	SGS_PROPERTY sgsVariable renderfunc;
 	
-	float rx0, rx1, ry0, ry1;
+	SGS_PROPERTY READ float rx0;
+	SGS_PROPERTY READ float rx1;
+	SGS_PROPERTY READ float ry0;
+	SGS_PROPERTY READ float ry1;
 	
 	HandleArray m_children;
 	HandleArray m_sorted;

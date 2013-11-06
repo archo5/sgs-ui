@@ -103,6 +103,12 @@ void UIFrame::event( UIEvent* e )
 		root->niEvent( e );
 }
 
+void UIFrame::render()
+{
+	if( root )
+		root->niRender();
+}
+
 int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 {
 	UIFrame* frame = static_cast<UIFrame*>(obj->data);
@@ -130,10 +136,24 @@ int UIControl::niEvent( UIEvent* e )
 	sgs_PushVar( C, Handle( m_sgsObject, C ) );
 	sgs_PushClassFrom( C, e );
 	callback.push();
-	sgs_ThisCall( C, 1, 0 );
+	sgs_ThisCall( C, 1, 1 );
 	int ret = sgs_GetInt( C, -1 );
 	sgs_SetStackSize( C, orig );
 	return ret;
+}
+
+void UIControl::niRender()
+{
+	int orig = sgs_StackSize( C );
+	sgs_PushVar( C, Handle( m_sgsObject, C ) );
+	renderfunc.push();
+	sgs_ThisCall( C, 0, 0 );
+	sgs_SetStackSize( C, orig );
+	
+	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+	{
+		(*it)->niRender();
+	}
 }
 
 bool UIControl::addChild( UIControl::Handle ch )
