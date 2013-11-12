@@ -134,7 +134,7 @@ int UIControl::niEvent( UIEvent* e )
 {
 	int orig = sgs_StackSize( C );
 	sgs_PushVar( C, Handle( m_sgsObject, C ) );
-	sgs_PushClassFrom( C, e );
+	UI_PushEvent( C, e );
 	callback.push();
 	sgs_ThisCall( C, 1, 1 );
 	int ret = sgs_GetInt( C, -1 );
@@ -154,6 +154,13 @@ void UIControl::niRender()
 	{
 		(*it)->niRender();
 	}
+}
+
+void UIControl::updateLayout()
+{
+	UIEvent e;
+	e.type = EV_Layout;
+	niEvent( &e );
 }
 
 bool UIControl::addChild( UIControl::Handle ch )

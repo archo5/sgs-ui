@@ -75,6 +75,7 @@ struct UIControl
 	
 	int niEvent( UIEvent* event );
 	void niRender();
+	void updateLayout();
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
@@ -86,15 +87,15 @@ struct UIControl
 	
 	SGS_PROPERTY std::string name;
 	SGS_PROPERTY std::string caption;
-	SGS_PROPERTY float x;
-	SGS_PROPERTY float y;
-	SGS_PROPERTY float width;
-	SGS_PROPERTY float height;
-	SGS_PROPERTY float q0x;
-	SGS_PROPERTY float q0y;
-	SGS_PROPERTY float q1x;
-	SGS_PROPERTY float q1y;
-	SGS_PROPERTY int index;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float x;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float y;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float width;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float height;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q0x;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q0y;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1x;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1y;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortChildren ) int index;
 	SGS_PROPERTY std::string type;
 	SGS_PROPERTY READ Handle parent;
 	SGS_PROPERTY READ UIFrame::Handle frame;

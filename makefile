@@ -25,12 +25,22 @@ SRCDIR=src
 OUTDIR=bin
 OBJDIR=obj
 
+ifeq ($(arch),64)
+	ARCHFLAGS= -m64
+else
+	ifeq ($(arch),32)
+		ARCHFLAGS= -m32
+	else
+		ARCHFLAGS=
+	endif
+endif
+
 CXX=g++
 ifeq ($(mode),release)
-	CFLAGS = -O3 -Wall
+	CFLAGS = -O3 -Wall $(ARCHFLAGS)
 else
 	mode = debug
-	CFLAGS = -D_DEBUG -g -Wall
+	CFLAGS = -D_DEBUG -g -Wall $(ARCHFLAGS)
 endif
 
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti -DBUILDING_SGS_UI
