@@ -100,9 +100,19 @@ function initialize()
 	BTN.height = 100;
 	BTN.caption = "button";
 	orig_callback = BTN.callback;
-	BTN.callback = function( event ) use( callback )
+	BTN.callback = function( event ) use( orig_callback )
 	{
-		return callback.thiscall( this, event );
+		data = this.data;
+		if( event.type == EV_MouseMove )
+		{
+			nev = ui_create_event();
+			nev.type = EV_HitTest;
+			nev.x = event.x;
+			nev.y = event.y;
+			data.mouse_on = this.callback( nev );
+			return true;
+		}
+		return orig_callback.thiscall( this, event );
 	};
 	BTN.renderfunc = function()
 	{
@@ -173,6 +183,7 @@ function on_event( e )
 		global sys_exit = true;
 	if( e.type == SDL_MOUSEMOTION )
 	{
+		FRAME.doMouseMove( e.x, e.y );
 		global mpos = vec2( e.x, e.y );
 //		println( get_relative_mouse_state() );
 	}
