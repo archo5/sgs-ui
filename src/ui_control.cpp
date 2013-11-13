@@ -92,7 +92,7 @@ UIEvent::UIEvent() : type(0), key(0), button(0), uchar(0), x(0), y(0), rx(0), ry
 }
 
 
-UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999)
+UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), prevMouseX(0), prevMouseY(0)
 {
 }
 
@@ -107,6 +107,35 @@ void UIFrame::render()
 {
 	if( root )
 		root->niRender();
+}
+
+void UIFrame::doMouseMove( float x, float y )
+{
+	UIEvent e;
+	e.type = EV_MouseMove;
+	e.x = x;
+	e.y = y;
+	e.rx = x - prevMouseX;
+	e.ry = y - prevMouseY;
+	prevMouseX = x;
+	prevMouseY = y;
+	event( &e );
+}
+
+void UIFrame::doMouseButton( int btn, bool down )
+{
+	UIEvent e;
+	e.type = down ? EV_ButtonDown : EV_ButtonUp;
+	e.button = btn;
+	event( &e );
+}
+
+void UIFrame::doKeyPress( int key, bool down )
+{
+	UIEvent e;
+	e.type = down ? EV_KeyDown : EV_KeyUp;
+	e.key = key;
+	event( &e );
 }
 
 int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )

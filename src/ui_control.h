@@ -21,6 +21,10 @@
 #define EV_Detach     31
 #define EV_HitTest    32
 
+#define Mouse_ButtonL 0
+#define Mouse_ButtonR 1
+#define Mouse_ButtonM 2
+
 
 struct UIEvent
 {
@@ -32,10 +36,10 @@ struct UIEvent
 	SGS_PROPERTY int key;
 	SGS_PROPERTY int button;
 	SGS_PROPERTY int uchar;
-	SGS_PROPERTY int x;
-	SGS_PROPERTY int y;
-	SGS_PROPERTY int rx;
-	SGS_PROPERTY int ry;
+	SGS_PROPERTY float x;
+	SGS_PROPERTY float y;
+	SGS_PROPERTY float rx;
+	SGS_PROPERTY float ry;
 };
 
 
@@ -51,6 +55,11 @@ struct UIFrame
 	SGS_METHOD void event( UIEvent* e );
 	SGS_METHOD void render();
 	
+	// event generation shortcuts
+	SGS_METHOD void doMouseMove( float x, float y );
+	SGS_METHOD void doMouseButton( int btn, bool down );
+	SGS_METHOD void doKeyPress( int key, bool down );
+	
 	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
 	
 	SGS_PROPERTY sgsVariable render_image;
@@ -61,6 +70,9 @@ struct UIFrame
 	SGS_PROPERTY float width;
 	SGS_PROPERTY float height;
 	SGS_PROPERTY sgsHandle< UIControl > root;
+	
+	float prevMouseX;
+	float prevMouseY;
 };
 
 
