@@ -101,6 +101,7 @@ struct UIControl
 	SGS_PROPERTY READ UIFrame::Handle frame;
 	SGS_PROPERTY sgsVariable callback;
 	SGS_PROPERTY sgsVariable renderfunc;
+	SGS_PROPERTY sgsVariable data;
 	
 	SGS_PROPERTY READ float rx0;
 	SGS_PROPERTY READ float rx1;

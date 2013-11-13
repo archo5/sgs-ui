@@ -254,6 +254,7 @@ int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 	ctrl->parent.gcmark();
 	ctrl->frame.gcmark();
 	ctrl->callback.gcmark();
+	ctrl->data.gcmark();
 	return SGS_SUCCESS;
 }
 
