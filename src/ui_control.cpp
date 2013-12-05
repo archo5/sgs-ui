@@ -157,6 +157,10 @@ UIControl::UIControl() :
 	sgs_PushCFunction( C, UIControl_CtrlProc );
 	callback = sgsVariable( C, -1 );
 	sgs_Pop( C, 1 );
+	
+	sgs_PushDict( C, 0 );
+	m_events = sgsVariable( C, -1 );
+	sgs_Pop( C, 1 );
 }
 
 int UIControl::niEvent( UIEvent* e )
@@ -274,6 +278,63 @@ void UIControl::sortChildren()
 {
 	std::sort( m_sorted.begin(), m_sorted.end(), UIControl_chSortCmpFunc );
 }
+
+
+bool UIControl::bindEvent( std::string name, sgsVariable callable )
+{
+	m_events.push();
+	// try reading the existing array
+	sgs_PushStringBuf( C, name.c_str(), name.size() );
+	if( sgs_PushIndexExt( C, -2, -1, 0 ) )
+	{
+		callable.push();
+		sgs_PushArray( C, 1 ); // create an array if it doesn't exist
+		sgs_StoreIndexExt( C, -3, -2, 0 );
+	}
+	else
+	{
+		callable.push();
+		// check if item isn't already in the array
+		sgs_SizeVal ii = sgs_ObjectAction( C, -2, SGS_ACT_ARRAY_FIND, -1 );
+		if( ii != SGS_ENOTFND )
+			return false;
+		// append new item
+		sgs_ObjectAction( C, -2, SGS_ACT_ARRAY_PUSH, 1 );
+	}
+	return true;
+}
+
+bool UIControl::unbindEvent( std::string name, sgsVariable callable )
+{
+	m_events.push();
+	// check if there's an entry for the event
+	sgs_PushStringBuf( C, name.c_str(), name.size() );
+	if( sgs_PushIndexExt( C, -2, -1, 0 ) )
+		return false;
+	// remove item from array
+	callable.push();
+	return !!sgs_ObjectAction( C, -2, SGS_ACT_ARRAY_RM_ONE, -1 );
+}
+
+bool UIControl::callEvent( std::string name, UIEvent* e )
+{
+	m_events.push();
+	// check if there's an entry for the event
+	sgs_PushStringBuf( C, name.c_str(), name.size() );
+	if( sgs_PushIndexExt( C, -2, -1, 0 ) )
+		return false;
+	// iterate the array
+	sgs_PushIterator( C, -1 );
+	while( sgs_IterAdvance( C, -1 ) > 0 )
+	{
+		sgs_PushHandle( C, UIControl::Handle( m_sgsObject, C ) );
+		UI_PushEvent( C, e );
+		sgs_IterPushData( C, -2, 0, 1 );
+		sgs_ThisCall( C, 1, 0 );
+	}
+	return true;
+}
+
 
 int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 {

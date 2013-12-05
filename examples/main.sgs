@@ -100,6 +100,7 @@ function initialize()
 	BTN.height = 100;
 	BTN.caption = "button";
 	orig_callback = BTN.callback;
+	BTN.bindEvent( "click", function(){ println( "Clicked me!" ); } );
 	BTN.callback = function( event ) use( orig_callback )
 	{
 		data = this.data;
@@ -111,6 +112,20 @@ function initialize()
 			nev.y = event.y;
 			data.mouse_on = this.callback( nev );
 			return true;
+		}
+		else if( event.type == EV_ButtonDown )
+		{
+			data.clicked = data.mouse_on;
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			if( data.clicked && data.mouse_on )
+			{
+				this.callEvent( "click", event );
+			//	println( "Clicked!" );
+				// ...
+			}
+			data.clicked = false;
 		}
 		return orig_callback.thiscall( this, event );
 	};
@@ -186,6 +201,10 @@ function on_event( e )
 		FRAME.doMouseMove( e.x, e.y );
 		global mpos = vec2( e.x, e.y );
 //		println( get_relative_mouse_state() );
+	}
+	if( e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP )
+	{
+		FRAME.doMouseButton( e.button, e.type == SDL_MOUSEBUTTONDOWN );
 	}
 	if( e.type == SDL_KEYDOWN && e.keycode == SDLK_F11 )
 		switch();

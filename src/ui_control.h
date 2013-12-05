@@ -95,6 +95,10 @@ struct UIControl
 	SGS_METHOD sgsVariable children();
 	SGS_METHOD void sortChildren();
 	
+	SGS_METHOD bool bindEvent( std::string name, sgsVariable callable );
+	SGS_METHOD bool unbindEvent( std::string name, sgsVariable callable );
+	SGS_METHOD bool callEvent( std::string name, UIEvent* e );
+	
 	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
 	
 	SGS_PROPERTY std::string name;
@@ -122,6 +126,7 @@ struct UIControl
 	
 	HandleArray m_children;
 	HandleArray m_sorted;
+	sgsVariable m_events;
 };
 
 
