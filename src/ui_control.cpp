@@ -329,7 +329,7 @@ bool UIControl::callEvent( std::string name, UIEvent* e )
 	{
 		sgs_PushHandle( C, UIControl::Handle( m_sgsObject, C ) );
 		UI_PushEvent( C, e );
-		sgs_IterPushData( C, -2, 0, 1 );
+		sgs_IterPushData( C, -3, 0, 1 );
 		sgs_ThisCall( C, 1, 0 );
 	}
 	return true;
