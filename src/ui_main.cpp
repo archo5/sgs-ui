@@ -41,6 +41,8 @@ sgs_RegIntConst g_iconsts[] =
 	FN( EV_ButtonDown ),
 	FN( EV_ButtonUp   ),
 	FN( EV_MouseMove  ),
+	FN( EV_MouseEnter ),
+	FN( EV_MouseLeave ),
 	FN( EV_Attach     ),
 	FN( EV_Detach     ),
 	FN( EV_HitTest    ),

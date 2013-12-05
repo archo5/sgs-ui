@@ -63,6 +63,12 @@ int UIControl_CtrlProc( SGS_CTX )
 		}
 		sgs_PushInt( C, 1 );
 		return 1;
+		
+	case EV_ButtonDown:
+	case EV_ButtonUp:
+	case EV_MouseMove:
+		ctrl->niChildEvent( event );
+		return 1;
 	
 	case EV_Attach:
 	case EV_Detach:
@@ -175,15 +181,26 @@ int UIControl::niEvent( UIEvent* e )
 	return ret;
 }
 
+void UIControl::niChildEvent( UIEvent* e )
+{
+	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+	{
+		(*it)->niEvent( e );
+	}
+}
+
 void UIControl::niRender()
 {
-	int orig = sgs_StackSize( C );
-	sgs_PushVar( C, Handle( m_sgsObject, C ) );
-	renderfunc.push();
-	sgs_ThisCall( C, 0, 0 );
-	sgs_SetStackSize( C, orig );
+	if( renderfunc.not_null() )
+	{
+		int orig = sgs_StackSize( C );
+		sgs_PushVar( C, Handle( m_sgsObject, C ) );
+		renderfunc.push( C );
+		sgs_ThisCall( C, 0, 0 );
+		sgs_SetStackSize( C, orig );
+	}
 	
-	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+	for( HandleArray::iterator it = m_sorted.begin(), itend = m_sorted.end(); it != itend; ++it )
 	{
 		(*it)->niRender();
 	}
@@ -277,6 +294,12 @@ bool UIControl_chSortCmpFunc( const UIControl::Handle& h1, const UIControl::Hand
 void UIControl::sortChildren()
 {
 	std::sort( m_sorted.begin(), m_sorted.end(), UIControl_chSortCmpFunc );
+}
+
+void UIControl::sortSiblings()
+{
+	if( parent.object )
+		parent->sortChildren();
 }
 
 

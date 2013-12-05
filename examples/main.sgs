@@ -92,10 +92,23 @@ function initialize()
 	
 	
 	global FRAME = ui_create_frame();
+	
+	global STAT = ui_create_control( "static" );
+	STAT.x = 100;
+	STAT.y = 100;
+	STAT.width = 500;
+	STAT.height = 300;
+	STAT.renderfunc = function()
+	{
+		draw({ preset = "tile", position = [this.rx0,this.ry0],
+			scale = [this.rx1-this.rx0,this.ry1-this.ry0], color = [0.5,0.5,0.5,1] });
+	};
+	FRAME.root = STAT;
+	
 	global BTN = ui_create_control( "button" );
 	BTN.data = { mouse_on = false, clicked = false };
-	BTN.x = 200;
-	BTN.y = 200;
+	BTN.x = 100;
+	BTN.y = 100;
 	BTN.width = 200;
 	BTN.height = 100;
 	BTN.caption = "button";
@@ -122,8 +135,6 @@ function initialize()
 			if( data.clicked && data.mouse_on )
 			{
 				this.callEvent( "click", event );
-			//	println( "Clicked!" );
-				// ...
 			}
 			data.clicked = false;
 		}
@@ -137,7 +148,20 @@ function initialize()
 			scale = [this.rx1-this.rx0,this.ry1-this.ry0], color = [0.3+cadd,0.5+cadd,0.7+cadd,1] });
 		draw_text_rect( this.caption, Font, [1,1,1,1], DT_CENTER | DT_VCENTER, this.rx0, this.rx1, this.ry0, this.ry1 );
 	};
-	FRAME.root = BTN;
+	STAT.addChild( BTN );
+	
+	global STAT2 = ui_create_control( "static" );
+	STAT2.x = 250;
+	STAT2.y = 150;
+	STAT2.width = 100;
+	STAT2.height = 100;
+	STAT2.index = 1;
+	STAT2.renderfunc = function()
+	{
+		draw({ preset = "tile", position = [this.rx0,this.ry0],
+			scale = [this.rx1-this.rx0,this.ry1-this.ry0], color = [0.7,0.5,0.5,1] });
+	};
+	STAT.addChild( STAT2 );
 }
 
 global mpos = vec2(0,0);
@@ -176,11 +200,11 @@ function update()
 	
 	set_camera_ui( 0, W, 0, H );
 	
-	draw({ preset = "box", texture = image, position = mpos, scale = [128,128], angle = rotation * M_PI, color = [0.3,0.5,0.7,1] });
-	
 	UI.draw();
 	
 	FRAME.render();
+	
+	draw({ preset = "box", texture = image, position = mpos, scale = [128,128], angle = rotation * M_PI, color = [0.3,0.5,0.7,1] });
 	
 	tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";
 	draw_text_line( tx, Font, 101, 1, [0,0,0,1] );

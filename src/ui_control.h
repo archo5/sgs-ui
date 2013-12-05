@@ -17,6 +17,8 @@
 #define EV_ButtonDown 20
 #define EV_ButtonUp   21
 #define EV_MouseMove  22
+#define EV_MouseEnter 23
+#define EV_MouseLeave 24
 #define EV_Attach     30
 #define EV_Detach     31
 #define EV_HitTest    32
@@ -86,6 +88,7 @@ struct UIControl
 	UIControl();
 	
 	int niEvent( UIEvent* event );
+	void niChildEvent( UIEvent* event );
 	void niRender();
 	void updateLayout();
 	
@@ -94,6 +97,7 @@ struct UIControl
 	SGS_METHOD UIControl::Handle findChild( std::string name );
 	SGS_METHOD sgsVariable children();
 	SGS_METHOD void sortChildren();
+	SGS_METHOD void sortSiblings();
 	
 	SGS_METHOD bool bindEvent( std::string name, sgsVariable callable );
 	SGS_METHOD bool unbindEvent( std::string name, sgsVariable callable );
@@ -111,7 +115,7 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q0y;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1y;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortChildren ) int index;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) int index;
 	SGS_PROPERTY std::string type;
 	SGS_PROPERTY READ Handle parent;
 	SGS_PROPERTY READ UIFrame::Handle frame;
