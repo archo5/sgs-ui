@@ -26,6 +26,7 @@
 #define Mouse_ButtonL 0
 #define Mouse_ButtonR 1
 #define Mouse_ButtonM 2
+#define Mouse_Button_Count 3
 
 
 struct UIEvent
@@ -57,6 +58,8 @@ struct UIFrame
 	SGS_METHOD void event( UIEvent* e );
 	SGS_METHOD void render();
 	
+	void handleMouseMove();
+	
 	// event generation shortcuts
 	SGS_METHOD void doMouseMove( float x, float y );
 	SGS_METHOD void doMouseButton( int btn, bool down );
@@ -75,6 +78,11 @@ struct UIFrame
 	
 	float prevMouseX;
 	float prevMouseY;
+	
+	void preRemoveControl( UIControl* ctrl );
+	
+	UIControl* m_hover;
+	UIControl* m_clicktargets[ Mouse_Button_Count ];
 };
 
 
@@ -88,9 +96,11 @@ struct UIControl
 	UIControl();
 	
 	int niEvent( UIEvent* event );
-	void niChildEvent( UIEvent* event );
+	void niBubblingEvent( UIEvent* e );
 	void niRender();
 	void updateLayout();
+	
+	void setFrame( UIFrame::Handle fh );
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );

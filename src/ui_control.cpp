@@ -63,12 +63,6 @@ int UIControl_CtrlProc( SGS_CTX )
 		}
 		sgs_PushInt( C, 1 );
 		return 1;
-		
-	case EV_ButtonDown:
-	case EV_ButtonUp:
-	case EV_MouseMove:
-		ctrl->niChildEvent( event );
-		return 1;
 	
 	case EV_Attach:
 	case EV_Detach:
@@ -98,7 +92,7 @@ UIEvent::UIEvent() : type(0), key(0), button(0), uchar(0), x(0), y(0), rx(0), ry
 }
 
 
-UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), prevMouseX(0), prevMouseY(0)
+UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), prevMouseX(0), prevMouseY(0), m_hover(NULL)
 {
 }
 
@@ -115,25 +109,76 @@ void UIFrame::render()
 		root->niRender();
 }
 
+void UIFrame::handleMouseMove()
+{
+	// find new mouse-over item
+	UIEvent htev;
+	htev.type = EV_HitTest;
+	htev.x = prevMouseX;
+	htev.y = prevMouseY;
+	
+	UIControl* ctrl = root, *prevhover = m_hover;
+	m_hover = NULL;
+	while( ctrl && m_hover != ctrl )
+	{
+		m_hover = ctrl;
+		for( UIControl::HandleArray::reverse_iterator it = ctrl->m_children.rbegin(), itend = ctrl->m_children.rend(); it != itend; ++it )
+		{
+			UIControl* nc = *it;
+			if( nc->niEvent( &htev ) )
+			{
+				ctrl = nc;
+				break;
+			}
+		}
+	}
+	
+	if( m_hover != prevhover )
+	{
+		UIEvent mev;
+		if( prevhover ){ mev.type = EV_MouseLeave; prevhover->niBubblingEvent( &mev ); }
+		if( m_hover ){ mev.type = EV_MouseEnter; m_hover->niBubblingEvent( &mev ); }
+	}
+}
+
 void UIFrame::doMouseMove( float x, float y )
 {
+	// send event
 	UIEvent e;
 	e.type = EV_MouseMove;
 	e.x = x;
 	e.y = y;
 	e.rx = x - prevMouseX;
 	e.ry = y - prevMouseY;
+	event( &e );
 	prevMouseX = x;
 	prevMouseY = y;
-	event( &e );
+	
+	handleMouseMove();
 }
 
 void UIFrame::doMouseButton( int btn, bool down )
 {
+	if( btn < 0 || btn >= Mouse_Button_Count )
+		return;
+	
 	UIEvent e;
 	e.type = down ? EV_ButtonDown : EV_ButtonUp;
 	e.button = btn;
-	event( &e );
+	
+	if( !down )
+	{
+		if( m_clicktargets[ btn ] )
+		{
+			m_clicktargets[ btn ]->niBubblingEvent( &e );
+			m_clicktargets[ btn ] = NULL;
+		}
+	}
+	else if( m_hover )
+	{
+		m_clicktargets[ btn ] = m_hover;
+		m_hover->niBubblingEvent( &e );
+	}
 }
 
 void UIFrame::doKeyPress( int key, bool down )
@@ -142,6 +187,17 @@ void UIFrame::doKeyPress( int key, bool down )
 	e.type = down ? EV_KeyDown : EV_KeyUp;
 	e.key = key;
 	event( &e );
+}
+
+void UIFrame::preRemoveControl( UIControl* ctrl )
+{
+	if( m_hover == ctrl )
+		m_hover = NULL;
+	for( int i = 0; i < Mouse_Button_Count; ++i )
+	{
+		if( m_clicktargets[ i ] == ctrl )
+			m_clicktargets[ i ] = NULL;
+	}
 }
 
 int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
@@ -181,11 +237,14 @@ int UIControl::niEvent( UIEvent* e )
 	return ret;
 }
 
-void UIControl::niChildEvent( UIEvent* e )
+void UIControl::niBubblingEvent( UIEvent* e )
 {
-	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+	UIControl* cc = this;
+	while( cc )
 	{
-		(*it)->niEvent( e );
+		if( !niEvent( e ) )
+			break;
+		cc = cc->parent;
 	}
 }
 
@@ -213,6 +272,13 @@ void UIControl::updateLayout()
 	niEvent( &e );
 }
 
+void UIControl::setFrame( UIFrame::Handle fh )
+{
+	frame = fh;
+	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+		(*it)->setFrame( fh );
+}
+
 bool UIControl::addChild( UIControl::Handle ch )
 {
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
@@ -223,7 +289,7 @@ bool UIControl::addChild( UIControl::Handle ch )
 	m_children.push_back( ch );
 	m_sorted.push_back( ch );
 	ch->parent = Handle( m_sgsObject, C );
-	ch->frame = frame;
+	ch->setFrame( frame );
 	sortChildren();
 	
 	UIEvent e;
@@ -255,6 +321,11 @@ bool UIControl::removeChild( UIControl::Handle ch )
 		}
 	}
 	ch->parent = Handle();
+	if( ch->frame.object && ch->frame->m_hover == (UIControl*) ch )
+	{
+		ch->frame->handleMouseMove();
+		ch->frame->preRemoveControl( ch );
+	}
 	ch->frame = UIFrame::Handle();
 	sortChildren();
 	
