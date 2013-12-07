@@ -61,11 +61,12 @@ int UIControl_CtrlProc( SGS_CTX )
 			ctrl->ry0 += lerpf( pr0y, pr1y, ctrl->q0y );
 			ctrl->ry1 += lerpf( pr0y, pr1y, ctrl->q1y );
 		}
+		for( UIControl::HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
+			(*it)->niEvent( event );
 		sgs_PushInt( C, 1 );
 		return 1;
 	
 	case EV_Attach:
-	case EV_Detach:
 		{
 			UIEvent e;
 			e.type = EV_Layout;
@@ -77,6 +78,21 @@ int UIControl_CtrlProc( SGS_CTX )
 	case EV_HitTest:
 		sgs_PushInt( C, event->x >= ctrl->rx0 && event->x <= ctrl->rx1 &&
 			event->y >= ctrl->ry0 && event->y <= ctrl->ry1 );
+		return 1;
+	
+	case EV_MouseEnter:
+		ctrl->mouseOn = true;
+		return 1;
+	case EV_MouseLeave:
+		ctrl->mouseOn = false;
+		return 1;
+	case EV_ButtonDown:
+		ctrl->clicked = ctrl->mouseOn;
+		return 1;
+	case EV_ButtonUp:
+		if( ctrl->clicked && ctrl->mouseOn )
+			ctrl->callEvent( "click", event );
+		ctrl->clicked = false;
 		return 1;
 	
 	}
@@ -92,7 +108,7 @@ UIEvent::UIEvent() : type(0), key(0), button(0), uchar(0), x(0), y(0), rx(0), ry
 }
 
 
-UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), prevMouseX(0), prevMouseY(0), m_hover(NULL)
+UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0), m_hover(NULL)
 {
 }
 
@@ -114,15 +130,15 @@ void UIFrame::handleMouseMove()
 	// find new mouse-over item
 	UIEvent htev;
 	htev.type = EV_HitTest;
-	htev.x = prevMouseX;
-	htev.y = prevMouseY;
+	htev.x = mouseX;
+	htev.y = mouseY;
 	
 	UIControl* ctrl = root, *prevhover = m_hover;
 	m_hover = NULL;
 	while( ctrl && m_hover != ctrl )
 	{
 		m_hover = ctrl;
-		for( UIControl::HandleArray::reverse_iterator it = ctrl->m_children.rbegin(), itend = ctrl->m_children.rend(); it != itend; ++it )
+		for( UIControl::HandleArray::reverse_iterator it = ctrl->m_sorted.rbegin(), itend = ctrl->m_sorted.rend(); it != itend; ++it )
 		{
 			UIControl* nc = *it;
 			if( nc->niEvent( &htev ) )
@@ -136,6 +152,8 @@ void UIFrame::handleMouseMove()
 	if( m_hover != prevhover )
 	{
 		UIEvent mev;
+		mev.x = mouseX;
+		mev.y = mouseY;
 		if( prevhover ){ mev.type = EV_MouseLeave; prevhover->niBubblingEvent( &mev ); }
 		if( m_hover ){ mev.type = EV_MouseEnter; m_hover->niBubblingEvent( &mev ); }
 	}
@@ -148,13 +166,21 @@ void UIFrame::doMouseMove( float x, float y )
 	e.type = EV_MouseMove;
 	e.x = x;
 	e.y = y;
-	e.rx = x - prevMouseX;
-	e.ry = y - prevMouseY;
+	e.rx = x - mouseX;
+	e.ry = y - mouseY;
 	event( &e );
-	prevMouseX = x;
-	prevMouseY = y;
+	mouseX = x;
+	mouseY = y;
 	
 	handleMouseMove();
+	
+	if( m_hover )
+	{
+		UIEvent mev;
+		mev.x = mouseX;
+		mev.y = mouseY;
+		if( m_hover ){ mev.type = EV_MouseMove; m_hover->niBubblingEvent( &mev ); }
+	}
 }
 
 void UIFrame::doMouseButton( int btn, bool down )
@@ -165,6 +191,8 @@ void UIFrame::doMouseButton( int btn, bool down )
 	UIEvent e;
 	e.type = down ? EV_ButtonDown : EV_ButtonUp;
 	e.button = btn;
+	e.x = mouseX;
+	e.y = mouseY;
 	
 	if( !down )
 	{
@@ -178,6 +206,11 @@ void UIFrame::doMouseButton( int btn, bool down )
 	{
 		m_clicktargets[ btn ] = m_hover;
 		m_hover->niBubblingEvent( &e );
+	}
+	
+	if( root.object )
+	{
+		root->callEvent( down ? "buttondown" : "buttonup", &e );
 	}
 }
 
@@ -200,6 +233,15 @@ void UIFrame::preRemoveControl( UIControl* ctrl )
 	}
 }
 
+void UIFrame::initRoot()
+{
+	if( root.object )
+	{
+		root->setFrame( Handle( m_sgsObject, C ) );
+		root->updateLayout();
+	}
+}
+
 int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 {
 	UIFrame* frame = static_cast<UIFrame*>(obj->data);
@@ -213,8 +255,9 @@ int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 
 UIControl::UIControl() :
 	x(0.0f), y(0.0f), width(0.0f), height(0.0f),
-	q0x(0.0f), q0y(0.0f), q1x(0.0f), q1y(0.0f), index(0),
-	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f)
+	q0x(0.0f), q0y(0.0f), q1x(0.0f), q1y(0.0f), index(0), topmost(false),
+	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
+	_updatingLayout(false), mouseOn(false), clicked(false)
 {
 	sgs_PushCFunction( C, UIControl_CtrlProc );
 	callback = sgsVariable( C, -1 );
@@ -267,9 +310,14 @@ void UIControl::niRender()
 
 void UIControl::updateLayout()
 {
+	if( _updatingLayout )
+		return;
+	
+	_updatingLayout = true;
 	UIEvent e;
 	e.type = EV_Layout;
 	niEvent( &e );
+	_updatingLayout = false;
 }
 
 void UIControl::setFrame( UIFrame::Handle fh )
@@ -301,6 +349,10 @@ bool UIControl::addChild( UIControl::Handle ch )
 
 bool UIControl::removeChild( UIControl::Handle ch )
 {
+	UIEvent e;
+	e.type = EV_Detach;
+	ch->niEvent( &e );
+	
 	bool found = false;
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
@@ -329,10 +381,6 @@ bool UIControl::removeChild( UIControl::Handle ch )
 	ch->frame = UIFrame::Handle();
 	sortChildren();
 	
-	UIEvent e;
-	e.type = EV_Detach;
-	ch->niEvent( &e );
-	
 	return found;
 }
 
@@ -359,7 +407,9 @@ sgsVariable UIControl::children()
 
 bool UIControl_chSortCmpFunc( const UIControl::Handle& h1, const UIControl::Handle& h2 )
 {
-	return h1->index < h2->index;
+	if( h1->topmost != h2->topmost ) return h1->topmost < h2->topmost;
+	if( h1->index != h2->index ) return h1->index < h2->index;
+	return false;
 }
 
 void UIControl::sortChildren()

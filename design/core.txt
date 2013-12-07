@@ -33,3 +33,14 @@ expected features:
 renderers are expected to optimize at least shape masks + tex.rect. rendering => textured polygons for GPUs
 texture masks pretty much cannot be optimized (except for stencil + scissor rect)
 shape masks + gradient rendering can be optimized if the gradient is first converted to an appropriately big texture (not safe)
+
+
+UI Controls:
+basic:
+- static control
+- button (text, with icon, icon only)
+- textbox (single-line)
+extended:
+- scrollbar (H, V)
+- dropdown menu
+- listbox

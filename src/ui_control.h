@@ -57,8 +57,7 @@ struct UIFrame
 	
 	SGS_METHOD void event( UIEvent* e );
 	SGS_METHOD void render();
-	
-	void handleMouseMove();
+	SGS_METHOD void handleMouseMove();
 	
 	// event generation shortcuts
 	SGS_METHOD void doMouseMove( float x, float y );
@@ -74,12 +73,13 @@ struct UIFrame
 	SGS_PROPERTY float y;
 	SGS_PROPERTY float width;
 	SGS_PROPERTY float height;
-	SGS_PROPERTY sgsHandle< UIControl > root;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK initRoot ) sgsHandle< UIControl > root;
 	
-	float prevMouseX;
-	float prevMouseY;
+	SGS_PROPERTY READ float mouseX;
+	SGS_PROPERTY READ float mouseY;
 	
 	void preRemoveControl( UIControl* ctrl );
+	void initRoot();
 	
 	UIControl* m_hover;
 	UIControl* m_clicktargets[ Mouse_Button_Count ];
@@ -126,6 +126,7 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1y;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) int index;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) bool topmost;
 	SGS_PROPERTY std::string type;
 	SGS_PROPERTY READ Handle parent;
 	SGS_PROPERTY READ UIFrame::Handle frame;
@@ -137,6 +138,10 @@ struct UIControl
 	SGS_PROPERTY READ float rx1;
 	SGS_PROPERTY READ float ry0;
 	SGS_PROPERTY READ float ry1;
+	
+	SGS_PROPERTY bool _updatingLayout;
+	SGS_PROPERTY READ bool mouseOn;
+	SGS_PROPERTY READ bool clicked;
 	
 	HandleArray m_children;
 	HandleArray m_sorted;
