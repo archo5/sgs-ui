@@ -14,6 +14,9 @@
 #define EV_KeyDown    10
 #define EV_KeyUp      11
 #define EV_Char       12
+#define EV_FocusEnter 13
+#define EV_FocusLeave 14
+#define EV_NeedFocus  15
 #define EV_ButtonDown 20
 #define EV_ButtonUp   21
 #define EV_MouseMove  22
@@ -58,6 +61,7 @@ struct UIFrame
 	SGS_METHOD void event( UIEvent* e );
 	SGS_METHOD void render();
 	SGS_METHOD void handleMouseMove();
+	SGS_METHOD void setFocus( UIControl* ctrl );
 	
 	// event generation shortcuts
 	SGS_METHOD void doMouseMove( float x, float y );
@@ -82,6 +86,7 @@ struct UIFrame
 	void initRoot();
 	
 	UIControl* m_hover;
+	UIControl* m_focus;
 	UIControl* m_clicktargets[ Mouse_Button_Count ];
 };
 
@@ -142,6 +147,7 @@ struct UIControl
 	SGS_PROPERTY bool _updatingLayout;
 	SGS_PROPERTY READ bool mouseOn;
 	SGS_PROPERTY READ bool clicked;
+	SGS_PROPERTY READ bool keyboardFocus;
 	
 	HandleArray m_children;
 	HandleArray m_sorted;

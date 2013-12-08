@@ -88,12 +88,23 @@ int UIControl_CtrlProc( SGS_CTX )
 		return 1;
 	case EV_ButtonDown:
 		ctrl->clicked = ctrl->mouseOn;
+		if( ctrl->frame.object )
+			ctrl->frame->setFocus( ctrl );
 		return 1;
 	case EV_ButtonUp:
 		if( ctrl->clicked && ctrl->mouseOn )
 			ctrl->callEvent( "click", event );
 		ctrl->clicked = false;
 		return 1;
+		
+	case EV_FocusEnter:
+		ctrl->keyboardFocus = true;
+		return 1;
+	case EV_FocusLeave:
+		ctrl->keyboardFocus = false;
+		return 1;
+	case EV_NeedFocus:
+		return 0; // don't take focus by default
 	
 	}
 	
@@ -108,8 +119,9 @@ UIEvent::UIEvent() : type(0), key(0), button(0), uchar(0), x(0), y(0), rx(0), ry
 }
 
 
-UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0), m_hover(NULL)
+UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0), m_hover(NULL), m_focus(NULL)
 {
+	memset( m_clicktargets, 0, sizeof(m_clicktargets) );
 }
 
 
@@ -156,6 +168,19 @@ void UIFrame::handleMouseMove()
 		mev.y = mouseY;
 		if( prevhover ){ mev.type = EV_MouseLeave; prevhover->niBubblingEvent( &mev ); }
 		if( m_hover ){ mev.type = EV_MouseEnter; m_hover->niBubblingEvent( &mev ); }
+	}
+}
+
+void UIFrame::setFocus( UIControl* ctrl )
+{
+	UIEvent e;
+	e.type = EV_NeedFocus;
+	
+	if( ctrl->niEvent( &e ) )
+	{
+		if( m_focus ){ e.type = EV_FocusLeave; m_focus->niEvent( &e ); }
+		m_focus = ctrl;
+		if( m_focus ){ e.type = EV_FocusEnter; m_focus->niEvent( &e ); }
 	}
 }
 
@@ -219,13 +244,17 @@ void UIFrame::doKeyPress( int key, bool down )
 	UIEvent e;
 	e.type = down ? EV_KeyDown : EV_KeyUp;
 	e.key = key;
-	event( &e );
+	
+	if( m_focus )
+		m_focus->niEvent( &e );
 }
 
 void UIFrame::preRemoveControl( UIControl* ctrl )
 {
 	if( m_hover == ctrl )
 		m_hover = NULL;
+	if( m_focus == ctrl )
+		m_focus = NULL;
 	for( int i = 0; i < Mouse_Button_Count; ++i )
 	{
 		if( m_clicktargets[ i ] == ctrl )
@@ -257,7 +286,7 @@ UIControl::UIControl() :
 	x(0.0f), y(0.0f), width(0.0f), height(0.0f),
 	q0x(0.0f), q0y(0.0f), q1x(0.0f), q1y(0.0f), index(0), topmost(false),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
-	_updatingLayout(false), mouseOn(false), clicked(false)
+	_updatingLayout(false), mouseOn(false), clicked(false), keyboardFocus(false)
 {
 	sgs_PushCFunction( C, UIControl_CtrlProc );
 	callback = sgsVariable( C, -1 );
