@@ -67,6 +67,7 @@ struct UIFrame
 	SGS_METHOD void doMouseMove( float x, float y );
 	SGS_METHOD void doMouseButton( int btn, bool down );
 	SGS_METHOD void doKeyPress( int key, bool down );
+	SGS_METHOD void doPutChar( int chr );
 	
 	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
 	

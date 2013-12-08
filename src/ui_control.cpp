@@ -249,6 +249,16 @@ void UIFrame::doKeyPress( int key, bool down )
 		m_focus->niEvent( &e );
 }
 
+void UIFrame::doPutChar( int chr )
+{
+	UIEvent e;
+	e.type = EV_Char;
+	e.uchar = chr;
+	
+	if( m_focus )
+		m_focus->niEvent( &e );
+}
+
 void UIFrame::preRemoveControl( UIControl* ctrl )
 {
 	if( m_hover == ctrl )

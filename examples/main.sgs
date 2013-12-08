@@ -1,6 +1,329 @@
 
 include "../bin/sgs-ui";
 
+
+
+
+function ui_build_menu( parent, x, y, items, default )
+{
+	Menu = ui_create_control( "menu" );
+	Menu.x = x - parent.x;
+	Menu.y = y - parent.y;
+	Menu.topmost = true;
+	
+	items = clone( items );
+	// each item can have the following used parameters
+	// - text (label text)
+	// - info (info text, usually shortcut key info)
+	// - func (trigger callback, "checked" is updated before this)
+	// - icon (whatever the renderfunc will understand)
+	// - checked (null/true/false)
+	// - disabled (whether entry is a text or a line separator)
+	
+	Menu.data =
+	{
+		item_width = 200,
+		item_height = 24,
+		sep_height = 8,
+		item_spacing = 0,
+		menu_padding = 4,
+		items = items,
+		selected = false,
+		
+		buttonup_fn = function( e ) use( Menu ){ Menu.callback( e ); },
+	};
+	
+	if( default !== null && default >= 0 && default < items.size )
+		Menu.data.selected = default;
+	
+	ocb = Menu.callback;
+	function Menu.callback( event ) use( ocb )
+	{
+		data = this.data;
+		
+		if( event.type == EV_Detach )
+		{
+			this.frame.root.unbindEvent( "buttonup", data.buttonup_fn );
+		}
+		else if( event.type == EV_HitTest )
+		{
+			return ocb.thiscall( this, event ) || this.parent.callback( event );
+		}
+		else if( event.type == EV_Layout )
+		{
+			ht = 0;
+			foreach( i, item : data.items )
+			{
+				if( i )
+					ht += data.item_spacing;
+				if( _( item, "disabled" ) && _( item, "text" ) === null )
+					ht += data.sep_height;
+				else
+					ht += data.item_height;
+			}
+			mp2 = data.menu_padding * 2;
+			this.width = data.item_width + mp2;
+			this.height = ht + mp2;
+		}
+		else if( event.type == EV_MouseMove )
+		{
+			data.selected = false;
+			x0 = this.rx0 + data.menu_padding;
+			x1 = x0 + data.item_width;
+			if( x0 <= event.x && x1 > event.x )
+			{
+				y0 = this.ry0 + data.menu_padding;
+				for( i = 0; i < data.items.size; ++i )
+				{
+					item = data.items[ i ];
+					if( _( item, "disabled" ) && _( item, "text" ) === null )
+						ht = data.sep_height;
+					else
+						ht = data.item_height;
+					
+					y1 = y0 + ht;
+					if( !( _( item, "disabled" ) && _( item, "text" ) === null ) && event.y >= y0 && event.y < y1 )
+					{
+						data.selected = i;
+						break;
+					}
+					
+					y0 = y1 + data.item_spacing;
+				}
+			}
+		}
+		else if( event.type == EV_MouseLeave )
+		{
+			data.selected = false;
+			return false;
+		}
+		else if( event.type == EV_ButtonDown )
+		{
+			hitevent = ui_create_event();
+			hitevent.type = EV_HitTest;
+			hitevent.x = event.x;
+			hitevent.y = event.y;
+			if( this.callback( hitevent ) && !ocb.thiscall( this, hitevent ) )
+				this.parent.removeChild( this );
+			return true;
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			if( data.selected !== false )
+			{
+				item = data.items[ data.selected ];
+				if( !_( item, "disabled" ) )
+				{
+					if( isset( item, "checked" ) && item.checked !== null )
+						item.checked = !item.checked;
+					if( isset( item, "func" ) )
+						item.func();
+					this.parent.removeChild( this );
+				}
+			}
+			return true;
+		}
+		
+		return ocb.thiscall( this, event );
+	}
+	
+	function Menu.renderfunc()
+	{
+		data = this.data;
+		
+		pad = data.menu_padding;
+		
+		draw({ preset = "tile", position = [this.rx0,this.ry0], scale = [this.width,this.height], color = [0.8,0.8,0.8,1] });
+		draw({ preset = "tile", position = [this.rx0+pad,this.ry0+pad], scale = [this.width-pad*2,this.height-pad*2], color = [0.9,0.9,0.9,1] });
+		
+		draw({ preset = "tile", position = [this.rx0+32,this.ry0+2+pad], scale = [1,this.height-4-pad*2], color = [0.8,0.8,0.8,1] });
+		
+		x = this.rx0 + pad;
+		y = this.ry0 + pad;
+		foreach( id, item : data.items )
+		{
+			disabled = _( item, "disabled" );
+			
+			if( id === data.selected )
+				draw({ preset = "tile", position = [x,y], scale = [data.item_width,data.item_height], color = if(disabled,[0.7,0.7,0.7,0.5],[0.4,0.6,0.8,0.8]) });
+			
+			if( _( item, "text" ) !== null )
+				draw_text_line( item.text, Font, x + 32, y + (data.item_height - 18) / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
+			else if( disabled )
+				draw({ preset = "tile", position = [x+32,y+data.sep_height/2], scale = [data.item_width-36,1], color = [0.8,0.8,0.8,1] });
+			
+			if( disabled && _( item, "text" ) === null )
+				y += data.sep_height;
+			else
+				y += data.item_height;
+			y += data.item_spacing;
+		}
+	}
+	
+	parent.addChild( Menu );
+	parent.frame.root.bindEvent( "buttonup", Menu.data.buttonup_fn );
+	parent.frame.handleMouseMove();
+	
+	return Menu;
+}
+
+
+
+
+function ui_create_textbox( parent, x, y, width, text )
+{
+	Textbox = ui_create_control( "textbox" );
+	Textbox.x = x;
+	Textbox.y = y;
+	Textbox.width = width;
+	
+	Textbox.data =
+	{
+		padding = 1,
+		text_padding = 2,
+		height = 24,
+		
+		offset = 0,
+		sel_from = text.length,
+		sel_to = text.length,
+		fsel_from = null,
+		fsel_to = null,
+		chars = string_utf8_decode( text ),
+		text = text,
+	};
+	
+	tbdata = Textbox.data;
+	function tbdata.updateSelOffsets()
+	{
+		this.fsel_to = 0;
+		this.fsel_from = 0;
+		
+		pc = null;
+		for( i = 0; i < this.sel_from; ++i )
+		{
+			ch = this.chars[ i ];
+			this.fsel_from += Font.get_advance( pc, ch );
+			pc = ch;
+		}
+		
+		pc = null;
+		for( i = 0; i < this.sel_to; ++i )
+		{
+			ch = this.chars[ i ];
+			this.fsel_to += Font.get_advance( pc, ch );
+			pc = ch;
+		}
+	}
+	
+	function tbdata.updateText()
+	{
+		this.text = string_utf8_encode( this.chars );
+	}
+	
+	tbdata.updateSelOffsets();
+	
+	ocb = Textbox.callback;
+	function Textbox.callback( event ) use( ocb )
+	{
+		data = this.data;
+		
+		if( event.type == EV_Layout )
+		{
+			this.height = data.height;
+		}
+		else if( event.type == EV_NeedFocus )
+			return 1;
+		else if( event.type == EV_Char )
+		{
+			if( event.uchar != 0 )
+			{
+				if( data.sel_from == data.sel_to )
+				{
+					if( event.uchar == 8 )
+					{
+						if( data.sel_from > 0 )
+						{
+							data.chars.erase( data.sel_from - 1 );
+							data.updateText();
+							data.sel_from--;
+							data.sel_to--;
+						}
+					}
+					else
+					{
+						data.chars.insert( data.sel_from, event.uchar );
+						data.updateText();
+						data.sel_from++;
+						data.sel_to++;
+					}
+				}
+				else
+				{
+					from = data.sel_from;
+					to = data.sel_to;
+					if( from > to )
+					{
+						from = data.sel_to;
+						to = data.sel_from;
+					}
+					data.chars.erase( from, to - 1 );
+					if( event.uchar != 8 )
+					{
+						data.chars.insert( from, event.uchar );
+						from++;
+					}
+					data.updateText();
+					data.sel_from = from;
+					data.sel_to = from;
+				}
+				data.updateSelOffsets();
+			}
+		}
+		else if( event.type == EV_ButtonDown )
+		{
+			data.sel_from = 2;
+			data.sel_to = 5;
+			data.updateSelOffsets();
+		}
+		
+		return ocb.thiscall( this, event );
+	}
+	
+	function Textbox.renderfunc()
+	{
+		data = this.data;
+		
+		pad = data.padding;
+		tpad = data.text_padding;
+		
+		draw({ preset = "tile", position = [this.rx0,this.ry0], scale = [this.width,this.height], color = if(this.keyboardFocus,[0.9,0.6,0.3,1],[0.6,0.6,0.6,1]) });
+		draw({ preset = "tile", position = [this.rx0+pad,this.ry0+pad], scale = [this.width-pad*2,this.height-pad*2], color = [0.9,0.9,0.9,1] });
+		
+		x0 = this.rx0 + pad + tpad - data.offset;
+		y0 = this.ry0 + pad + tpad;
+		
+		draw_text_line( data.text, Font, x0, y0, [0.1,0.1,0.1,1] );
+		
+		if( this.keyboardFocus && data.sel_to !== null )
+		{
+			from = min( data.fsel_from, data.fsel_to );
+			to = max( data.fsel_from, data.fsel_to );
+			if( from != to )
+			{
+				draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,this.height-pad*2-tpad*2], color = [0.3,0.6,0.9,0.5] });
+			}
+			draw({ preset = "tile", position = [x0+to,y0], scale = [1,this.height-pad*2-tpad*2], color = [0.1,0.1,0.1,1] });
+		}
+	}
+	
+	parent.addChild( Textbox );
+	
+	return Textbox;
+}
+
+
+
+
 function configure()
 {
 	global sys_exit;
@@ -58,6 +381,8 @@ function switch()
 	}
 }
 
+function _( obj, prop ){ return if( isset( obj, prop ), obj.(prop), null ); }
+
 function initialize()
 {
 	set_caption( "The SGS-SDL Game Framework" );
@@ -88,7 +413,7 @@ function initialize()
 	printvar( _Gtex );
 	println();
 	
-	global Font = create_font( "verdana.ttf", 16 );
+	global Font = create_font( "verdana.ttf", 14 );
 	
 	
 	global FRAME = ui_create_frame();
@@ -114,41 +439,39 @@ function initialize()
 	BTN.caption = "button";
 	orig_callback = BTN.callback;
 	BTN.bindEvent( "click", function(){ println( "Clicked me!" ); } );
+	BTN.bindEvent( "click", function()
+	{
+		items =
+		[
+			{ text = "Test 1", func = function(){ println("Test 1 - function"); } },
+			{ text = "Some option", checked = false },
+			{ disabled = true },
+			{ text = "Disabled", disabled = true },
+			{ text = "Exiquit", func = function(){ global sys_exit = true; } },
+		];
+		ui_build_menu( this.frame.root, this.rx0, this.ry1, items );
+	});
 	BTN.callback = function( event ) use( orig_callback )
 	{
-		data = this.data;
-		if( event.type == EV_MouseMove )
+		if( event.type == EV_NeedFocus )
+			return 1;
+		if( event.type == EV_ButtonDown && event.button != 0 )
 		{
-			nev = ui_create_event();
-			nev.type = EV_HitTest;
-			nev.x = event.x;
-			nev.y = event.y;
-			data.mouse_on = this.callback( nev );
-			return true;
-		}
-		else if( event.type == EV_ButtonDown )
-		{
-			data.clicked = data.mouse_on;
-		}
-		else if( event.type == EV_ButtonUp )
-		{
-			if( data.clicked && data.mouse_on )
-			{
-				this.callEvent( "click", event );
-			}
-			data.clicked = false;
+			this.frame.setFocus( this );
+			return;
 		}
 		return orig_callback.thiscall( this, event );
 	};
 	BTN.renderfunc = function()
 	{
-		data = this.data;
-		cadd = if( data.clicked, -0.2, if( data.mouse_on, 0.2, 0.0 ) );
+		cadd = if( this.clicked, -0.1, if( this.mouseOn, 0.1, 0.0 ) );
 		draw({ preset = "tile", position = [this.rx0,this.ry0],
 			scale = [this.rx1-this.rx0,this.ry1-this.ry0], color = [0.3+cadd,0.5+cadd,0.7+cadd,1] });
 		draw_text_rect( this.caption, Font, [1,1,1,1], DT_CENTER | DT_VCENTER, this.rx0, this.rx1, this.ry0, this.ry1 );
 	};
 	STAT.addChild( BTN );
+	
+	ui_create_textbox( STAT, 100, 50, 200, "Testing..." );
 	
 	global STAT2 = ui_create_control( "static" );
 	STAT2.x = 250;
@@ -185,7 +508,7 @@ function update()
 	
 	set_camera_2d( 500, 500, 500, W/H, 0 );
 	
-	TM.render();
+//	TM.render();
 	
 	vdata = fmt_pack( "5f12x 5f12x 5f12x 5f12x",
 		100, 100, 0, 0, 0,
@@ -195,8 +518,8 @@ function update()
 	);
 	vfmt = make_vertex_format( "|pf3tf2" );
 	idata = fmt_pack( "4w", 1, 2, 3, 0 );
-	draw_packed( image, vfmt, vdata, 0, 4, PT_TRIANGLE_FAN );
-	draw_packed( image, vfmt, vdata, 0, 4, PT_TRIANGLE_FAN, idata );
+//	draw_packed( image, vfmt, vdata, 0, 4, PT_TRIANGLE_FAN );
+//	draw_packed( image, vfmt, vdata, 0, 4, PT_TRIANGLE_FAN, idata );
 	
 	set_camera_ui( 0, W, 0, H );
 	
@@ -204,7 +527,7 @@ function update()
 	
 	FRAME.render();
 	
-	draw({ preset = "box", texture = image, position = mpos, scale = [128,128], angle = rotation * M_PI, color = [0.3,0.5,0.7,1] });
+//	draw({ preset = "box", texture = image, position = mpos, scale = [128,128], angle = rotation * M_PI, color = [0.3,0.5,0.7,1] });
 	
 	tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";
 	draw_text_line( tx, Font, 101, 1, [0,0,0,1] );
@@ -228,7 +551,14 @@ function on_event( e )
 	}
 	if( e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP )
 	{
-		FRAME.doMouseButton( e.button, e.type == SDL_MOUSEBUTTONDOWN );
+		btn = 0;
+		if( e.button == 3 ) btn = 1;
+		else if( e.button == 2 ) btn = 2;
+		FRAME.doMouseButton( btn, e.type == SDL_MOUSEBUTTONDOWN );
+	}
+	if( e.type == SDL_KEYDOWN )
+	{
+		FRAME.doPutChar( e.unicode );
 	}
 	if( e.type == SDL_KEYDOWN && e.keycode == SDLK_F11 )
 		switch();
