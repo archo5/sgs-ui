@@ -31,6 +31,16 @@
 #define Mouse_ButtonM 2
 #define Mouse_Button_Count 3
 
+#define Key_Left      1 // shift makes selection stick
+#define Key_Right     2 // ^
+#define Key_Up        3 // ^
+#define Key_Down      4 // ^
+#define Key_DelLeft   5
+#define Key_DelRight  6
+#define Key_Tab       7 // shift makes focus move backwards
+
+#define KeyMod_Shift  0x100
+
 
 struct UIEvent
 {

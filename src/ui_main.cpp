@@ -54,6 +54,16 @@ sgs_RegIntConst g_iconsts[] =
 	FN( Mouse_ButtonR ),
 	FN( Mouse_ButtonM ),
 	
+	FN( Key_Left      ),
+	FN( Key_Right     ),
+	FN( Key_Up        ),
+	FN( Key_Down      ),
+	FN( Key_DelLeft   ),
+	FN( Key_DelRight  ),
+	FN( Key_Tab       ),
+	
+	FN( KeyMod_Shift  ),
+	
 	{NULL,0},
 };
 
