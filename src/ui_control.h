@@ -31,14 +31,21 @@
 #define Mouse_ButtonM 2
 #define Mouse_Button_Count 3
 
-#define Key_Left      1 // shift makes selection stick
-#define Key_Right     2 // ^
-#define Key_Up        3 // ^
-#define Key_Down      4 // ^
+#define Key_Left      1  // shift makes selection stick
+#define Key_Right     2  // ^
+#define Key_Up        3  // ^
+#define Key_Down      4  // ^
 #define Key_DelLeft   5
 #define Key_DelRight  6
-#define Key_Tab       7 // shift makes focus move backwards
+#define Key_Tab       7  // shift makes focus move backwards
+#define Key_Cut       8
+#define Key_Copy      9
+#define Key_Paste     10
+#define Key_Undo      11
+#define Key_Redo      12
+#define Key_SelectAll 13
 
+#define KeyMod_Filter 0x0FF
 #define KeyMod_Shift  0x100
 
 

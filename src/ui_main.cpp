@@ -61,7 +61,14 @@ sgs_RegIntConst g_iconsts[] =
 	FN( Key_DelLeft   ),
 	FN( Key_DelRight  ),
 	FN( Key_Tab       ),
+	FN( Key_Cut       ),
+	FN( Key_Copy      ),
+	FN( Key_Paste     ),
+	FN( Key_Undo      ),
+	FN( Key_Redo      ),
+	FN( Key_SelectAll ),
 	
+	FN( KeyMod_Filter ),
 	FN( KeyMod_Shift  ),
 	
 	{NULL,0},
