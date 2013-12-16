@@ -173,6 +173,9 @@ void UIFrame::handleMouseMove()
 
 void UIFrame::setFocus( UIControl* ctrl )
 {
+	if( m_focus == ctrl )
+		return;
+	
 	UIEvent e;
 	e.type = EV_NeedFocus;
 	
