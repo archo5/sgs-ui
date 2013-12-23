@@ -4,9 +4,10 @@
 #define __SGS_UI_CONTROL__
 
 
-#include <sgs_cppbc.h>
+#include "ui_utils.h"
 
-#include <vector>
+
+#define UI_NO_ID 0xffffffff
 
 
 #define EV_Paint      1
@@ -49,6 +50,17 @@
 #define KeyMod_Shift  0x100
 
 
+struct UITimerData
+{
+	int64_t id;
+	float interval;
+	float timeout;
+	sgsVariable func;
+};
+
+typedef std::map< int64_t, UITimerData > UITimerMap;
+
+
 struct UIEvent
 {
 	SGS_OBJECT;
@@ -86,11 +98,20 @@ struct UIFrame
 	SGS_METHOD void doKeyPress( int key, bool down );
 	SGS_METHOD void doPutChar( int chr );
 	
+	// timers
+	SGS_METHOD int64_t setTimeout( float time_ms, sgsVariable func ){ return _setTimer( time_ms, func, true ); }
+	SGS_METHOD int64_t setInterval( float time_ms, sgsVariable func ){ return _setTimer( time_ms, func, false ); }
+	SGS_METHOD void clearTimeout( int64_t id ){ _clearTimer( id ); }
+	SGS_METHOD void clearInterval( int64_t id ){ _clearTimer( id ); }
+	int64_t _setTimer( float time_ms, sgsVariable func, bool one_shot );
+	void _clearTimer( int64_t id );
+	
 	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
 	
 	SGS_PROPERTY sgsVariable render_image;
 	SGS_PROPERTY sgsVariable render_text;
 	SGS_PROPERTY sgsVariable ui_event;
+	SGS_PROPERTY sgsVariable clipboard_func; /* no arguments -> get; 1 argument (string) -> set */
 	SGS_PROPERTY float x;
 	SGS_PROPERTY float y;
 	SGS_PROPERTY float width;
@@ -106,6 +127,10 @@ struct UIFrame
 	UIControl* m_hover;
 	UIControl* m_focus;
 	UIControl* m_clicktargets[ Mouse_Button_Count ];
+	UITimerMap m_timers;
+	int64_t m_timerAutoID;
+	IDGen m_controlIDGen;
+	
 };
 
 
@@ -117,6 +142,7 @@ struct UIControl
 	SGS_OBJECT;
 	
 	UIControl();
+	~UIControl();
 	
 	int niEvent( UIEvent* event );
 	void niBubblingEvent( UIEvent* e );
@@ -138,6 +164,7 @@ struct UIControl
 	
 	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
 	
+	SGS_PROPERTY READ uint32_t id;
 	SGS_PROPERTY std::string name;
 	SGS_PROPERTY std::string caption;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float x;

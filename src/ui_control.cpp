@@ -119,7 +119,8 @@ UIEvent::UIEvent() : type(0), key(0), button(0), uchar(0), x(0), y(0), rx(0), ry
 }
 
 
-UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0), m_hover(NULL), m_focus(NULL)
+UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0),
+	m_hover(NULL), m_focus(NULL), m_timerAutoID(1)
 {
 	memset( m_clicktargets, 0, sizeof(m_clicktargets) );
 }
@@ -262,6 +263,15 @@ void UIFrame::doPutChar( int chr )
 		m_focus->niEvent( &e );
 }
 
+int64_t UIFrame::_setTimer( float time_ms, sgsVariable func, bool one_shot )
+{
+	return 0;
+}
+
+void UIFrame::_clearTimer( int64_t id )
+{
+}
+
 void UIFrame::preRemoveControl( UIControl* ctrl )
 {
 	if( m_hover == ctrl )
@@ -296,7 +306,7 @@ int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 
 
 UIControl::UIControl() :
-	x(0.0f), y(0.0f), width(0.0f), height(0.0f),
+	id( UI_NO_ID ), x(0.0f), y(0.0f), width(0.0f), height(0.0f),
 	q0x(0.0f), q0y(0.0f), q1x(0.0f), q1y(0.0f), index(0), topmost(false),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
 	_updatingLayout(false), mouseOn(false), clicked(false), keyboardFocus(false)
@@ -308,6 +318,11 @@ UIControl::UIControl() :
 	sgs_PushDict( C, 0 );
 	m_events = sgsVariable( C, -1 );
 	sgs_Pop( C, 1 );
+}
+
+UIControl::~UIControl()
+{
+	setFrame( UIFrame::Handle() );
 }
 
 int UIControl::niEvent( UIEvent* e )
@@ -364,7 +379,14 @@ void UIControl::updateLayout()
 
 void UIControl::setFrame( UIFrame::Handle fh )
 {
+	if( frame.object )
+		frame->m_controlIDGen.ReleaseID( id );
+	
 	frame = fh;
+	
+	if( frame.object )
+		id = frame->m_controlIDGen.GetID();
+	
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 		(*it)->setFrame( fh );
 }
