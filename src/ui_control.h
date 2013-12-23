@@ -99,12 +99,13 @@ struct UIFrame
 	SGS_METHOD void doPutChar( int chr );
 	
 	// timers
-	SGS_METHOD int64_t setTimeout( float time_ms, sgsVariable func ){ return _setTimer( time_ms, func, true ); }
-	SGS_METHOD int64_t setInterval( float time_ms, sgsVariable func ){ return _setTimer( time_ms, func, false ); }
+	SGS_METHOD int64_t setTimeout( float t, sgsVariable func ){ return _setTimer( t, func, true ); }
+	SGS_METHOD int64_t setInterval( float t, sgsVariable func ){ return _setTimer( t, func, false ); }
 	SGS_METHOD void clearTimeout( int64_t id ){ _clearTimer( id ); }
 	SGS_METHOD void clearInterval( int64_t id ){ _clearTimer( id ); }
-	int64_t _setTimer( float time_ms, sgsVariable func, bool one_shot );
+	int64_t _setTimer( float t, sgsVariable func, bool one_shot );
 	void _clearTimer( int64_t id );
+	SGS_METHOD void processTimers( float t );
 	
 	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
 	

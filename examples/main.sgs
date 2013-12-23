@@ -196,9 +196,12 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		chars = string_utf8_decode( text ),
 		text = text,
 		prevtext = text,
+		show_cursor = true,
 	};
 	
 	tbdata = Textbox.data;
+	tbdata.cursor_timer = parent.frame.setInterval( 0.5, function() use( tbdata ) { tbdata.show_cursor = !tbdata.show_cursor; } );
+	
 	function tbdata.updateSelOffsets()
 	{
 		this.sel_from = max( 0, min( this.sel_from, this.chars.size ) );
@@ -256,7 +259,11 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 	{
 		data = this.data;
 		
-		if( event.type == EV_Layout )
+		if( event.type == EV_Detach )
+		{
+			this.frame.clearInterval( data.cursor_timer );
+		}
+		else if( event.type == EV_Layout )
 		{
 			this.height = data.height;
 		}
@@ -435,7 +442,9 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 			{
 				draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,this.height-pad*2-tpad*2], color = [0.3,0.6,0.9,0.5] });
 			}
-			draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,this.height-pad*2-tpad*2], color = [0.1,0.1,0.1,1] });
+			
+			if( data.show_cursor )
+				draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,this.height-pad*2-tpad*2], color = [0.1,0.1,0.1,1] });
 		}
 	}
 	
@@ -649,6 +658,7 @@ function update()
 	
 	UI.draw();
 	
+	FRAME.processTimers( delta );
 	FRAME.render();
 	
 //	draw({ preset = "box", texture = image, position = mpos, scale = [128,128], angle = rotation * M_PI, color = [0.3,0.5,0.7,1] });

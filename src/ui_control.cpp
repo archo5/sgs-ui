@@ -263,13 +263,46 @@ void UIFrame::doPutChar( int chr )
 		m_focus->niEvent( &e );
 }
 
-int64_t UIFrame::_setTimer( float time_ms, sgsVariable func, bool one_shot )
+int64_t UIFrame::_setTimer( float t, sgsVariable func, bool one_shot )
 {
-	return 0;
+	if( !m_timerAutoID )
+		m_timerAutoID++;
+	
+	UITimerData td = { m_timerAutoID, one_shot ? 0.0f : t, t, func };
+	
+	m_timers[ td.id ] = td;
+	return m_timerAutoID++;
 }
 
 void UIFrame::_clearTimer( int64_t id )
 {
+	UITimerMap::iterator it = m_timers.find( id );
+	if( it != m_timers.end() )
+		m_timers.erase( it );
+}
+
+void UIFrame::processTimers( float t )
+{
+	UITimerMap::iterator it = m_timers.begin();
+	while( it != m_timers.end() )
+	{
+		UITimerData* td = &it->second;
+		td->timeout -= t;
+		if( td->timeout < 0 )
+		{
+			td->func.push( C );
+			sgs_Call( C, 0, 0 );
+			
+			if( td->interval )
+				td->timeout += td->interval;
+			else
+			{
+				m_timers.erase( it++ );
+				continue;
+			}
+		}
+		++it;
+	}
 }
 
 void UIFrame::preRemoveControl( UIControl* ctrl )
