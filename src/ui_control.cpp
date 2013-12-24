@@ -421,11 +421,17 @@ void UIControl::setFrame( UIFrame::Handle fh )
 		id = frame->m_controlIDGen.GetID();
 	
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
-		(*it)->setFrame( fh );
+	{
+		if( it->object )
+			(*it)->setFrame( fh );
+	}
 }
 
 bool UIControl::addChild( UIControl::Handle ch )
 {
+	if( !ch.object )
+		return false;
+	
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
 		if( *it == ch )
@@ -585,7 +591,9 @@ int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 	ctrl->parent.gcmark();
 	ctrl->frame.gcmark();
 	ctrl->callback.gcmark();
+	ctrl->renderfunc.gcmark();
 	ctrl->data.gcmark();
+	ctrl->m_events.gcmark();
 	return SGS_SUCCESS;
 }
 

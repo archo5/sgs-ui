@@ -42,8 +42,43 @@ function draw_fitted( tex, x0, x1, y0, y1 )
 }
 
 
+function ui_create_static( parent, x, y, width, height, caption, color, textmode )
+{
+	Static = ui_create_control( "static" );
+	Static.data =
+	{
+		color = color || [0.5,0.5,0.5,1],
+		textmode = textmode || DT_CENTER | DT_VCENTER,
+	};
+	Static.x = x;
+	Static.y = y;
+	Static.width = width;
+	Static.height = height;
+	Static.caption = caption;
+	
+	function Static.renderfunc()
+	{
+		data = this.data;
+		text = this.caption;
+		
+		draw({ preset = "tile", position = [this.rx0,this.ry0],
+			scale = [this.rx1-this.rx0,this.ry1-this.ry0], color = data.color });
+		
+		if( text )
+		{
+			draw_text_rect( text, Font, data.color, data.textmode, this.rx0, this.rx1, this.ry0, this.ry1 );
+		}
+	}
+	
+	if( typeof(parent) == "UIControl" )
+		parent.addChild( Static );
+	else if( typeof(parent) == "UIFrame" )
+		parent.root = Static;
+	
+	return Static;
+}
 
-function ui_build_button( parent, x, y, width, height, caption, icon )
+function ui_create_button( parent, x, y, width, height, caption, icon )
 {
 	Button = ui_create_control( "button" );
 	if( typeof(icon) == "string" )
@@ -90,7 +125,7 @@ function ui_build_button( parent, x, y, width, height, caption, icon )
 		if( icon )
 		{
 			text_off += icon.width + 4;
-			draw({ preset = "box", position = [ this.rx0 + icon_off + icon.width / 2, cy ], scale = [ icon.width, icon.height ], texture = icon });
+			draw({ preset = "box", position = [ this.rx0 + round( icon_off + icon.width / 2 ), cy ], scale = [ icon.width, icon.height ], texture = icon });
 		}
 		
 		if( text )
@@ -250,7 +285,7 @@ function ui_build_menu( parent, x, y, items, default )
 				draw({ preset = "tile", position = [x,y], scale = [data.item_width,data.item_height], color = if(disabled,[0.7,0.7,0.7,0.5],[0.4,0.6,0.8,0.8]) });
 			
 			if( _( item, "text" ) !== null )
-				draw_text_line( item.text, Font, x + 32, y + (data.item_height - 18) / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
+				draw_text_line_vc( item.text, Font, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
 			else if( disabled )
 				draw({ preset = "tile", position = [x+32,y+data.sep_height/2], scale = [data.item_width-36,1], color = [0.8,0.8,0.8,1] });
 			
@@ -546,13 +581,15 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		
 		x0 = this.rx0 + pad + tpad - data.offset;
 		y0 = this.ry0 + pad + tpad;
+		yc = ( this.ry0 + this.ry1 ) * 0.5;
+		xh = ( this.height-pad*2-tpad*2 - Font.size ) * 0.5;
 		
 		if( !data.chars && !this.keyboardFocus )
 		{
-			draw_text_line( data.caption, Font, x0, y0, [0.1,0.1,0.1,0.5] );
+			draw_text_line_vc( data.caption, Font, x0 + xh, yc, [0.1,0.1,0.1,0.5] );
 		}
 		
-		draw_text_line( data.text, Font, x0, y0, [0.1,0.1,0.1,1] );
+		draw_text_line_vc( data.text, Font, x0, yc, [0.1,0.1,0.1,1] );
 		
 		if( this.keyboardFocus && data.sel_to !== null )
 		{
@@ -638,57 +675,27 @@ function _( obj, prop ){ return if( isset( obj, prop ), obj.(prop), null ); }
 function initialize()
 {
 	set_caption( "The SGS-SDL Game Framework" );
-	printvar( list_video_modes("fullscreen") );
 	set_gl_attrib( SDL_GL_DEPTH_SIZE, 24 );
 	set_gl_attrib( SDL_GL_STENCIL_SIZE, 8 );
 	switch();
 	drawfunc_init();
-//	grab_input(true);
-//	show_cursor(false);
 	
-	global UI = UIFrame.create( 1024, 576 );
-//	UI.addChild( UIControl.createButton( "Make it rain!", 10, 10, 120, 40, function(){} ) );
-
-	global TM = Tilemap.create( create_texture( "ntset.png", "nolerp" ), 32, 32 );
-	floor = _G.floor;
-	randf = _G.randf;
-	for( y = 0; y < 64; ++y )
-	{
-		for( x = 0; x < 64; ++x )
-		{
-			TM.set( x, y, floor( randf() * 3.99 ), floor( randf() * 3.99 ), [1,1,1] );
-		}
-	}
-	
-	println();
-	global image = create_texture( "crosshair.png", "mipmaps" );
-	println( image );
-	printvar( _Gtex );
-	println();
-	
-	global Font = create_font( "verdana.ttf", 14 );
+	global Font = create_font( "verdana.ttf", 11 );
 	
 	
 	global FRAME = ui_create_frame();
+	global STAT = ui_create_static( FRAME, 0, 0, 1024, 576 );
+	global TOPBAR = ui_create_static( STAT, 0, 0, 0, 48, "", [0.8,0.8,0.8,1] );
+	TOPBAR.q1x = 1;
 	
-	global STAT = ui_create_control( "static" );
-	STAT.x = 100;
-	STAT.y = 100;
-	STAT.width = 800;
-	STAT.height = 400;
-	STAT.renderfunc = function()
-	{
-		draw({ preset = "tile", position = [this.rx0,this.ry0],
-			scale = [this.rx1-this.rx0,this.ry1-this.ry0], color = [0.5,0.5,0.5,1] });
-	};
-	FRAME.root = STAT;
+	ui_create_button( TOPBAR, 0, 0, 48, 24, "File" );
+	ui_create_button( TOPBAR, 48, 0, 48, 24, "Edit" );
 	
-	ui_build_button( STAT, 0, 0, 24, 24, "", "icons/page.png" );
-	ui_build_button( STAT, 24, 0, 24, 24, "", "icons/disk.png" );
-	ui_build_button( STAT, 48, 0, 24, 24, "", "icons/disk_multiple.png" );
+	ui_create_button( TOPBAR, 0, 24, 24, 24, "", "icons/page.png" );
+	ui_create_button( TOPBAR, 24, 24, 24, 24, "", "icons/disk.png" );
+	ui_create_button( TOPBAR, 48, 24, 24, 24, "", "icons/disk_multiple.png" );
 	
-	global BTN = ui_build_button( STAT, 100, 100, 100, 30, "Action", "icons/disk.png" );
-	BTN.bindEvent( "click", function(){ println( "Clicked me!" ); } );
+	global BTN = ui_create_button( STAT, 100, 100, 100, 30, "Action", "icons/disk.png" );
 	BTN.bindEvent( "click", function()
 	{
 		items =
@@ -704,22 +711,7 @@ function initialize()
 	
 	ui_create_textbox( STAT, 100, 50, 100, "Key" ).bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
 	ui_create_textbox( STAT, 220, 50, 100, "Value" ).bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
-	
-	global STAT2 = ui_create_control( "static" );
-	STAT2.x = 250;
-	STAT2.y = 150;
-	STAT2.width = 100;
-	STAT2.height = 100;
-	STAT2.index = 1;
-	STAT2.renderfunc = function()
-	{
-		draw({ preset = "tile", position = [this.rx0,this.ry0],
-			scale = [this.rx1-this.rx0,this.ry1-this.ry0], color = [0.7,0.5,0.5,1] });
-	};
-	STAT.addChild( STAT2 );
 }
-
-global mpos = vec2(0,0);
 
 global lasttime = ftime();
 global rotation = 0;
@@ -738,29 +730,10 @@ function update()
 	var cc = [0.1,0.2,0.4];
 	clear( cc );
 	
-	set_camera_2d( 500, 500, 500, W/H, 0 );
-	
-//	TM.render();
-	
-	vdata = fmt_pack( "5f12x 5f12x 5f12x 5f12x",
-		100, 100, 0, 0, 0,
-		200, 100, 0, 1, 0,
-		300, 300, 0, 1, 1,
-		100, 200, 0, 0, 1
-	);
-	vfmt = make_vertex_format( "|pf3tf2" );
-	idata = fmt_pack( "4w", 1, 2, 3, 0 );
-//	draw_packed( image, vfmt, vdata, 0, 4, PT_TRIANGLE_FAN );
-//	draw_packed( image, vfmt, vdata, 0, 4, PT_TRIANGLE_FAN, idata );
-	
 	set_camera_ui( 0, W, 0, H );
-	
-	UI.draw();
 	
 	FRAME.processTimers( delta );
 	FRAME.render();
-	
-//	draw({ preset = "box", texture = image, position = mpos, scale = [128,128], angle = rotation * M_PI, color = [0.3,0.5,0.7,1] });
 	
 	tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";
 	draw_text_line( tx, Font, 101, 1, [0,0,0,1] );
@@ -779,8 +752,6 @@ function on_event( e )
 	if( e.type == SDL_MOUSEMOTION )
 	{
 		FRAME.doMouseMove( e.x, e.y );
-		global mpos = vec2( e.x, e.y );
-//		println( get_relative_mouse_state() );
 	}
 	if( e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP )
 	{
@@ -820,8 +791,6 @@ function on_event( e )
 		switch();
 	if( e.type == SDL_VIDEO_DEVICELOST ) println( "Device lost!" );
 	if( e.type == SDL_VIDEO_DEVICERESET ) println( "Device reset!" );
-
-	UI.event( e );
 }
 
 function cleanup()
