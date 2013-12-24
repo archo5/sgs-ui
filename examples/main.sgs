@@ -3,6 +3,45 @@ include "../bin/sgs-ui";
 
 
 
+function draw_fitted( tex, x0, x1, y0, y1 )
+{
+	dw = x1 - x0;
+	dh = y1 - y0;
+	if( dw <= 0 || dh <= 0 )
+		return;
+	
+	sw = tex.width;
+	sh = tex.height;
+	
+	da = dw / dh;
+	sa = sw / sh;
+	
+	px = ( x0 + x1 ) * 0.5;
+	py = ( y0 + y1 ) * 0.5;
+	
+	if( da > sa ) // extra width
+	{
+		w = dh * sa;
+		h = dh;
+	}
+	else // extra height
+	{
+		w = dw;
+		h = dw / sa;
+	}
+	if( w > sw )
+	{
+		w = sw;
+		h = sh;
+	}
+	
+	px = round( px );
+	py = round( py );
+	
+	draw({ preset = "box", position = [px,py], scale = [w,h], texture = tex });
+}
+
+
 
 function ui_build_menu( parent, x, y, items, default )
 {
@@ -553,8 +592,8 @@ function initialize()
 	global STAT = ui_create_control( "static" );
 	STAT.x = 100;
 	STAT.y = 100;
-	STAT.width = 500;
-	STAT.height = 300;
+	STAT.width = 800;
+	STAT.height = 400;
 	STAT.renderfunc = function()
 	{
 		draw({ preset = "tile", position = [this.rx0,this.ry0],
@@ -563,11 +602,11 @@ function initialize()
 	FRAME.root = STAT;
 	
 	global BTN = ui_create_control( "button" );
-	BTN.data = { mouse_on = false, clicked = false };
+	BTN.data = { icon = create_texture( "editor/img/default_icon.png" ) };
 	BTN.x = 100;
 	BTN.y = 100;
-	BTN.width = 200;
-	BTN.height = 100;
+	BTN.width = 100;
+	BTN.height = 30;
 	BTN.caption = "button";
 	orig_callback = BTN.callback;
 	BTN.bindEvent( "click", function(){ println( "Clicked me!" ); } );
@@ -596,10 +635,21 @@ function initialize()
 	};
 	BTN.renderfunc = function()
 	{
+		data = this.data;
+		icon = _( data, "icon" );
+		
 		cadd = if( this.clicked, -0.1, if( this.mouseOn, 0.1, 0.0 ) );
 		draw({ preset = "tile", position = [this.rx0,this.ry0],
 			scale = [this.rx1-this.rx0,this.ry1-this.ry0], color = [0.3+cadd,0.5+cadd,0.7+cadd,1] });
-		draw_text_rect( this.caption, Font, [1,1,1,1], DT_CENTER | DT_VCENTER, this.rx0, this.rx1, this.ry0, this.ry1 );
+		
+		tlft = this.rx0;
+		if( icon )
+		{
+			pad = min( this.rx1 - this.rx0, this.ry1 - this.ry0 ) / 16;
+			tlft = this.rx0 * 3 / 4 + this.rx1 * 1 / 4;
+			draw_fitted( icon, this.rx0 + pad, tlft - pad, this.ry0 + pad, this.ry1 - pad );
+		}
+		draw_text_rect( this.caption, Font, [1,1,1,1], DT_CENTER | DT_VCENTER, tlft, this.rx1, this.ry0, this.ry1 );
 	};
 	STAT.addChild( BTN );
 	
