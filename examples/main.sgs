@@ -43,6 +43,69 @@ function draw_fitted( tex, x0, x1, y0, y1 )
 
 
 
+function ui_build_button( parent, x, y, width, height, caption, icon )
+{
+	Button = ui_create_control( "button" );
+	if( typeof(icon) == "string" )
+		icon = create_texture( icon );
+	Button.data = { icon = icon };
+	Button.x = x;
+	Button.y = y;
+	Button.width = width;
+	Button.height = height;
+	Button.caption = caption;
+	
+	orig_callback = Button.callback;
+	
+	function Button.callback( event ) use( orig_callback )
+	{
+		if( event.type == EV_NeedFocus )
+			return 1;
+		if( event.type == EV_ButtonDown && event.button != 0 )
+		{
+			this.frame.setFocus( this );
+			return;
+		}
+		return orig_callback.thiscall( this, event );
+	}
+	
+	function Button.renderfunc()
+	{
+		data = this.data;
+		icon = _( data, "icon" );
+		text = this.caption;
+		
+		cadd = if( this.clicked, -0.1, if( this.mouseOn, 0.1, 0.0 ) );
+		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
+		draw_color_rect( this.rx0+1, this.ry0+1, this.rx1-1, this.ry1-1, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
+		
+		fullwidth = 0;
+		if( icon ) fullwidth += icon.width;
+		if( text ) fullwidth += Font.get_text_length( text );
+		if( icon && text ) fullwidth += 4;
+		
+		icon_off = ( this.rx1 - this.rx0 - fullwidth ) / 2;
+		text_off = icon_off;
+		cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
+		if( icon )
+		{
+			text_off += icon.width + 4;
+			draw({ preset = "box", position = [ this.rx0 + icon_off + icon.width / 2, cy ], scale = [ icon.width, icon.height ], texture = icon });
+		}
+		
+		if( text )
+		{
+			draw_text_line_vc( text, Font, this.rx0 + text_off, cy, [1,1,1,1] );
+		}
+	}
+	
+	parent.addChild( Button );
+	
+	return Button;
+}
+
+
+
 function ui_build_menu( parent, x, y, items, default )
 {
 	Menu = ui_create_control( "menu" );
@@ -236,10 +299,24 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		text = text,
 		prevtext = text,
 		show_cursor = true,
+		cursor_timer = null,
 	};
 	
 	tbdata = Textbox.data;
-	tbdata.cursor_timer = parent.frame.setInterval( 0.5, function() use( tbdata ) { tbdata.show_cursor = !tbdata.show_cursor; } );
+	
+	function tbdata.removeCursorTimer( frame )
+	{
+		if( this.cursor_timer )
+			frame.clearInterval( this.cursor_timer );
+		this.cursor_timer = null;
+	}
+	function tbdata.resetCursorTimer( frame )
+	{
+		tbdata = this;
+		this.removeCursorTimer();
+		this.cursor_timer = frame.setInterval( 0.5, function() use( tbdata ) { tbdata.show_cursor = !tbdata.show_cursor; } );
+		this.show_cursor = true;
+	}
 	
 	function tbdata.updateSelOffsets()
 	{
@@ -300,7 +377,7 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		
 		if( event.type == EV_Detach )
 		{
-			this.frame.clearInterval( data.cursor_timer );
+			data.removeCursorTimer( this.frame );
 		}
 		else if( event.type == EV_Layout )
 		{
@@ -309,9 +386,13 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		else if( event.type == EV_NeedFocus )
 			return 1;
 		else if( event.type == EV_FocusEnter )
+		{
 			data.prevtext = data.text;
+			data.resetCursorTimer( this.frame );
+		}
 		else if( event.type == EV_FocusLeave )
 		{
+			data.removeCursorTimer( this.frame );
 			if( data.prevtext != data.text )
 				this.callEvent( "commit", event );
 		}
@@ -561,6 +642,7 @@ function initialize()
 	set_gl_attrib( SDL_GL_DEPTH_SIZE, 24 );
 	set_gl_attrib( SDL_GL_STENCIL_SIZE, 8 );
 	switch();
+	drawfunc_init();
 //	grab_input(true);
 //	show_cursor(false);
 	
@@ -601,14 +683,11 @@ function initialize()
 	};
 	FRAME.root = STAT;
 	
-	global BTN = ui_create_control( "button" );
-	BTN.data = { icon = create_texture( "editor/img/default_icon.png" ) };
-	BTN.x = 100;
-	BTN.y = 100;
-	BTN.width = 100;
-	BTN.height = 30;
-	BTN.caption = "button";
-	orig_callback = BTN.callback;
+	ui_build_button( STAT, 0, 0, 24, 24, "", "icons/page.png" );
+	ui_build_button( STAT, 24, 0, 24, 24, "", "icons/disk.png" );
+	ui_build_button( STAT, 48, 0, 24, 24, "", "icons/disk_multiple.png" );
+	
+	global BTN = ui_build_button( STAT, 100, 100, 100, 30, "Action", "icons/disk.png" );
 	BTN.bindEvent( "click", function(){ println( "Clicked me!" ); } );
 	BTN.bindEvent( "click", function()
 	{
@@ -622,36 +701,6 @@ function initialize()
 		];
 		ui_build_menu( this.frame.root, this.rx0, this.ry1, items );
 	});
-	BTN.callback = function( event ) use( orig_callback )
-	{
-		if( event.type == EV_NeedFocus )
-			return 1;
-		if( event.type == EV_ButtonDown && event.button != 0 )
-		{
-			this.frame.setFocus( this );
-			return;
-		}
-		return orig_callback.thiscall( this, event );
-	};
-	BTN.renderfunc = function()
-	{
-		data = this.data;
-		icon = _( data, "icon" );
-		
-		cadd = if( this.clicked, -0.1, if( this.mouseOn, 0.1, 0.0 ) );
-		draw({ preset = "tile", position = [this.rx0,this.ry0],
-			scale = [this.rx1-this.rx0,this.ry1-this.ry0], color = [0.3+cadd,0.5+cadd,0.7+cadd,1] });
-		
-		tlft = this.rx0;
-		if( icon )
-		{
-			pad = min( this.rx1 - this.rx0, this.ry1 - this.ry0 ) / 16;
-			tlft = this.rx0 * 3 / 4 + this.rx1 * 1 / 4;
-			draw_fitted( icon, this.rx0 + pad, tlft - pad, this.ry0 + pad, this.ry1 - pad );
-		}
-		draw_text_rect( this.caption, Font, [1,1,1,1], DT_CENTER | DT_VCENTER, tlft, this.rx1, this.ry0, this.ry1 );
-	};
-	STAT.addChild( BTN );
 	
 	ui_create_textbox( STAT, 100, 50, 100, "Key" ).bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
 	ui_create_textbox( STAT, 220, 50, 100, "Value" ).bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
