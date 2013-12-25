@@ -24,6 +24,8 @@ int UIControl_CtrlProc( SGS_CTX )
 	if( !event )
 		return sgs_Printf( C, SGS_WARNING, "expected UIEvent as argument 1" );
 	
+	// default return value
+	sgs_PushInt( C, 1 );
 	switch( event->type )
 	{
 	case EV_Layout:
@@ -33,10 +35,10 @@ int UIControl_CtrlProc( SGS_CTX )
 			UIFrame* frame = ctrl->frame;
 			if( prt )
 			{
-				pr0x = prt->rx0;
-				pr0y = prt->ry0;
-				pr1x = prt->rx1;
-				pr1y = prt->ry1;
+				pr0x = prt->rx0 + prt->nc_left;
+				pr0y = prt->ry0 + prt->nc_top;
+				pr1x = prt->rx1 - prt->nc_right;
+				pr1y = prt->ry1 - prt->nc_bottom;
 			}
 			else if( frame )
 			{
@@ -76,8 +78,17 @@ int UIControl_CtrlProc( SGS_CTX )
 		return 1;
 	
 	case EV_HitTest:
-		sgs_PushInt( C, event->x >= ctrl->rx0 && event->x <= ctrl->rx1 &&
-			event->y >= ctrl->ry0 && event->y <= ctrl->ry1 );
+		if( event->x >= ctrl->rx0 && event->x <= ctrl->rx1 &&
+			event->y >= ctrl->ry0 && event->y <= ctrl->ry1 )
+		{
+			if( event->x >= ctrl->rx0 + ctrl->nc_left && event->x <= ctrl->rx1 - ctrl->nc_right &&
+				event->y >= ctrl->ry0 + ctrl->nc_top && event->y <= ctrl->ry1 - ctrl->nc_bottom )
+				sgs_PushInt( C, Hit_Client );
+			else
+				sgs_PushInt( C, Hit_NonClient );
+		}
+		else
+			sgs_PushInt( C, Hit_None );
 		return 1;
 	
 	case EV_MouseEnter:
@@ -88,10 +99,12 @@ int UIControl_CtrlProc( SGS_CTX )
 		return 1;
 	case EV_ButtonDown:
 		ctrl->clicked = ctrl->mouseOn;
+		ctrl->callEvent( "mousedown", event );
 		if( ctrl->frame.object )
 			ctrl->frame->setFocus( ctrl );
 		return 1;
 	case EV_ButtonUp:
+		ctrl->callEvent( "mouseup", event );
 		if( ctrl->clicked && ctrl->mouseOn )
 			ctrl->callEvent( "click", event );
 		ctrl->clicked = false;
@@ -123,6 +136,7 @@ UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0)
 	m_hover(NULL), m_focus(NULL), m_timerAutoID(1)
 {
 	memset( m_clicktargets, 0, sizeof(m_clicktargets) );
+	memset( m_clickoffsets, 0, sizeof(m_clickoffsets) );
 }
 
 
@@ -147,6 +161,7 @@ void UIFrame::handleMouseMove()
 	htev.y = mouseY;
 	
 	UIControl* ctrl = root, *prevhover = m_hover;
+	int nonclient = -1;
 	m_hover = NULL;
 	while( ctrl && m_hover != ctrl )
 	{
@@ -154,10 +169,15 @@ void UIFrame::handleMouseMove()
 		for( UIControl::HandleArray::reverse_iterator it = ctrl->m_sorted.rbegin(), itend = ctrl->m_sorted.rend(); it != itend; ++it )
 		{
 			UIControl* nc = *it;
-			if( nc->niEvent( &htev ) )
+			if( nonclient < 0 || nonclient == ( nc->nonclient ? 1 : 0 ) )
 			{
-				ctrl = nc;
-				break;
+				int hit = nc->niEvent( &htev );
+				if( hit != Hit_None )
+				{
+					ctrl = nc;
+					nonclient = hit == Hit_NonClient ? 1 : 0;
+					break;
+				}
 			}
 		}
 	}
@@ -210,6 +230,11 @@ void UIFrame::doMouseMove( float x, float y )
 		mev.y = mouseY;
 		if( m_hover ){ mev.type = EV_MouseMove; m_hover->niBubblingEvent( &mev ); }
 	}
+	
+	if( root.object )
+	{
+		root->callEvent( "globalmousemove", &e );
+	}
 }
 
 void UIFrame::doMouseButton( int btn, bool down )
@@ -234,12 +259,14 @@ void UIFrame::doMouseButton( int btn, bool down )
 	else if( m_hover )
 	{
 		m_clicktargets[ btn ] = m_hover;
+		m_clickoffsets[ btn ][0] = mouseX - m_hover->rx0;
+		m_clickoffsets[ btn ][1] = mouseY - m_hover->ry0;
 		m_hover->niBubblingEvent( &e );
 	}
 	
 	if( root.object )
 	{
-		root->callEvent( down ? "buttondown" : "buttonup", &e );
+		root->callEvent( down ? "globalbuttondown" : "globalbuttonup", &e );
 	}
 }
 
@@ -340,7 +367,9 @@ int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 
 UIControl::UIControl() :
 	id( UI_NO_ID ), x(0.0f), y(0.0f), width(0.0f), height(0.0f),
-	q0x(0.0f), q0y(0.0f), q1x(0.0f), q1y(0.0f), index(0), topmost(false),
+	q0x(0.0f), q0y(0.0f), q1x(0.0f), q1y(0.0f),
+	nc_top(0.0f), nc_left(0.0f), nc_right(0.0f), nc_bottom(0.0f),
+	index(0), topmost(false), nonclient(false),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
 	_updatingLayout(false), mouseOn(false), clicked(false), keyboardFocus(false)
 {
@@ -498,11 +527,14 @@ UIControl::Handle UIControl::findChild( std::string name )
 	return UIControl::Handle();
 }
 
-sgsVariable UIControl::children()
+sgsVariable UIControl::children( bool nonclient )
 {
 	sgs_SetStackSize( C, 0 );
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
-		sgs_PushHandle( C, *it );
+	{
+		if( (*it)->nonclient == nonclient )
+			sgs_PushHandle( C, *it );
+	}
 	sgs_PushArray( C, sgs_StackSize( C ) );
 	return sgsVariable( C, -1 );
 }

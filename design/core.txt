@@ -37,10 +37,28 @@ shape masks + gradient rendering can be optimized if the gradient is first conve
 
 UI Controls:
 basic:
-- static control
-- button (text, with icon, icon only)
-- textbox (single-line)
++ static control
++ button (text, with icon, icon only)
++ textbox (single-line)
 extended:
 - scrollbar (H, V)
 - dropdown menu
 - listbox
+
+
+==============
+UI for EDITORS
+--------------
+special exts..
+
+- scrollable panels -- contents are scrollable, can contain anything
+- multi-level menus -- same as everywhere else
+- possibly toolbars
+- different color themes
+- tabbed panels (automatically assigning names to buttons)
+- autocomplete popups (relative non-constrained overlays)
+
+a very common need:
+> non-client areas for things like tabs and scrollbars
+- essentially means there's a padding around the client area where nothing can exist
+- it is still processed by the control's mouse click and other events but clients do not come into it with an additional AABB test to make sure

@@ -46,6 +46,10 @@
 #define Key_Redo      12
 #define Key_SelectAll 13
 
+#define Hit_Client    2
+#define Hit_NonClient 1
+#define Hit_None      0
+
 #define KeyMod_Filter 0x0FF
 #define KeyMod_Shift  0x100
 
@@ -109,6 +113,10 @@ struct UIFrame
 	
 	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
 	
+	// info retrieval
+	SGS_METHOD float getClickOffsetX( int button ){ if( button < 0 || button >= Mouse_Button_Count ) return 0; return m_clickoffsets[ button ][0]; }
+	SGS_METHOD float getClickOffsetY( int button ){ if( button < 0 || button >= Mouse_Button_Count ) return 0; return m_clickoffsets[ button ][1]; }
+	
 	SGS_PROPERTY sgsVariable render_image;
 	SGS_PROPERTY sgsVariable render_text;
 	SGS_PROPERTY sgsVariable ui_event;
@@ -128,6 +136,7 @@ struct UIFrame
 	UIControl* m_hover;
 	UIControl* m_focus;
 	UIControl* m_clicktargets[ Mouse_Button_Count ];
+	float m_clickoffsets[ Mouse_Button_Count ][2];
 	UITimerMap m_timers;
 	int64_t m_timerAutoID;
 	IDGen m_controlIDGen;
@@ -155,7 +164,7 @@ struct UIControl
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
 	SGS_METHOD UIControl::Handle findChild( std::string name );
-	SGS_METHOD sgsVariable children();
+	SGS_METHOD sgsVariable children( bool nonclient );
 	SGS_METHOD void sortChildren();
 	SGS_METHOD void sortSiblings();
 	
@@ -176,8 +185,13 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q0y;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1y;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_top;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_left;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_right;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_bottom;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) int index;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) bool topmost;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) bool nonclient;
 	SGS_PROPERTY std::string type;
 	SGS_PROPERTY READ Handle parent;
 	SGS_PROPERTY READ UIFrame::Handle frame;

@@ -140,6 +140,104 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 }
 
 
+function ui_create_vscroll( parent, x, y, width, height, space, window, position )
+{
+	VScroll = ui_create_control( "vscroll" );
+	VScroll.x = x;
+	VScroll.y = y;
+	VScroll.width = width;
+	VScroll.height = height;
+	VScroll.data =
+	{
+		space = space,
+		window = window,
+		position = position,
+	};
+	
+	scroll_height = height - 48;
+	bar_pos = if( space, scroll_height * position / space, 0 );
+	bar_height = if( space, scroll_height * window / space, scroll_height );
+	
+	btnUP = ui_create_button( VScroll, 0, 0, width, 24, "", "icons/arrow_up.png" );
+	btnDN = ui_create_button( VScroll, 0, -24, width, 24, "", "icons/arrow_down.png" );
+	btnCS = ui_create_button( VScroll, 0, 24 + bar_pos, width, bar_height, "" );
+	btnDN.q0y = 1;
+	btnDN.q1y = 1;
+	
+	VScroll_data = VScroll.data;
+	function VScroll_data.moveRel( dist, VScroll, btnCS )
+	{
+		opos = this.position;
+		this.position += dist;
+		maxpos = this.space - this.window;
+		if( maxpos < 0 ) maxpos = 0;
+		if( this.position < 0 ) this.position = 0;
+		if( this.position > maxpos ) this.position = maxpos;
+		
+		scroll_height = VScroll.height - 48;
+		btnCS.y = 24 + if( this.space, scroll_height * this.position / this.space, 0 );
+		
+		if( VScroll.frame )
+			VScroll.frame.handleMouseMove();
+		
+		if( opos != this.position )
+		{
+			e = ui_create_event();
+			e.y = this.position;
+			VScroll.callEvent( "change", e );
+		}
+	}
+	function VScroll_data.moveToAbs( y, VScroll, btnCS )
+	{
+		ry = y - VScroll.ry0 - 24;
+		np = ry / ( VScroll.height - 48 - btnCS.height ) * ( this.space - this.window );
+		this.moveRel( np - this.position, VScroll, btnCS );
+	}
+	function VScroll_data.VScroll_onmousemove( event ) use( VScroll, btnCS )
+	{
+		if( btnCS.clicked )
+		{
+			VScroll.data.moveToAbs( event.y - VScroll.frame.getClickOffsetY( event.button ), VScroll, btnCS );
+		}
+	}
+	
+	btnUP.bindEvent( "click", function() use( VScroll, btnCS ){ VScroll.data.moveRel( -32, VScroll, btnCS ); } );
+	btnDN.bindEvent( "click", function() use( VScroll, btnCS ){ VScroll.data.moveRel( 32, VScroll, btnCS ); } );
+	
+	vscroll_orig_callback = VScroll.callback;
+	function VScroll.callback( event ) use( vscroll_orig_callback, btnCS )
+	{
+		data = this.data;
+		if( event.type == EV_Attach )
+		{
+			if( this.frame )
+				this.frame.root.bindEvent( "globalmousemove", data.VScroll_onmousemove );
+		}
+		else if( event.type == EV_Detach )
+		{
+			if( this.frame )
+				this.frame.root.unbindEvent( "globalmousemove", data.VScroll_onmousemove );
+		}
+		else if( event.type == EV_ButtonDown )
+		{
+			if( event.button == Mouse_ButtonL )
+				data.moveToAbs( event.y - btnCS.height / 2, this, btnCS );
+		}
+		return vscroll_orig_callback.thiscall( this, event );
+	}
+	
+	function VScroll.renderfunc()
+	{
+		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.8, 0.8, 0.8, 1 );
+		draw_color_rect( this.rx0 + 1, this.ry0 + 1, this.rx1 - 1, this.ry1 - 1, 0.7, 0.7, 0.7, 1 );
+	}
+	
+	parent.addChild( VScroll );
+	
+	return VScroll;
+}
+
+
 
 function ui_build_menu( parent, x, y, items, default )
 {
@@ -684,7 +782,7 @@ function initialize()
 	
 	
 	global FRAME = ui_create_frame();
-	global STAT = ui_create_static( FRAME, 0, 0, 1024, 576 );
+	global STAT = ui_create_static( FRAME, 10, 10, 1024 - 20, 576 - 20 );
 	global TOPBAR = ui_create_static( STAT, 0, 0, 0, 48, "", [0.8,0.8,0.8,1] );
 	TOPBAR.q1x = 1;
 	
@@ -711,6 +809,8 @@ function initialize()
 	
 	ui_create_textbox( STAT, 100, 50, 100, "Key" ).bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
 	ui_create_textbox( STAT, 220, 50, 100, "Value" ).bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
+	
+	ui_create_vscroll( STAT, 400, 100, 24, 400, 1000, 300, 37 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
 }
 
 global lasttime = ftime();

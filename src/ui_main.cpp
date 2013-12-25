@@ -68,6 +68,10 @@ sgs_RegIntConst g_iconsts[] =
 	FN( Key_Redo      ),
 	FN( Key_SelectAll ),
 	
+	FN( Hit_Client    ),
+	FN( Hit_NonClient ),
+	FN( Hit_None      ),
+	
 	FN( KeyMod_Filter ),
 	FN( KeyMod_Shift  ),
 	
