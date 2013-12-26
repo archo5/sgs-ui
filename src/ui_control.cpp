@@ -137,8 +137,28 @@ UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0)
 {
 	memset( m_clicktargets, 0, sizeof(m_clicktargets) );
 	memset( m_clickoffsets, 0, sizeof(m_clickoffsets) );
+	
+	root = createControl( "root" );
+	root->q1x = 1;
+	root->q1y = 1;
+	root->updateLayout();
 }
 
+UIFrame::~UIFrame()
+{
+	root = UIControl::Handle();
+}
+
+UIControl::Handle UIFrame::createControl( std::string type )
+{
+	UIControl* ctrl = SGS_PUSHCLASS( C, UIControl, () );
+	ctrl->type = type;
+	ctrl->frame = Handle( m_sgsObject, C );
+	ctrl->id = m_controlIDGen.GetID();
+	UIControl::Handle handle = sgs_GetVar< UIControl::Handle >()( C, -1 );
+	sgs_Pop( C, 1 );
+	return handle;
+}
 
 void UIFrame::event( UIEvent* e )
 {
@@ -345,15 +365,6 @@ void UIFrame::preRemoveControl( UIControl* ctrl )
 	}
 }
 
-void UIFrame::initRoot()
-{
-	if( root.object )
-	{
-		root->setFrame( Handle( m_sgsObject, C ) );
-		root->updateLayout();
-	}
-}
-
 int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 {
 	UIFrame* frame = static_cast<UIFrame*>(obj->data);
@@ -384,7 +395,7 @@ UIControl::UIControl() :
 
 UIControl::~UIControl()
 {
-	setFrame( UIFrame::Handle() );
+	frame->m_controlIDGen.ReleaseID( id );
 }
 
 int UIControl::niEvent( UIEvent* e )
@@ -439,27 +450,19 @@ void UIControl::updateLayout()
 	_updatingLayout = false;
 }
 
-void UIControl::setFrame( UIFrame::Handle fh )
-{
-	if( frame.object )
-		frame->m_controlIDGen.ReleaseID( id );
-	
-	frame = fh;
-	
-	if( frame.object )
-		id = frame->m_controlIDGen.GetID();
-	
-	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
-	{
-		if( it->object )
-			(*it)->setFrame( fh );
-	}
-}
-
 bool UIControl::addChild( UIControl::Handle ch )
 {
 	if( !ch.object )
+	{
+		sgs_Printf( C, SGS_WARNING, "cannot add null" );
 		return false;
+	}
+	
+	if( ch->frame != frame )
+	{
+		sgs_Printf( C, SGS_WARNING, "frames don't match" );
+		return false;
+	}
 	
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
@@ -469,7 +472,6 @@ bool UIControl::addChild( UIControl::Handle ch )
 	m_children.push_back( ch );
 	m_sorted.push_back( ch );
 	ch->parent = Handle( m_sgsObject, C );
-	ch->setFrame( frame );
 	sortChildren();
 	
 	UIEvent e;
@@ -510,7 +512,6 @@ bool UIControl::removeChild( UIControl::Handle ch )
 		ch->frame->handleMouseMove();
 		ch->frame->preRemoveControl( ch );
 	}
-	ch->frame = UIFrame::Handle();
 	sortChildren();
 	
 	return found;

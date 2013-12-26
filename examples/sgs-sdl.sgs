@@ -44,7 +44,7 @@ function draw_fitted( tex, x0, x1, y0, y1 )
 
 function ui_create_static( parent, x, y, width, height, caption, color, textmode )
 {
-	Static = ui_create_control( "static" );
+	Static = parent.frame.createControl( "static" );
 	Static.data =
 	{
 		color = color || [0.5,0.5,0.5,1],
@@ -80,7 +80,7 @@ function ui_create_static( parent, x, y, width, height, caption, color, textmode
 
 function ui_create_button( parent, x, y, width, height, caption, icon )
 {
-	Button = ui_create_control( "button" );
+	Button = parent.frame.createControl( "button" );
 	if( typeof(icon) == "string" )
 		icon = create_texture( icon );
 	Button.data = { icon = icon };
@@ -142,13 +142,16 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 
 function ui_create_vscroll( parent, x, y, width, height, space, window, position )
 {
-	VScroll = ui_create_control( "vscroll" );
+	VScroll = parent.frame.createControl( "vscroll" );
 	VScroll.x = x;
 	VScroll.y = y;
 	VScroll.width = width;
 	VScroll.height = height;
 	VScroll.data =
 	{
+		button_size = 24,
+		move_step = 32,
+		
 		space = space,
 		window = window,
 		position = position,
@@ -174,11 +177,10 @@ function ui_create_vscroll( parent, x, y, width, height, space, window, position
 		if( this.position < 0 ) this.position = 0;
 		if( this.position > maxpos ) this.position = maxpos;
 		
-		scroll_height = VScroll.height - 48;
+		scroll_height = VScroll.height - this.button_size * 2;
 		btnCS.y = 24 + if( this.space, scroll_height * this.position / this.space, 0 );
 		
-		if( VScroll.frame )
-			VScroll.frame.handleMouseMove();
+		VScroll.frame.handleMouseMove();
 		
 		if( opos != this.position )
 		{
@@ -189,8 +191,8 @@ function ui_create_vscroll( parent, x, y, width, height, space, window, position
 	}
 	function VScroll_data.moveToAbs( y, VScroll, btnCS )
 	{
-		ry = y - VScroll.ry0 - 24;
-		np = ry / ( VScroll.height - 48 - btnCS.height ) * ( this.space - this.window );
+		ry = y - VScroll.ry0 - this.button_size;
+		np = ry / ( VScroll.height - this.button_size * 2 - btnCS.height ) * ( this.space - this.window );
 		this.moveRel( np - this.position, VScroll, btnCS );
 	}
 	function VScroll_data.VScroll_onmousemove( event ) use( VScroll, btnCS )
@@ -201,8 +203,8 @@ function ui_create_vscroll( parent, x, y, width, height, space, window, position
 		}
 	}
 	
-	btnUP.bindEvent( "click", function() use( VScroll, btnCS ){ VScroll.data.moveRel( -32, VScroll, btnCS ); } );
-	btnDN.bindEvent( "click", function() use( VScroll, btnCS ){ VScroll.data.moveRel( 32, VScroll, btnCS ); } );
+	btnUP.bindEvent( "click", function() use( VScroll, btnCS ){ VScroll.data.moveRel( -VScroll.data.move_step, VScroll, btnCS ); } );
+	btnDN.bindEvent( "click", function() use( VScroll, btnCS ){ VScroll.data.moveRel( VScroll.data.move_step, VScroll, btnCS ); } );
 	
 	vscroll_orig_callback = VScroll.callback;
 	function VScroll.callback( event ) use( vscroll_orig_callback, btnCS )
@@ -210,13 +212,11 @@ function ui_create_vscroll( parent, x, y, width, height, space, window, position
 		data = this.data;
 		if( event.type == EV_Attach )
 		{
-			if( this.frame )
-				this.frame.root.bindEvent( "globalmousemove", data.VScroll_onmousemove );
+			this.frame.root.bindEvent( "globalmousemove", data.VScroll_onmousemove );
 		}
 		else if( event.type == EV_Detach )
 		{
-			if( this.frame )
-				this.frame.root.unbindEvent( "globalmousemove", data.VScroll_onmousemove );
+			this.frame.root.unbindEvent( "globalmousemove", data.VScroll_onmousemove );
 		}
 		else if( event.type == EV_ButtonDown )
 		{
@@ -241,7 +241,7 @@ function ui_create_vscroll( parent, x, y, width, height, space, window, position
 
 function ui_build_menu( parent, x, y, items, default )
 {
-	Menu = ui_create_control( "menu" );
+	Menu = parent.frame.createControl( "menu" );
 	Menu.x = x - parent.x;
 	Menu.y = y - parent.y;
 	Menu.topmost = true;
@@ -410,7 +410,7 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 	caption ||= "";
 	text ||= "";
 	
-	Textbox = ui_create_control( "textbox" );
+	Textbox = parent.frame.createControl( "textbox" );
 	Textbox.x = x;
 	Textbox.y = y;
 	Textbox.width = width;
@@ -689,16 +689,17 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		
 		draw_text_line_vc( data.text, Font, x0, yc, [0.1,0.1,0.1,1] );
 		
-		if( this.keyboardFocus && data.sel_to !== null )
+		if( data.sel_to !== null )
 		{
 			from = min( data.fsel_from, data.fsel_to );
 			to = max( data.fsel_from, data.fsel_to );
 			if( from != to )
 			{
-				draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,this.height-pad*2-tpad*2], color = [0.3,0.6,0.9,0.5] });
+				selcol = if( this.keyboardFocus, [0.3,0.6,0.9,0.5], [0.8,0.8,0.8,0.5] );
+				draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,this.height-pad*2-tpad*2], color = selcol });
 			}
 			
-			if( data.show_cursor )
+			if( this.keyboardFocus && data.show_cursor )
 				draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,this.height-pad*2-tpad*2], color = [0.1,0.1,0.1,1] });
 		}
 	}
@@ -782,7 +783,7 @@ function initialize()
 	
 	
 	global FRAME = ui_create_frame();
-	global STAT = ui_create_static( FRAME, 10, 10, 1024 - 20, 576 - 20 );
+	global STAT = ui_create_static( FRAME.root, 10, 10, 1024 - 20, 576 - 20 );
 	global TOPBAR = ui_create_static( STAT, 0, 0, 0, 48, "", [0.8,0.8,0.8,1] );
 	TOPBAR.q1x = 1;
 	
@@ -835,9 +836,9 @@ function update()
 	FRAME.processTimers( delta );
 	FRAME.render();
 	
-	tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";
-	draw_text_line( tx, Font, 101, 1, [0,0,0,1] );
-	draw_text_line( tx, Font, 100, 0, [0.9,0.8,0.7,1] );
+//	tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";
+//	draw_text_line( tx, Font, 101, 1, [0,0,0,1] );
+//	draw_text_line( tx, Font, 100, 0, [0.9,0.8,0.7,1] );
 	
 	present();
 

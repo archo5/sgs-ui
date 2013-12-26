@@ -90,6 +90,9 @@ struct UIFrame
 	SGS_OBJECT;
 	
 	UIFrame();
+	~UIFrame();
+	
+	SGS_METHOD sgsHandle< UIControl > createControl( std::string type );
 	
 	SGS_METHOD void event( UIEvent* e );
 	SGS_METHOD void render();
@@ -125,13 +128,12 @@ struct UIFrame
 	SGS_PROPERTY float y;
 	SGS_PROPERTY float width;
 	SGS_PROPERTY float height;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK initRoot ) sgsHandle< UIControl > root;
+	SGS_PROPERTY READ sgsHandle< UIControl > root;
 	
 	SGS_PROPERTY READ float mouseX;
 	SGS_PROPERTY READ float mouseY;
 	
 	void preRemoveControl( UIControl* ctrl );
-	void initRoot();
 	
 	UIControl* m_hover;
 	UIControl* m_focus;
@@ -158,8 +160,6 @@ struct UIControl
 	void niBubblingEvent( UIEvent* e );
 	void niRender();
 	void updateLayout();
-	
-	void setFrame( UIFrame::Handle fh );
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );

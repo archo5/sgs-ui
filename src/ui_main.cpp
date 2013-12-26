@@ -8,25 +8,14 @@
 
 int ui_create_event( SGS_CTX )
 {
-	SGS_PUSHCLASS( C, UIEvent, () );
+	UIEvent* ev = SGS_PUSHCLASS( C, UIEvent, () );
+	ev->type = sgs_GetInt( C, 0 );
 	return 1;
 }
 
 int ui_create_frame( SGS_CTX )
 {
 	SGS_PUSHCLASS( C, UIFrame, () );
-	return 1;
-}
-
-int ui_create_control( SGS_CTX )
-{
-	char* str;
-	sgs_SizeVal size;
-	if( !sgs_LoadArgs( C, "m", &str, &size ) )
-		return 0;
-	
-	UIControl* ctrl = SGS_PUSHCLASS( C, UIControl, () );
-	ctrl->type = std::string( str, size );
 	return 1;
 }
 
@@ -82,7 +71,6 @@ sgs_RegFuncConst g_fconsts[] =
 {
 	FN( ui_create_event ),
 	FN( ui_create_frame ),
-	FN( ui_create_control ),
 	{NULL,NULL},
 };
 
