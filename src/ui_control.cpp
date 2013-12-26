@@ -97,6 +97,13 @@ int UIControl_CtrlProc( SGS_CTX )
 		else
 			sgs_PushInt( C, Hit_None );
 		return 1;
+		
+	case EV_MouseMove:
+	case EV_MouseWheel:
+	case EV_KeyDown:
+	case EV_KeyUp:
+		// allow bubbling
+		return 1;
 	
 	case EV_MouseEnter:
 		ctrl->mouseOn = true;
@@ -299,6 +306,23 @@ void UIFrame::doMouseButton( int btn, bool down )
 	}
 }
 
+void UIFrame::doMouseWheel( float down )
+{
+	UIEvent e;
+	e.type = EV_MouseWheel;
+	e.x = e.y = down;
+	
+	if( m_hover )
+	{
+		m_hover->niBubblingEvent( &e );
+	}
+	
+	if( root.object )
+	{
+		root->callEvent( "globalmousewheel", &e );
+	}
+}
+
 void UIFrame::doKeyPress( int key, bool down )
 {
 	UIEvent e;
@@ -488,7 +512,7 @@ void UIControl::niBubblingEvent( UIEvent* e )
 	UIControl* cc = this;
 	while( cc )
 	{
-		if( !niEvent( e ) )
+		if( !cc->niEvent( e ) )
 			break;
 		cc = cc->parent;
 	}

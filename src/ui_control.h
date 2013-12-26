@@ -23,6 +23,7 @@
 #define EV_MouseMove  22
 #define EV_MouseEnter 23
 #define EV_MouseLeave 24
+#define EV_MouseWheel 25
 #define EV_Attach     30
 #define EV_Detach     31
 #define EV_HitTest    32
@@ -47,6 +48,8 @@
 #define Key_Undo      11
 #define Key_Redo      12
 #define Key_SelectAll 13
+#define Key_PageUp    14
+#define Key_PageDown  15
 
 #define Hit_Client    2
 #define Hit_NonClient 1
@@ -111,6 +114,7 @@ struct UIFrame
 	// event generation shortcuts
 	SGS_METHOD void doMouseMove( float x, float y );
 	SGS_METHOD void doMouseButton( int btn, bool down );
+	SGS_METHOD void doMouseWheel( float down );
 	SGS_METHOD void doKeyPress( int key, bool down );
 	SGS_METHOD void doPutChar( int chr );
 	

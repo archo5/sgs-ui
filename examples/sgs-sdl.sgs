@@ -107,6 +107,9 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 	
 	function Button.renderfunc()
 	{
+		if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
+			return;
+		
 		data = this.data;
 		icon = _( data, "icon" );
 		text = this.caption;
@@ -115,23 +118,32 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
 		draw_color_rect( this.rx0+1, this.ry0+1, this.rx1-1, this.ry1-1, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
 		
-		fullwidth = 0;
-		if( icon ) fullwidth += icon.width;
-		if( text ) fullwidth += Font.get_text_length( text );
-		if( icon && text ) fullwidth += 4;
-		
-		icon_off = ( this.rx1 - this.rx0 - fullwidth ) / 2;
-		text_off = icon_off;
-		cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
-		if( icon )
+		if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
 		{
-			text_off += icon.width + 4;
-			draw({ preset = "box", position = [ this.rx0 + round( icon_off + icon.width / 2 ), cy ], scale = [ icon.width, icon.height ], texture = icon });
-		}
-		
-		if( text )
-		{
-			draw_text_line_vc( text, Font, this.rx0 + text_off, cy, [1,1,1,1] );
+			fullwidth = 0;
+			if( icon ) fullwidth += icon.width;
+			if( text )
+			{
+				textlen = Font.get_text_length( text );
+				fullwidth += textlen;
+			}
+			if( icon && text ) fullwidth += 4;
+			
+			icon_off = ( this.rx1 - this.rx0 - fullwidth ) / 2;
+			text_off = icon_off;
+			cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
+			if( icon )
+			{
+				text_off += icon.width + 4;
+				draw({ preset = "box", position = [ this.rx0 + round( icon_off + icon.width / 2 ), cy ], scale = [ icon.width, icon.height ], texture = icon });
+			}
+			
+			if( text )
+			{
+				draw_text_line_vc( text, Font, this.rx0 + text_off, cy, [1,1,1,1] );
+			}
+			
+			this.frame.popScissorRect();
 		}
 	}
 	
@@ -155,7 +167,7 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 	Scroll.height = height;
 	Scroll.data =
 	{
-		button_size = 24,
+		button_size = 0,
 		move_step = 32,
 		min_scroll_length = 16,
 		
@@ -166,23 +178,25 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 		auto_window = auto_window,
 	};
 	
-	scroll_length = if( vertical, height, width ) - 48;
+	bsize = Scroll.data.button_size;
+	
+	scroll_length = if( vertical, height, width ) - bsize * 2;
 	bar_pos = if( space, scroll_length * position / space, 0 );
 	bar_length = if( space, scroll_length * window / space, scroll_length );
 	
 	if( vertical )
 	{
-		btnUP = ui_create_button( Scroll, 0, 0, 0, 24, "", "icons/arrow_up.png" );
-		btnDN = ui_create_button( Scroll, 0, -24, 0, 24, "", "icons/arrow_down.png" );
-		btnCS = ui_create_button( Scroll, 0, 24 + bar_pos, 0, bar_length, "" );
+		btnUP = ui_create_button( Scroll, 0, 0, 0, bsize, "", "icons/arrow_up.png" );
+		btnDN = ui_create_button( Scroll, 0, -bsize, 0, bsize, "", "icons/arrow_down.png" );
+		btnCS = ui_create_button( Scroll, 0, bsize + bar_pos, 0, bar_length, "" );
 		btnUP.q1x = 1; btnDN.q1x = 1; btnCS.q1x = 1;
 		btnDN.q0y = 1; btnDN.q1y = 1;
 	}
 	else
 	{
-		btnUP = ui_create_button( Scroll, 0, 0, 24, 0, "", "icons/arrow_left.png" );
-		btnDN = ui_create_button( Scroll, -24, 0, 24, 0, "", "icons/arrow_right.png" );
-		btnCS = ui_create_button( Scroll, 24 + bar_pos, 0, bar_length, 0, "" );
+		btnUP = ui_create_button( Scroll, 0, 0, bsize, 0, "", "icons/arrow_left.png" );
+		btnDN = ui_create_button( Scroll, -bsize, 0, bsize, 0, "", "icons/arrow_right.png" );
+		btnCS = ui_create_button( Scroll, bsize + bar_pos, 0, bar_length, 0, "" );
 		btnUP.q1y = 1; btnDN.q1y = 1; btnCS.q1y = 1;
 		btnDN.q0x = 1; btnDN.q1x = 1;
 	}
@@ -200,12 +214,12 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 		if( this.vertical )
 		{
 			scroll_length = Scroll.ry1 - Scroll.ry0 - this.button_size * 2;
-			btnCS.y = 24 + if( this.space, scroll_length * this.position / this.space, 0 );
+			btnCS.y = this.button_size + if( this.space, scroll_length * this.position / this.space, 0 );
 		}
 		else
 		{
 			scroll_length = Scroll.rx1 - Scroll.rx0 - this.button_size * 2;
-			btnCS.x = 24 + if( this.space, scroll_length * this.position / this.space, 0 );
+			btnCS.x = this.button_size + if( this.space, scroll_length * this.position / this.space, 0 );
 		}
 		
 		Scroll.frame.handleMouseMove();
@@ -293,6 +307,11 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 			if( event.button == Mouse_ButtonL )
 				data.moveToAbs( if( data.vertical, event.y - btnCS.height / 2, event.x - btnCS.width / 2 ), this, btnCS );
 		}
+		else if( event.type == EV_MouseWheel )
+		{
+			data.moveRel( event.x * data.min_scroll_length, this, btnCS );
+			return 0; // stop bubbling
+		}
 		return scroll_orig_callback.thiscall( this, event );
 	}
 	
@@ -324,13 +343,15 @@ function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
 	Scrollable.data =
 	{
 		padding = 4,
+		scroll_size = 12,
 		x0 = 0, x1 = 0, y0 = 0, y1 = 0,
 	};
 	
 	pad = Scrollable.data.padding;
+	ssize = Scrollable.data.scroll_size;
 	
-	scrV = ui_create_vscroll( Scrollable, pad, -pad, 24, pad * 2 );
-	scrH = ui_create_hscroll( Scrollable, -pad, pad, pad * 2, 24 );
+	scrV = ui_create_vscroll( Scrollable, pad, -pad, ssize, pad * 2 );
+	scrH = ui_create_hscroll( Scrollable, -pad, pad, pad * 2, ssize );
 	scrV.nonclient = true; scrV.visible = false; scrV.q0x = 1; scrV.q1x = 1; scrV.q1y = 1;
 	scrH.nonclient = true; scrH.visible = false; scrH.q0y = 1; scrH.q1y = 1; scrH.q1x = 1;
 	
@@ -362,8 +383,8 @@ function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
 		iw = x1 - x0;
 		ih = y1 - y0;
 		
-		showV = ih > Scrollable.height - 24;
-		showH = iw > Scrollable.width - 24;
+		showV = ih > Scrollable.height - this.scroll_size;
+		showH = iw > Scrollable.width - this.scroll_size;
 		
 		scrV.visible = showV;
 		scrH.visible = showH;
@@ -371,20 +392,28 @@ function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
 		scrH.data.space = iw;
 		Scrollable.nc_top = pad;
 		Scrollable.nc_left = pad;
-		Scrollable.nc_right = pad + if( showV, 24, 0 );
-		Scrollable.nc_bottom = pad + if( showH, 24, 0 );
+		Scrollable.nc_right = pad + if( showV, this.scroll_size, 0 );
+		Scrollable.nc_bottom = pad + if( showH, this.scroll_size, 0 );
 	}
 	
 	scrV.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_y = -this.data.position; } );
 	scrH.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_x = -this.data.position; } );
 	
 	orig_callback = Scrollable.callback;
-	function Scrollable.callback( event ) use( orig_callback )
+	function Scrollable.callback( event ) use( orig_callback, scrV, scrH )
 	{
 		data = this.data;
 		if( event.type == EV_Layout )
 		{
 			data.recalc( this );
+		}
+		else if( event.type == EV_MouseWheel )
+		{
+			if( scrV.visible )
+				scrV.callback( event );
+			else if( scrH.visible )
+				scrH.callback( event );
+			return 0; // stop bubbling
 		}
 		return orig_callback.thiscall( this, event );
 	}
@@ -990,11 +1019,11 @@ function initialize()
 	ui_create_textbox( STAT, 100, 50, 100, "Key" ).bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
 	ui_create_textbox( STAT, 220, 50, 100, "Value" ).bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
 	
-	ui_create_vscroll( STAT, 400, 100, 24, 300, 1000, 300, 37 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
-	ui_create_hscroll( STAT, 100, 400, 300, 24, 1000, 300, 137 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
+	ui_create_vscroll( STAT, 400, 100, 16, 300, 1000, 300, 37 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
+	ui_create_hscroll( STAT, 100, 400, 300, 16, 1000, 300, 137 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
 	
 	SCROLL = ui_create_scrollable( STAT, 500, 100, 200, 300 );
-	ui_create_static( SCROLL, 0, 0, 20, 800, string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] ), [0.9,0.9,0.9,1], DT_LEFT | DT_TOP ).q1x = 1;
+	ui_create_static( SCROLL, 0, 0, 20, 500, string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] ), [0.9,0.9,0.9,1], DT_LEFT | DT_TOP ).q1x = 1;
 }
 
 global lasttime = ftime();
@@ -1039,10 +1068,16 @@ function on_event( e )
 	}
 	if( e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP )
 	{
-		btn = 0;
-		if( e.button == 3 ) btn = 1;
-		else if( e.button == 2 ) btn = 2;
-		FRAME.doMouseButton( btn, e.type == SDL_MOUSEBUTTONDOWN );
+		if( e.button == 4 || e.button == 5 )
+			FRAME.doMouseWheel( ( e.button == 5 ) - ( e.button == 4 ) );
+		else
+		{
+			btn = -1;
+			if( e.button == 1 ) btn = 0;
+			else if( e.button == 3 ) btn = 1;
+			else if( e.button == 2 ) btn = 2;
+			FRAME.doMouseButton( btn, e.type == SDL_MOUSEBUTTONDOWN );
+		}
 	}
 	if( e.type == SDL_KEYUP || e.type == SDL_KEYDOWN )
 	{
@@ -1060,6 +1095,8 @@ function on_event( e )
 		else if( e.keycode == SDLK_Z && e.mod & KMOD_CTRL ) key = Key_Undo;
 		else if( e.keycode == SDLK_Y && e.mod & KMOD_CTRL ) key = Key_Redo;
 		else if( e.keycode == SDLK_A && e.mod & KMOD_CTRL ) key = Key_SelectAll;
+		else if( e.keycode == SDLK_PAGEUP ) key = Key_PageUp;
+		else if( e.keycode == SDLK_PAGEDOWN ) key = Key_PageDown;
 		if( key )
 		{
 			if( e.mod & KMOD_SHIFT ) key |= KeyMod_Shift;
