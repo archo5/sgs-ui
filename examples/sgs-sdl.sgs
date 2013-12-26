@@ -48,6 +48,7 @@ function ui_create_static( parent, x, y, width, height, caption, color, textmode
 	Static.data =
 	{
 		color = color || [0.5,0.5,0.5,1],
+		textcolor = [0.1,0.1,0.1,1],
 		textmode = textmode || DT_CENTER | DT_VCENTER,
 	};
 	Static.x = x;
@@ -66,7 +67,7 @@ function ui_create_static( parent, x, y, width, height, caption, color, textmode
 		
 		if( text )
 		{
-			draw_text_rect( text, Font, data.color, data.textmode, this.rx0, this.rx1, this.ry0, this.ry1 );
+			draw_text_rect( text, Font, data.textcolor, data.textmode, this.rx0, this.rx1, this.ry0, this.ry1 );
 		}
 	}
 	
@@ -140,35 +141,54 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 }
 
 
-function ui_create_vscroll( parent, x, y, width, height, space, window, position )
+function ui_create_scroll( vertical, parent, x, y, width, height, space, window, position )
 {
-	VScroll = parent.frame.createControl( "vscroll" );
-	VScroll.x = x;
-	VScroll.y = y;
-	VScroll.width = width;
-	VScroll.height = height;
-	VScroll.data =
+	space ||= 0;
+	auto_window = if( window, false, true );
+	window ||= if( vertical, height, width );
+	position ||= 0;
+	
+	Scroll = parent.frame.createControl( "scroll" );
+	Scroll.x = x;
+	Scroll.y = y;
+	Scroll.width = width;
+	Scroll.height = height;
+	Scroll.data =
 	{
 		button_size = 24,
 		move_step = 32,
+		min_scroll_length = 16,
 		
+		vertical = vertical,
 		space = space,
 		window = window,
 		position = position,
+		auto_window = auto_window,
 	};
 	
-	scroll_height = height - 48;
-	bar_pos = if( space, scroll_height * position / space, 0 );
-	bar_height = if( space, scroll_height * window / space, scroll_height );
+	scroll_length = if( vertical, height, width ) - 48;
+	bar_pos = if( space, scroll_length * position / space, 0 );
+	bar_length = if( space, scroll_length * window / space, scroll_length );
 	
-	btnUP = ui_create_button( VScroll, 0, 0, width, 24, "", "icons/arrow_up.png" );
-	btnDN = ui_create_button( VScroll, 0, -24, width, 24, "", "icons/arrow_down.png" );
-	btnCS = ui_create_button( VScroll, 0, 24 + bar_pos, width, bar_height, "" );
-	btnDN.q0y = 1;
-	btnDN.q1y = 1;
+	if( vertical )
+	{
+		btnUP = ui_create_button( Scroll, 0, 0, 0, 24, "", "icons/arrow_up.png" );
+		btnDN = ui_create_button( Scroll, 0, -24, 0, 24, "", "icons/arrow_down.png" );
+		btnCS = ui_create_button( Scroll, 0, 24 + bar_pos, 0, bar_length, "" );
+		btnUP.q1x = 1; btnDN.q1x = 1; btnCS.q1x = 1;
+		btnDN.q0y = 1; btnDN.q1y = 1;
+	}
+	else
+	{
+		btnUP = ui_create_button( Scroll, 0, 0, 24, 0, "", "icons/arrow_left.png" );
+		btnDN = ui_create_button( Scroll, -24, 0, 24, 0, "", "icons/arrow_right.png" );
+		btnCS = ui_create_button( Scroll, 24 + bar_pos, 0, bar_length, 0, "" );
+		btnUP.q1y = 1; btnDN.q1y = 1; btnCS.q1y = 1;
+		btnDN.q0x = 1; btnDN.q1x = 1;
+	}
 	
-	VScroll_data = VScroll.data;
-	function VScroll_data.moveRel( dist, VScroll, btnCS )
+	Scroll_data = Scroll.data;
+	function Scroll_data.moveRel( dist, Scroll, btnCS )
 	{
 		opos = this.position;
 		this.position += dist;
@@ -177,66 +197,209 @@ function ui_create_vscroll( parent, x, y, width, height, space, window, position
 		if( this.position < 0 ) this.position = 0;
 		if( this.position > maxpos ) this.position = maxpos;
 		
-		scroll_height = VScroll.height - this.button_size * 2;
-		btnCS.y = 24 + if( this.space, scroll_height * this.position / this.space, 0 );
+		if( this.vertical )
+		{
+			scroll_length = Scroll.ry1 - Scroll.ry0 - this.button_size * 2;
+			btnCS.y = 24 + if( this.space, scroll_length * this.position / this.space, 0 );
+		}
+		else
+		{
+			scroll_length = Scroll.rx1 - Scroll.rx0 - this.button_size * 2;
+			btnCS.x = 24 + if( this.space, scroll_length * this.position / this.space, 0 );
+		}
 		
-		VScroll.frame.handleMouseMove();
+		Scroll.frame.handleMouseMove();
 		
 		if( opos != this.position )
 		{
 			e = ui_create_event();
-			e.y = this.position;
-			VScroll.callEvent( "change", e );
+			if( this.vertical )
+				e.y = this.position;
+			else
+				e.x = this.position;
+			Scroll.callEvent( "change", e );
 		}
 	}
-	function VScroll_data.moveToAbs( y, VScroll, btnCS )
+	function Scroll_data.moveToAbs( coord, Scroll, btnCS )
 	{
-		ry = y - VScroll.ry0 - this.button_size;
-		np = ry / ( VScroll.height - this.button_size * 2 - btnCS.height ) * ( this.space - this.window );
-		this.moveRel( np - this.position, VScroll, btnCS );
+		if( this.vertical )
+		{
+			rcoord = coord - Scroll.ry0 - this.button_size;
+			movelen = Scroll.ry1 - Scroll.ry0 - this.button_size * 2 - btnCS.height;
+		}
+		else
+		{
+			rcoord = coord - Scroll.rx0 - this.button_size;
+			movelen = Scroll.rx1 - Scroll.rx0 - this.button_size * 2 - btnCS.width;
+		}
+		np = 0;
+		if( movelen )
+			np = rcoord / movelen * ( this.space - this.window );
+		this.moveRel( np - this.position, Scroll, btnCS );
 	}
-	function VScroll_data.VScroll_onmousemove( event ) use( VScroll, btnCS )
+	function Scroll_data.Scroll_onmousemove( event ) use( Scroll, btnCS )
 	{
 		if( btnCS.clicked )
 		{
-			VScroll.data.moveToAbs( event.y - VScroll.frame.getClickOffsetY( event.button ), VScroll, btnCS );
+			Scroll.data.moveToAbs(
+				if( Scroll.data.vertical, event.y - Scroll.frame.getClickOffsetY( event.button ), event.x - Scroll.frame.getClickOffsetX( event.button ) )
+				, Scroll, btnCS );
 		}
 	}
 	
-	btnUP.bindEvent( "click", function() use( VScroll, btnCS ){ VScroll.data.moveRel( -VScroll.data.move_step, VScroll, btnCS ); } );
-	btnDN.bindEvent( "click", function() use( VScroll, btnCS ){ VScroll.data.moveRel( VScroll.data.move_step, VScroll, btnCS ); } );
+	btnUP.bindEvent( "click", function() use( Scroll, btnCS ){ Scroll.data.moveRel( -Scroll.data.move_step, Scroll, btnCS ); } );
+	btnDN.bindEvent( "click", function() use( Scroll, btnCS ){ Scroll.data.moveRel( Scroll.data.move_step, Scroll, btnCS ); } );
 	
-	vscroll_orig_callback = VScroll.callback;
-	function VScroll.callback( event ) use( vscroll_orig_callback, btnCS )
+	scroll_orig_callback = Scroll.callback;
+	function Scroll.callback( event ) use( scroll_orig_callback, btnCS )
 	{
 		data = this.data;
 		if( event.type == EV_Attach )
 		{
-			this.frame.root.bindEvent( "globalmousemove", data.VScroll_onmousemove );
+			this.frame.root.bindEvent( "globalmousemove", data.Scroll_onmousemove );
 		}
 		else if( event.type == EV_Detach )
 		{
-			this.frame.root.unbindEvent( "globalmousemove", data.VScroll_onmousemove );
+			this.frame.root.unbindEvent( "globalmousemove", data.Scroll_onmousemove );
+		}
+		else if( event.type == EV_Layout )
+		{
+			ret = scroll_orig_callback.thiscall( this, event );
+			
+			scroll_length = if( data.vertical, this.ry1 - this.ry0, this.rx1 - this.rx0 );
+			if( data.auto_window )
+				data.window = scroll_length;
+			
+			scroll_length -= data.button_size * 2;
+			scroll_length = max( scroll_length, data.min_scroll_length );
+			bar_pos = if( data.space, scroll_length * data.position / data.space, 0 );
+			bar_length = if( data.space, scroll_length * data.window / data.space, scroll_length );
+			
+			if( data.vertical )
+			{
+				btnCS.y = bar_pos + data.button_size;
+				btnCS.height = bar_length;
+			}
+			else
+			{
+				btnCS.x = bar_pos + data.button_size;
+				btnCS.width = bar_length;
+			}
+			
+			return ret;
 		}
 		else if( event.type == EV_ButtonDown )
 		{
 			if( event.button == Mouse_ButtonL )
-				data.moveToAbs( event.y - btnCS.height / 2, this, btnCS );
+				data.moveToAbs( if( data.vertical, event.y - btnCS.height / 2, event.x - btnCS.width / 2 ), this, btnCS );
 		}
-		return vscroll_orig_callback.thiscall( this, event );
+		return scroll_orig_callback.thiscall( this, event );
 	}
 	
-	function VScroll.renderfunc()
+	function Scroll.renderfunc()
 	{
 		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.8, 0.8, 0.8, 1 );
 		draw_color_rect( this.rx0 + 1, this.ry0 + 1, this.rx1 - 1, this.ry1 - 1, 0.7, 0.7, 0.7, 1 );
 	}
 	
-	parent.addChild( VScroll );
+	parent.addChild( Scroll );
 	
-	return VScroll;
+	return Scroll;
 }
 
+function ui_create_hscroll( parent, x, y, width, height, space, window, position ){ return ui_create_scroll( false, parent, x, y, width, height, space, window, position ); }
+function ui_create_vscroll( parent, x, y, width, height, space, window, position ){ return ui_create_scroll( true, parent, x, y, width, height, space, window, position ); }
+
+
+function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
+{
+	vscroll ||= "auto";
+	hscroll ||= "auto";
+	
+	Scrollable = parent.frame.createControl( "scrollable" );
+	Scrollable.x = x;
+	Scrollable.y = y;
+	Scrollable.width = width;
+	Scrollable.height = height;
+	Scrollable.data =
+	{
+		padding = 4,
+		x0 = 0, x1 = 0, y0 = 0, y1 = 0,
+	};
+	
+	pad = Scrollable.data.padding;
+	
+	scrV = ui_create_vscroll( Scrollable, pad, -pad, 24, pad * 2 );
+	scrH = ui_create_hscroll( Scrollable, -pad, pad, pad * 2, 24 );
+	scrV.nonclient = true; scrV.visible = false; scrV.q0x = 1; scrV.q1x = 1; scrV.q1y = 1;
+	scrH.nonclient = true; scrH.visible = false; scrH.q0y = 1; scrH.q1y = 1; scrH.q1x = 1;
+	
+	Scrollable_data = Scrollable.data;
+	function Scrollable_data.recalc( Scrollable ) use( scrV, scrH )
+	{
+		pad = this.padding;
+		chlist = Scrollable.children();
+		x0 = x1 = y0 = y1 = 0;
+		foreach( ch : chlist )
+		{
+			p0x = ch.rx0 - Scrollable.rx0;
+			p0y = ch.ry0 - Scrollable.ry0;
+			p1x = ch.rx1 - Scrollable.rx0;
+			p1y = ch.ry1 - Scrollable.ry0;
+			
+			x0 = min( x0, min( p0x, p1x ) );
+			x1 = max( x1, max( p0x, p1x ) );
+			y0 = min( y0, min( p0y, p1y ) );
+			y1 = max( y1, max( p0y, p1y ) );
+		}
+		
+		x1 += pad * 2;
+		y1 += pad * 2;
+		
+		this.x0 = x0; this.x1 = x1;
+		this.y0 = y0; this.y1 = y1;
+		
+		iw = x1 - x0;
+		ih = y1 - y0;
+		
+		showV = ih > Scrollable.height - 24;
+		showH = iw > Scrollable.width - 24;
+		
+		scrV.visible = showV;
+		scrH.visible = showH;
+		scrV.data.space = ih;
+		scrH.data.space = iw;
+		Scrollable.nc_top = pad;
+		Scrollable.nc_left = pad;
+		Scrollable.nc_right = pad + if( showV, 24, 0 );
+		Scrollable.nc_bottom = pad + if( showH, 24, 0 );
+	}
+	
+	scrV.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_y = -this.data.position; } );
+	scrH.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_x = -this.data.position; } );
+	
+	orig_callback = Scrollable.callback;
+	function Scrollable.callback( event ) use( orig_callback )
+	{
+		data = this.data;
+		if( event.type == EV_Layout )
+		{
+			data.recalc( this );
+		}
+		return orig_callback.thiscall( this, event );
+	}
+	
+	function Scrollable.renderfunc()
+	{
+		data = this.data;
+		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.6, 0.6, 0.6, 1 );
+		draw_color_rect( this.rx0 + this.nc_left, this.ry0 + this.nc_top, this.rx1 - this.nc_right, this.ry1 - this.nc_bottom, 0.8, 0.8, 0.8, 1 );
+	}
+	
+	parent.addChild( Scrollable );
+	
+	return Scrollable;
+}
 
 
 function ui_build_menu( parent, x, y, items, default )
@@ -673,34 +836,40 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		
 		pad = data.padding;
 		tpad = data.text_padding;
+		cpad = pad + tpad;
 		
 		draw({ preset = "tile", position = [this.rx0,this.ry0], scale = [this.width,this.height], color = if(this.keyboardFocus,[0.9,0.6,0.3,1],[0.6,0.6,0.6,1]) });
 		draw({ preset = "tile", position = [this.rx0+pad,this.ry0+pad], scale = [this.width-pad*2,this.height-pad*2], color = [0.9,0.9,0.9,1] });
 		
-		x0 = this.rx0 + pad + tpad - data.offset;
-		y0 = this.ry0 + pad + tpad;
+		x0 = this.rx0 + cpad - data.offset;
+		y0 = this.ry0 + cpad;
 		yc = ( this.ry0 + this.ry1 ) * 0.5;
 		xh = ( this.height-pad*2-tpad*2 - Font.size ) * 0.5;
 		
-		if( !data.chars && !this.keyboardFocus )
+		if( this.frame.pushScissorRect( this.rx0 + cpad, this.ry0 + cpad, this.rx1 - cpad, this.ry1 - cpad ) )
 		{
-			draw_text_line_vc( data.caption, Font, x0 + xh, yc, [0.1,0.1,0.1,0.5] );
-		}
-		
-		draw_text_line_vc( data.text, Font, x0, yc, [0.1,0.1,0.1,1] );
-		
-		if( data.sel_to !== null )
-		{
-			from = min( data.fsel_from, data.fsel_to );
-			to = max( data.fsel_from, data.fsel_to );
-			if( from != to )
+			if( !data.chars && !this.keyboardFocus )
 			{
-				selcol = if( this.keyboardFocus, [0.3,0.6,0.9,0.5], [0.8,0.8,0.8,0.5] );
-				draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,this.height-pad*2-tpad*2], color = selcol });
+				draw_text_line_vc( data.caption, Font, x0 + xh, yc, [0.1,0.1,0.1,0.5] );
 			}
 			
-			if( this.keyboardFocus && data.show_cursor )
-				draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,this.height-pad*2-tpad*2], color = [0.1,0.1,0.1,1] });
+			draw_text_line_vc( data.text, Font, x0, yc, [0.1,0.1,0.1,1] );
+			
+			if( data.sel_to !== null )
+			{
+				from = min( data.fsel_from, data.fsel_to );
+				to = max( data.fsel_from, data.fsel_to );
+				if( from != to )
+				{
+					selcol = if( this.keyboardFocus, [0.3,0.6,0.9,0.5], [0.8,0.8,0.8,0.5] );
+					draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,this.height-pad*2-tpad*2], color = selcol });
+				}
+				
+				if( this.keyboardFocus && data.show_cursor )
+					draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,this.height-pad*2-tpad*2], color = [0.1,0.1,0.1,1] });
+			}
+			
+			this.frame.popScissorRect();
 		}
 	}
 	
@@ -783,6 +952,16 @@ function initialize()
 	
 	
 	global FRAME = ui_create_frame();
+	FRAME.width = 1024;
+	FRAME.height = 576;
+	function FRAME.scissor_func( x0, y0, x1, y1 )
+	{
+		if( x0 === null )
+			set_cliprect( null );
+		else
+			set_cliprect( x0, x1, y0, y1 );
+	}
+	
 	global STAT = ui_create_static( FRAME.root, 10, 10, 1024 - 20, 576 - 20 );
 	global TOPBAR = ui_create_static( STAT, 0, 0, 0, 48, "", [0.8,0.8,0.8,1] );
 	TOPBAR.q1x = 1;
@@ -811,7 +990,11 @@ function initialize()
 	ui_create_textbox( STAT, 100, 50, 100, "Key" ).bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
 	ui_create_textbox( STAT, 220, 50, 100, "Value" ).bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
 	
-	ui_create_vscroll( STAT, 400, 100, 24, 400, 1000, 300, 37 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
+	ui_create_vscroll( STAT, 400, 100, 24, 300, 1000, 300, 37 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
+	ui_create_hscroll( STAT, 100, 400, 300, 24, 1000, 300, 137 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
+	
+	SCROLL = ui_create_scrollable( STAT, 500, 100, 200, 300 );
+	ui_create_static( SCROLL, 0, 0, 20, 800, string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] ), [0.9,0.9,0.9,1], DT_LEFT | DT_TOP ).q1x = 1;
 }
 
 global lasttime = ftime();

@@ -26,6 +26,8 @@
 #define EV_Attach     30
 #define EV_Detach     31
 #define EV_HitTest    32
+#define EV_AddChild   33
+#define EV_RemChild   34
 
 #define Mouse_ButtonL 0
 #define Mouse_ButtonR 1
@@ -52,6 +54,13 @@
 
 #define KeyMod_Filter 0x0FF
 #define KeyMod_Shift  0x100
+
+
+struct UIRect
+{
+	float x0, y0, x1, y1;
+};
+typedef std::vector< UIRect > UIRectArray;
 
 
 struct UITimerData
@@ -114,6 +123,13 @@ struct UIFrame
 	void _clearTimer( int64_t id );
 	SGS_METHOD void processTimers( float t );
 	
+	// scissor rectangle
+	SGS_METHOD bool pushScissorRect( float x0, float y0, float x1, float y1 );
+	SGS_METHOD bool pushScissorRectUnclipped( float x0, float y0, float x1, float y1 );
+	SGS_METHOD bool popScissorRect();
+	SGS_METHOD int getScissorRectCount(){ return m_scissorRects.size(); }
+	void _applyScissorState();
+	
 	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
 	
 	// info retrieval
@@ -122,17 +138,18 @@ struct UIFrame
 	
 	SGS_PROPERTY sgsVariable render_image;
 	SGS_PROPERTY sgsVariable render_text;
-	SGS_PROPERTY sgsVariable ui_event;
+	SGS_PROPERTY sgsVariable scissor_func; /* no arguments (all NULL) -> clear, 4 arguments (int) -> set */
 	SGS_PROPERTY sgsVariable clipboard_func; /* no arguments -> get; 1 argument (string) -> set */
-	SGS_PROPERTY float x;
-	SGS_PROPERTY float y;
-	SGS_PROPERTY float width;
-	SGS_PROPERTY float height;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float x;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float y;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float width;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float height;
 	SGS_PROPERTY READ sgsHandle< UIControl > root;
 	
 	SGS_PROPERTY READ float mouseX;
 	SGS_PROPERTY READ float mouseY;
 	
+	void updateLayout();
 	void preRemoveControl( UIControl* ctrl );
 	
 	UIControl* m_hover;
@@ -142,6 +159,7 @@ struct UIFrame
 	UITimerMap m_timers;
 	int64_t m_timerAutoID;
 	IDGen m_controlIDGen;
+	UIRectArray m_scissorRects;
 	
 };
 
@@ -185,10 +203,13 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q0y;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1y;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_x;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_y;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_top;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_left;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_right;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_bottom;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) bool visible;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) int index;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) bool topmost;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) bool nonclient;

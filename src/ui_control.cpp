@@ -39,6 +39,13 @@ int UIControl_CtrlProc( SGS_CTX )
 				pr0y = prt->ry0 + prt->nc_top;
 				pr1x = prt->rx1 - prt->nc_right;
 				pr1y = prt->ry1 - prt->nc_bottom;
+				if( !ctrl->nonclient )
+				{
+					pr0x += prt->scroll_x;
+					pr0y += prt->scroll_y;
+					pr1x += prt->scroll_x;
+					pr1y += prt->scroll_y;
+				}
 			}
 			else if( frame )
 			{
@@ -64,16 +71,16 @@ int UIControl_CtrlProc( SGS_CTX )
 			ctrl->ry1 += lerpf( pr0y, pr1y, ctrl->q1y );
 		}
 		for( UIControl::HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
-			(*it)->niEvent( event );
-		sgs_PushInt( C, 1 );
+			(*it)->updateLayout();
+		if( ctrl->parent.object )
+			ctrl->parent->updateLayout();
 		return 1;
 	
 	case EV_Attach:
-		{
-			UIEvent e;
-			e.type = EV_Layout;
-			ctrl->niEvent( &e );
-		}
+	case EV_Detach:
+	case EV_AddChild:
+	case EV_RemChild:
+		ctrl->updateLayout();
 		sgs_PushInt( C, 1 );
 		return 1;
 	
@@ -189,6 +196,8 @@ void UIFrame::handleMouseMove()
 		for( UIControl::HandleArray::reverse_iterator it = ctrl->m_sorted.rbegin(), itend = ctrl->m_sorted.rend(); it != itend; ++it )
 		{
 			UIControl* nc = *it;
+			if( !nc->visible )
+				continue;
 			if( nonclient < 0 || nonclient == ( nc->nonclient ? 1 : 0 ) )
 			{
 				int hit = nc->niEvent( &htev );
@@ -352,6 +361,69 @@ void UIFrame::processTimers( float t )
 	}
 }
 
+bool UIFrame::pushScissorRect( float x0, float y0, float x1, float y1 )
+{
+	if( m_scissorRects.size() )
+	{
+		UIRect& pr = *--m_scissorRects.end();
+		if( x0 < pr.x0 ) x0 = pr.x0;
+		if( y0 < pr.y0 ) y0 = pr.y0;
+		if( x1 > pr.x1 ) x1 = pr.x1;
+		if( y1 > pr.y1 ) y1 = pr.y1;
+	}
+	return pushScissorRectUnclipped( x0, y0, x1, y1 );
+}
+
+bool UIFrame::pushScissorRectUnclipped( float x0, float y0, float x1, float y1 )
+{
+	if( x0 >= x1 || y0 >= y1 )
+		return false;
+	UIRect r = { x0, y0, x1, y1 };
+	m_scissorRects.push_back( r );
+	_applyScissorState();
+	return true;
+}
+
+bool UIFrame::popScissorRect()
+{
+	if( m_scissorRects.size() )
+	{
+		m_scissorRects.pop_back();
+		_applyScissorState();
+		return true;
+	}
+	return false;
+}
+
+void UIFrame::_applyScissorState()
+{
+	if( !scissor_func.not_null() )
+		return;
+	
+	int ssz = sgs_StackSize( C );
+	if( m_scissorRects.size() )
+	{
+		UIRect& rect = *--m_scissorRects.end();
+		sgs_PushReal( C, rect.x0 );
+		sgs_PushReal( C, rect.y0 );
+		sgs_PushReal( C, rect.x1 );
+		sgs_PushReal( C, rect.y1 );
+		scissor_func.push( C );
+		sgs_Call( C, 4, 0 );
+	}
+	else
+	{
+		scissor_func.push( C );
+		sgs_Call( C, 0, 0 );
+	}
+	sgs_SetStackSize( C, ssz );
+}
+
+void UIFrame::updateLayout()
+{
+	root->updateLayout();
+}
+
 void UIFrame::preRemoveControl( UIControl* ctrl )
 {
 	if( m_hover == ctrl )
@@ -370,7 +442,7 @@ int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 	UIFrame* frame = static_cast<UIFrame*>(obj->data);
 	frame->render_image.gcmark();
 	frame->render_text.gcmark();
-	frame->ui_event.gcmark();
+	frame->clipboard_func.gcmark();
 	frame->root.gcmark();
 	return SGS_SUCCESS;
 }
@@ -379,8 +451,9 @@ int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 UIControl::UIControl() :
 	id( UI_NO_ID ), x(0.0f), y(0.0f), width(0.0f), height(0.0f),
 	q0x(0.0f), q0y(0.0f), q1x(0.0f), q1y(0.0f),
+	scroll_x(0.0f), scroll_y(0.0f),
 	nc_top(0.0f), nc_left(0.0f), nc_right(0.0f), nc_bottom(0.0f),
-	index(0), topmost(false), nonclient(false),
+	visible(true), index(0), topmost(false), nonclient(false),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
 	_updatingLayout(false), mouseOn(false), clicked(false), keyboardFocus(false)
 {
@@ -423,6 +496,9 @@ void UIControl::niBubblingEvent( UIEvent* e )
 
 void UIControl::niRender()
 {
+	if( !visible )
+		return;
+	
 	if( renderfunc.not_null() )
 	{
 		int orig = sgs_StackSize( C );
@@ -432,9 +508,20 @@ void UIControl::niRender()
 		sgs_SetStackSize( C, orig );
 	}
 	
+	if( frame->pushScissorRect( rx0 + nc_left, ry0 + nc_top, rx1 - nc_right, ry1 - nc_bottom ) )
+	{
+		for( HandleArray::iterator it = m_sorted.begin(), itend = m_sorted.end(); it != itend; ++it )
+		{
+			if( !(*it)->nonclient )
+				(*it)->niRender();
+		}
+		frame->popScissorRect();
+	}
+	
 	for( HandleArray::iterator it = m_sorted.begin(), itend = m_sorted.end(); it != itend; ++it )
 	{
-		(*it)->niRender();
+		if( (*it)->nonclient )
+			(*it)->niRender();
 	}
 }
 
@@ -464,6 +551,15 @@ bool UIControl::addChild( UIControl::Handle ch )
 		return false;
 	}
 	
+	if( ch->parent.object )
+	{
+		if( !ch->parent->removeChild( ch ) )
+		{
+			sgs_Printf( C, SGS_WARNING, "failed to remove child from previous parent" );
+			return false;
+		}
+	}
+	
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
 		if( *it == ch )
@@ -478,6 +574,9 @@ bool UIControl::addChild( UIControl::Handle ch )
 	e.type = EV_Attach;
 	ch->niEvent( &e );
 	
+	e.type = EV_AddChild;
+	niEvent( &e );
+	
 	return true;
 }
 
@@ -486,6 +585,9 @@ bool UIControl::removeChild( UIControl::Handle ch )
 	UIEvent e;
 	e.type = EV_Detach;
 	ch->niEvent( &e );
+	
+	e.type = EV_RemChild;
+	niEvent( &e );
 	
 	bool found = false;
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
