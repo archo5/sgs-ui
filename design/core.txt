@@ -59,6 +59,19 @@ special exts..
 - autocomplete popups (relative non-constrained overlays)
 
 a very common need:
-> non-client areas for things like tabs and scrollbars
+DONE++> non-client areas for things like tabs and scrollbars
 - essentially means there's a padding around the client area where nothing can exist
 - it is still processed by the control's mouse click and other events but clients do not come into it with an additional AABB test to make sure
+
+another need:
+DONE++> forms. otherwise unnoticeable hubs for field data (textboxes, checkboxes, radio buttons, listboxes etc.)
+- textboxes should store data directly mapped
+- checkboxes should combine values into an array
+- radio buttons should clear other buttons with the same name, the value being the one picked
+- same goes for listboxes
+- combination of multiple values under the same name requires internal storage to be of array[string] type
+- requirement to retrieve different types of (possibly same) data means there must be the following functions to read it:
+	- getData() returns a dict with `name => value-list` mapping
+	- getList( name ) returns the data as array of values -- no data equals an empty array
+	- getString( name ) returns the first item as string, if any -- otherwise null
+/

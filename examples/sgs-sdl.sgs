@@ -42,6 +42,94 @@ function draw_fitted( tex, x0, x1, y0, y1 )
 }
 
 
+function ui_create_form( parent )
+{
+	Form = parent.frame.createControl( "form" );
+	Form.data = { ctrls = map() };
+	Form.q1x = 1;
+	Form.q1y = 1;
+	
+	Form_data = Form.data;
+	function Form_data.getData()
+	{
+		out = {};
+		foreach( ctrl ,: this.ctrls )
+		{
+			val = ctrl.data.getValue();
+			if( val !== null )
+			{
+				if( isset( out, ctrl.name ) )
+					out[ ctrl.name ].push( val );
+				else
+					out[ ctrl.name ] = [ val ];
+			}
+		}
+		return out;
+	}
+	function Form_data.getList( name )
+	{
+		out = [];
+		foreach( ctrl ,: this.ctrls )
+		{
+			if( ctrl.name == name )
+			{
+				val = ctrl.data.getValue();
+				if( val !== null )
+					out.push( val );
+			}
+		}
+		return out;
+	}
+	function Form_data.getString( name )
+	{
+		foreach( ctrl ,: this.ctrls )
+		{
+			if( ctrl.name == name )
+			{
+				val = ctrl.data.getValue();
+				if( val !== null )
+					return val;
+			}
+		}
+		return null;
+	}
+	
+	parent.addChild( Form );
+	
+	return Form;
+}
+
+function form_attach( ctrl )
+{
+	form = ctrl;
+	do
+	{
+		form = form.parent;
+		if( form.type == "form" )
+		{
+			form.data.ctrls[ ctrl ] = true;
+			break;
+		}
+	}
+	while( form.parent );
+}
+
+function form_detach( ctrl )
+{
+	form = ctrl;
+	do
+	{
+		form = form.parent;
+		if( form.type == "form" )
+		{
+			unset( form.data.ctrls, ctrl );
+			break;
+		}
+	}
+	while( form.parent );
+}
+
+
 function ui_create_static( parent, x, y, width, height, caption, color, textmode )
 {
 	Static = parent.frame.createControl( "static" );
@@ -342,7 +430,7 @@ function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
 	Scrollable.height = height;
 	Scrollable.data =
 	{
-		padding = 4,
+		padding = 1,
 		scroll_size = 12,
 		x0 = 0, x1 = 0, y0 = 0, y1 = 0,
 	};
@@ -629,6 +717,8 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 	
 	tbdata = Textbox.data;
 	
+	function tbdata.getValue(){ return this.text; }
+	
 	function tbdata.removeCursorTimer( frame )
 	{
 		if( this.cursor_timer )
@@ -700,8 +790,13 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 	{
 		data = this.data;
 		
+		if( event.type == EV_Attach )
+		{
+			form_attach( this );
+		}
 		if( event.type == EV_Detach )
 		{
+			form_detach( this );
 			data.removeCursorTimer( this.frame );
 		}
 		else if( event.type == EV_Layout )
@@ -991,11 +1086,18 @@ function initialize()
 			set_cliprect( x0, x1, y0, y1 );
 	}
 	
-	global STAT = ui_create_static( FRAME.root, 10, 10, 1024 - 20, 576 - 20 );
+	global FORM = ui_create_form( FRAME.root );
+	
+	global STAT = ui_create_static( FORM, 10, 10, 1024 - 20, 576 - 20 );
 	global TOPBAR = ui_create_static( STAT, 0, 0, 0, 48, "", [0.8,0.8,0.8,1] );
 	TOPBAR.q1x = 1;
 	
-	ui_create_button( TOPBAR, 0, 0, 48, 24, "File" );
+	function formdump()
+	{
+		printvar( FORM.data.getData() );
+	}
+	
+	ui_create_button( TOPBAR, 0, 0, 48, 24, "File" ).bindEvent( "click", formdump );
 	ui_create_button( TOPBAR, 48, 0, 48, 24, "Edit" );
 	
 	ui_create_button( TOPBAR, 0, 24, 24, 24, "", "icons/page.png" );
@@ -1016,8 +1118,12 @@ function initialize()
 		ui_build_menu( this.frame.root, this.rx0, this.ry1, items );
 	});
 	
-	ui_create_textbox( STAT, 100, 50, 100, "Key" ).bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
-	ui_create_textbox( STAT, 220, 50, 100, "Value" ).bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
+	tbKey = ui_create_textbox( STAT, 100, 50, 100, "Key" );
+	tbKey.bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
+	tbKey.name = "key";
+	tbVal = ui_create_textbox( STAT, 220, 50, 100, "Value" );
+	tbVal.bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
+	tbVal.name = "value";
 	
 	ui_create_vscroll( STAT, 400, 100, 16, 300, 1000, 300, 37 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
 	ui_create_hscroll( STAT, 100, 400, 300, 16, 1000, 300, 137 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
