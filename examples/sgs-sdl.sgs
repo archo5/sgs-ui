@@ -41,6 +41,26 @@ function draw_fitted( tex, x0, x1, y0, y1 )
 	draw({ preset = "box", position = [px,py], scale = [w,h], texture = tex });
 }
 
+function draw_color_circle( x, y, radius, numsides, r, g, b, a )
+{
+	if( numsides < 1 || !numsides )
+		numsides = ceil( radius * 8 / M_PI );
+	if( numsides < 3 )
+		return;
+	
+	if( ss_using_d3d ){ tmp = r; r = b; b = tmp; }
+	g_RB.begin();
+	
+	ang = 0;
+	ad = M_PI * 2 / numsides;
+	for( i = 0; i <= numsides; ++i )
+	{
+		g_RB.f( cos( ang ) * radius + x, sin( ang ) * radius + y ).cf2b( r, g, b, a );
+		ang += ad;
+	}
+	g_RB.draw( null, g_VD_P2CC4, 0, numsides + 1, PT_TRIANGLE_FAN );
+}
+
 
 function ui_create_form( parent )
 {
@@ -62,6 +82,11 @@ function ui_create_form( parent )
 					out[ ctrl.name ].push( val );
 				else
 					out[ ctrl.name ] = [ val ];
+			}
+			else
+			{
+				if( !isset( out, ctrl.name ) )
+					out[ ctrl.name ] = [];
 			}
 		}
 		return out;
@@ -127,6 +152,27 @@ function form_detach( ctrl )
 		}
 	}
 	while( form.parent );
+}
+
+function form_controls_by_name( ctrl, name )
+{
+	form = ctrl;
+	do
+	{
+		form = form.parent;
+		if( form.type == "form" )
+		{
+			out = [];
+			foreach( c ,: form.data.ctrls )
+			{
+				if( c.name == name )
+					out.push( c );
+			}
+			return out;
+		}
+	}
+	while( form.parent );
+	return [];
 }
 
 
@@ -240,6 +286,172 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 	return Button;
 }
 
+function ui_create_checkbox( parent, x, y, width, height, name, value, checked )
+{
+	cb_size = 16;
+	
+	Checkbox = parent.frame.createControl( "checkbox" );
+	x = round( x + width / 2 );
+	y = round( y + width / 2 );
+	Checkbox.x = x - round( cb_size / 2 );
+	Checkbox.y = y - round( cb_size / 2 );
+	Checkbox.width = cb_size;
+	Checkbox.height = cb_size;
+	Checkbox.name = name;
+	Checkbox.data =
+	{
+		border = 1,
+		padding = 2,
+		
+		checked = checked || false,
+		value = if( value === null, 1, value ),
+	};
+	
+	cbdata = Checkbox.data;
+	
+	function cbdata.getValue(){ return if( this.checked, this.value, null ); };
+	
+	orig_callback = Checkbox.callback;
+	function Checkbox.callback( event ) use( orig_callback )
+	{
+		data = this.data;
+		
+		if( event.type == EV_NeedFocus )
+			return 1;
+		else if( event.type == EV_Attach )
+		{
+			form_attach( this );
+		}
+		else if( event.type == EV_Detach )
+		{
+			form_detach( this );
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			if( event.button == 0 && this.clicked )
+			{
+				data.checked = !data.checked;
+				this.callEvent( "change", event );
+			}
+		}
+		return orig_callback.thiscall( this, event );
+	}
+	
+	function Checkbox.renderfunc()
+	{
+		data = this.data;
+		
+		p1 = data.border;
+		p2 = data.padding + p1;
+		
+		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.6, 0.8, 1 );
+		
+		if( this.clicked )
+			draw_color_rect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.8, 0.8, 0.8, 1 );
+		else
+			draw_color_rect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.9, 0.9, 0.9, 1 );
+		
+		if( data.checked )
+			draw_color_rect( this.rx0 + p2, this.ry0 + p2, this.rx1 - p2, this.ry1 - p2, 0.1, 0.2, 0.4, 1 );
+	}
+	
+	parent.addChild( Checkbox );
+	
+	return Checkbox;
+}
+
+function ui_create_radiobtn( parent, x, y, width, height, name, value, checked )
+{
+	cb_size = 16;
+	
+	RadioBtn = parent.frame.createControl( "radiobtn" );
+	x = round( x + width / 2 );
+	y = round( y + width / 2 );
+	RadioBtn.x = x - round( cb_size / 2 );
+	RadioBtn.y = y - round( cb_size / 2 );
+	RadioBtn.width = cb_size;
+	RadioBtn.height = cb_size;
+	RadioBtn.name = name;
+	RadioBtn.data =
+	{
+		border = 1,
+		padding = 2,
+		
+		checked = checked || false,
+		value = if( value === null, 1, value ),
+	};
+	
+	rbdata = RadioBtn.data;
+	
+	function rbdata.getValue(){ return if( this.checked, this.value, null ); };
+	
+	orig_callback = RadioBtn.callback;
+	function RadioBtn.callback( event ) use( orig_callback )
+	{
+		data = this.data;
+		
+		if( event.type == EV_NeedFocus )
+			return 1;
+		else if( event.type == EV_Attach )
+		{
+			form_attach( this );
+		}
+		else if( event.type == EV_Detach )
+		{
+			form_detach( this );
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			if( event.button == 0 && this.clicked )
+			{
+				ctrls = form_controls_by_name( this, this.name );
+				foreach( ctrl : ctrls )
+				{
+					if( ctrl.type == "radiobtn" && ctrl != this )
+					{
+						if( ctrl.data.checked != false )
+						{
+							ctrl.data.checked = false;
+							ctrl.callEvent( "change", event );
+						}
+					}
+				}
+				if( data.checked != true )
+				{
+					data.checked = true;
+					this.callEvent( "change", event );
+				}
+			}
+		}
+		return orig_callback.thiscall( this, event );
+	}
+	
+	function RadioBtn.renderfunc()
+	{
+		data = this.data;
+		
+		p1 = data.border;
+		p2 = data.padding + p1;
+		
+		cx = ( this.rx0 + this.rx1 ) / 2;
+		cy = ( this.ry0 + this.ry1 ) / 2;
+		radius = round( min( this.rx1 - this.rx0, this.ry1 - this.ry0 ) / 2 );
+		
+		draw_color_circle( cx, cy, radius, null, 0.5, 0.6, 0.8, 1 );
+		
+		if( this.clicked )
+			draw_color_circle( cx, cy, radius - p1, null, 0.8, 0.8, 0.8, 1 );
+		else
+			draw_color_circle( cx, cy, radius - p1, null, 0.9, 0.9, 0.9, 1 );
+		
+		if( data.checked )
+			draw_color_circle( cx, cy, radius - p2, null, 0.1, 0.2, 0.4, 1 );
+	}
+	
+	parent.addChild( RadioBtn );
+	
+	return RadioBtn;
+}
 
 function ui_create_scroll( vertical, parent, x, y, width, height, space, window, position )
 {
@@ -1124,6 +1336,10 @@ function initialize()
 	tbVal = ui_create_textbox( STAT, 220, 50, 100, "Value" );
 	tbVal.bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
 	tbVal.name = "value";
+	
+	ui_create_checkbox( STAT, 340, 50, 24, 24, "cbox", "set" );
+	ui_create_radiobtn( STAT, 364, 50, 24, 24, "rbtn", "A" );
+	ui_create_radiobtn( STAT, 388, 50, 24, 24, "rbtn", "B" );
 	
 	ui_create_vscroll( STAT, 400, 100, 16, 300, 1000, 300, 37 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
 	ui_create_hscroll( STAT, 100, 400, 300, 16, 1000, 300, 137 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
