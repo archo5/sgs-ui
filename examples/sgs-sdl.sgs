@@ -90,14 +90,23 @@ function initialize()
 	
 	global FORM = ui_create_form( FRAME.root );
 	
-	global STAT = ui_create_static( FORM, 10, 10, 1024 - 20, 576 - 20 );
-	global TOPBAR = ui_create_static( STAT, 0, 0, 0, 48, "", [0.8,0.8,0.8,1] );
-	TOPBAR.q1x = 1;
-	
 	function formdump()
 	{
 		printvar( FORM.data.getData() );
 	}
+	
+	global STATCORE = ui_create_static( FORM, 10, 10, 1024 - 20, 576 - 20 );
+	mpitems =
+	[
+		{ text = "File", func = formdump },
+		{ text = "Edit" },
+		{ text = "Disabled", disabled = true },
+		{ text = "Help" },
+	];
+	global STAT = ui_create_menupanel( STATCORE, mpitems );
+	
+	global TOPBAR = ui_create_static( STAT, 0, 0, 0, 48, "", [0.8,0.8,0.8,1] );
+	TOPBAR.q1x = 1;
 	
 	ui_create_button( TOPBAR, 0, 0, 48, 24, "File" ).bindEvent( "click", formdump );
 	ui_create_button( TOPBAR, 48, 0, 48, 24, "Edit" );

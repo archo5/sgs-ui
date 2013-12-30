@@ -100,3 +100,133 @@ function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
 	return Scrollable;
 }
 
+function ui_create_menupanel( parent, items )
+{
+	MenuPanel = parent.frame.createControl( "menupanel" );
+	MenuPanel.q1x = 1;
+	MenuPanel.q1y = 1;
+	
+	items = clone( items );
+	foreach( item : items )
+	{
+		item.text = _( item, "text" );
+	}
+	// each item can have the following used parameters
+	// - text (label text)
+	// - func (trigger callback, "checked" is updated before this)
+	// - menu (a submenu to display on click/after some time)
+	// - disabled (whether entry is a text or a line separator)
+	
+	MenuPanel.data = mpdata =
+	{
+		item_height = 24,
+		side_padding = 8,
+		
+		items = items,
+		selected = false,
+		
+		parent_menu = null,
+		menu_open = null,
+		menu_open_for = null,
+	};
+	
+	function mpdata.recalcItemWidths()
+	{
+		foreach( item : this.items )
+			item.width = Font.get_text_length( item.text ) + this.side_padding * 2;
+	}
+	
+	function mpdata.recalcItemPositions( MenuPanel )
+	{
+		x = 0;
+		y = 0;
+		rw = MenuPanel.rx1 - MenuPanel.rx0;
+		foreach( item : this.items )
+		{
+			item.x = x + MenuPanel.rx0;
+			item.y = y + MenuPanel.ry0;
+			x += item.width;
+			if( x > rw )
+			{
+				x = 0;
+				y += this.item_height;
+			}
+		}
+		MenuPanel.nc_top = y + this.item_height;
+	}
+	
+	mpdata.recalcItemWidths();
+	mpdata.recalcItemPositions( MenuPanel );
+	
+	ocb = MenuPanel.callback;
+	function MenuPanel.callback( event ) use( ocb )
+	{
+		data = this.data;
+		if( event.type == EV_Layout )
+		{
+			data.recalcItemPositions( this );
+			this.frame.handleMouseMove();
+		}
+		else if( event.type == EV_MouseMove )
+		{
+			data.selected = false;
+			foreach( i, item : data.items )
+			{
+				if( event.x >= item.x && event.y >= item.y &&
+					event.x < item.x + item.width && event.y < item.y + data.item_height )
+				{
+					data.selected = i;
+				}
+			}
+		}
+		else if( event.type == EV_ButtonDown )
+		{
+			if( data.selected !== false )
+			{
+				item = data.items[ data.selected ];
+				if( !_( item, "disabled" ) )
+				{
+					if( isset( item, "menu" ) )
+					{
+					}
+				}
+			}
+		}
+		return ocb.thiscall( this, event );
+	}
+	
+	function MenuPanel.renderfunc()
+	{
+		data = this.data;
+		iht = data.item_height;
+		
+		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry0 + this.nc_top, 0.9, 0.9, 0.9, 1 );
+		
+		foreach( i, item : data.items )
+		{
+			disabled = _( item, "disabled" );
+			
+			if( data.selected === i )
+			{
+				if( disabled )
+				{
+					draw_color_rect( item.x, item.y, item.x + item.width, item.y + iht, 0.5, 0.5, 0.5, 1 );
+					draw_color_rect( item.x+1, item.y+1, item.x + item.width-1, item.y + iht-1, 0.8, 0.8, 0.8, 1 );
+				}
+				else
+				{
+					draw_color_rect( item.x, item.y, item.x + item.width, item.y + iht, 0.4, 0.5, 0.6, 1 );
+					draw_color_rect( item.x+1, item.y+1, item.x + item.width-1, item.y + iht-1, 0.7, 0.8, 0.9, 1 );
+				}
+			}
+			
+			col = if( disabled, [0.5,0.5,0.5,1], [0.1,0.1,0.1,1] );
+			draw_text_line_vc( item.text, Font, item.x + data.side_padding, item.y + iht / 2, col );
+		}
+	}
+	
+	parent.addChild( MenuPanel );
+	
+	return MenuPanel;
+}
+
