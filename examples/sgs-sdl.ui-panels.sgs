@@ -1,0 +1,102 @@
+
+
+function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
+{
+	vscroll ||= "auto";
+	hscroll ||= "auto";
+	
+	Scrollable = parent.frame.createControl( "scrollable" );
+	Scrollable.x = x;
+	Scrollable.y = y;
+	Scrollable.width = width;
+	Scrollable.height = height;
+	Scrollable.data =
+	{
+		padding = 1,
+		scroll_size = 12,
+		x0 = 0, x1 = 0, y0 = 0, y1 = 0,
+	};
+	
+	pad = Scrollable.data.padding;
+	ssize = Scrollable.data.scroll_size;
+	
+	scrV = ui_create_vscroll( Scrollable, pad, -pad, ssize, pad * 2 );
+	scrH = ui_create_hscroll( Scrollable, -pad, pad, pad * 2, ssize );
+	scrV.nonclient = true; scrV.visible = false; scrV.q0x = 1; scrV.q1x = 1; scrV.q1y = 1;
+	scrH.nonclient = true; scrH.visible = false; scrH.q0y = 1; scrH.q1y = 1; scrH.q1x = 1;
+	
+	Scrollable_data = Scrollable.data;
+	function Scrollable_data.recalc( Scrollable ) use( scrV, scrH )
+	{
+		pad = this.padding;
+		chlist = Scrollable.children();
+		x0 = x1 = y0 = y1 = 0;
+		foreach( ch : chlist )
+		{
+			p0x = ch.rx0 - Scrollable.rx0;
+			p0y = ch.ry0 - Scrollable.ry0;
+			p1x = ch.rx1 - Scrollable.rx0;
+			p1y = ch.ry1 - Scrollable.ry0;
+			
+			x0 = min( x0, min( p0x, p1x ) );
+			x1 = max( x1, max( p0x, p1x ) );
+			y0 = min( y0, min( p0y, p1y ) );
+			y1 = max( y1, max( p0y, p1y ) );
+		}
+		
+		x1 += pad * 2;
+		y1 += pad * 2;
+		
+		this.x0 = x0; this.x1 = x1;
+		this.y0 = y0; this.y1 = y1;
+		
+		iw = x1 - x0;
+		ih = y1 - y0;
+		
+		showV = ih > Scrollable.height - this.scroll_size;
+		showH = iw > Scrollable.width - this.scroll_size;
+		
+		scrV.visible = showV;
+		scrH.visible = showH;
+		scrV.data.space = ih;
+		scrH.data.space = iw;
+		Scrollable.nc_top = pad;
+		Scrollable.nc_left = pad;
+		Scrollable.nc_right = pad + if( showV, this.scroll_size, 0 );
+		Scrollable.nc_bottom = pad + if( showH, this.scroll_size, 0 );
+	}
+	
+	scrV.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_y = -this.data.position; } );
+	scrH.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_x = -this.data.position; } );
+	
+	orig_callback = Scrollable.callback;
+	function Scrollable.callback( event ) use( orig_callback, scrV, scrH )
+	{
+		data = this.data;
+		if( event.type == EV_Layout )
+		{
+			data.recalc( this );
+		}
+		else if( event.type == EV_MouseWheel )
+		{
+			if( scrV.visible )
+				scrV.callback( event );
+			else if( scrH.visible )
+				scrH.callback( event );
+			return 0; // stop bubbling
+		}
+		return orig_callback.thiscall( this, event );
+	}
+	
+	function Scrollable.renderfunc()
+	{
+		data = this.data;
+		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.6, 0.6, 0.6, 1 );
+		draw_color_rect( this.rx0 + this.nc_left, this.ry0 + this.nc_top, this.rx1 - this.nc_right, this.ry1 - this.nc_bottom, 0.8, 0.8, 0.8, 1 );
+	}
+	
+	parent.addChild( Scrollable );
+	
+	return Scrollable;
+}
+

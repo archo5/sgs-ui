@@ -1,0 +1,561 @@
+
+
+function ui_create_static( parent, x, y, width, height, caption, color, textmode )
+{
+	Static = parent.frame.createControl( "static" );
+	Static.data =
+	{
+		color = color || [0.5,0.5,0.5,1],
+		textcolor = [0.1,0.1,0.1,1],
+		textmode = textmode || DT_CENTER | DT_VCENTER,
+	};
+	Static.x = x;
+	Static.y = y;
+	Static.width = width;
+	Static.height = height;
+	Static.caption = caption;
+	
+	function Static.renderfunc()
+	{
+		data = this.data;
+		text = this.caption;
+		
+		draw({ preset = "tile", position = [this.rx0,this.ry0],
+			scale = [this.rx1-this.rx0,this.ry1-this.ry0], color = data.color });
+		
+		if( text )
+		{
+			draw_text_rect( text, Font, data.textcolor, data.textmode, this.rx0, this.rx1, this.ry0, this.ry1 );
+		}
+	}
+	
+	if( typeof(parent) == "UIControl" )
+		parent.addChild( Static );
+	else if( typeof(parent) == "UIFrame" )
+		parent.root = Static;
+	
+	return Static;
+}
+
+function ui_create_button( parent, x, y, width, height, caption, icon )
+{
+	Button = parent.frame.createControl( "button" );
+	if( typeof(icon) == "string" )
+		icon = create_texture( icon );
+	Button.data = { icon = icon };
+	Button.x = x;
+	Button.y = y;
+	Button.width = width;
+	Button.height = height;
+	Button.caption = caption;
+	
+	orig_callback = Button.callback;
+	
+	function Button.callback( event ) use( orig_callback )
+	{
+		if( event.type == EV_NeedFocus )
+			return 1;
+		if( event.type == EV_ButtonDown && event.button != 0 )
+		{
+			this.frame.setFocus( this );
+			return;
+		}
+		return orig_callback.thiscall( this, event );
+	}
+	
+	function Button.renderfunc()
+	{
+		if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
+			return;
+		
+		data = this.data;
+		icon = _( data, "icon" );
+		text = this.caption;
+		
+		cadd = if( this.clicked, -0.1, if( this.mouseOn, 0.1, 0.0 ) );
+		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
+		draw_color_rect( this.rx0+1, this.ry0+1, this.rx1-1, this.ry1-1, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
+		
+		if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
+		{
+			fullwidth = 0;
+			if( icon ) fullwidth += icon.width;
+			if( text )
+			{
+				textlen = Font.get_text_length( text );
+				fullwidth += textlen;
+			}
+			if( icon && text ) fullwidth += 4;
+			
+			icon_off = ( this.rx1 - this.rx0 - fullwidth ) / 2;
+			text_off = icon_off;
+			cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
+			if( icon )
+			{
+				text_off += icon.width + 4;
+				draw({ preset = "box", position = [ this.rx0 + round( icon_off + icon.width / 2 ), cy ], scale = [ icon.width, icon.height ], texture = icon });
+			}
+			
+			if( text )
+			{
+				draw_text_line_vc( text, Font, this.rx0 + text_off, cy, [1,1,1,1] );
+			}
+			
+			this.frame.popScissorRect();
+		}
+	}
+	
+	parent.addChild( Button );
+	
+	return Button;
+}
+
+
+function ui_create_scroll( vertical, parent, x, y, width, height, space, window, position )
+{
+	space ||= 0;
+	auto_window = if( window, false, true );
+	window ||= if( vertical, height, width );
+	position ||= 0;
+	
+	Scroll = parent.frame.createControl( "scroll" );
+	Scroll.x = x;
+	Scroll.y = y;
+	Scroll.width = width;
+	Scroll.height = height;
+	Scroll.data =
+	{
+		button_size = 0,
+		move_step = 32,
+		min_scroll_length = 16,
+		
+		vertical = vertical,
+		space = space,
+		window = window,
+		position = position,
+		auto_window = auto_window,
+	};
+	
+	bsize = Scroll.data.button_size;
+	
+	scroll_length = if( vertical, height, width ) - bsize * 2;
+	bar_pos = if( space, scroll_length * position / space, 0 );
+	bar_length = if( space, scroll_length * window / space, scroll_length );
+	
+	if( vertical )
+	{
+		btnUP = ui_create_button( Scroll, 0, 0, 0, bsize, "", "icons/arrow_up.png" );
+		btnDN = ui_create_button( Scroll, 0, -bsize, 0, bsize, "", "icons/arrow_down.png" );
+		btnCS = ui_create_button( Scroll, 0, bsize + bar_pos, 0, bar_length, "" );
+		btnUP.q1x = 1; btnDN.q1x = 1; btnCS.q1x = 1;
+		btnDN.q0y = 1; btnDN.q1y = 1;
+	}
+	else
+	{
+		btnUP = ui_create_button( Scroll, 0, 0, bsize, 0, "", "icons/arrow_left.png" );
+		btnDN = ui_create_button( Scroll, -bsize, 0, bsize, 0, "", "icons/arrow_right.png" );
+		btnCS = ui_create_button( Scroll, bsize + bar_pos, 0, bar_length, 0, "" );
+		btnUP.q1y = 1; btnDN.q1y = 1; btnCS.q1y = 1;
+		btnDN.q0x = 1; btnDN.q1x = 1;
+	}
+	
+	Scroll_data = Scroll.data;
+	function Scroll_data.moveRel( dist, Scroll, btnCS )
+	{
+		opos = this.position;
+		this.position += dist;
+		maxpos = this.space - this.window;
+		if( maxpos < 0 ) maxpos = 0;
+		if( this.position < 0 ) this.position = 0;
+		if( this.position > maxpos ) this.position = maxpos;
+		
+		if( this.vertical )
+		{
+			scroll_length = Scroll.ry1 - Scroll.ry0 - this.button_size * 2;
+			btnCS.y = this.button_size + if( this.space, scroll_length * this.position / this.space, 0 );
+		}
+		else
+		{
+			scroll_length = Scroll.rx1 - Scroll.rx0 - this.button_size * 2;
+			btnCS.x = this.button_size + if( this.space, scroll_length * this.position / this.space, 0 );
+		}
+		
+		Scroll.frame.handleMouseMove();
+		
+		if( opos != this.position )
+		{
+			e = ui_create_event();
+			if( this.vertical )
+				e.y = this.position;
+			else
+				e.x = this.position;
+			Scroll.callEvent( "change", e );
+		}
+	}
+	function Scroll_data.moveToAbs( coord, Scroll, btnCS )
+	{
+		if( this.vertical )
+		{
+			rcoord = coord - Scroll.ry0 - this.button_size;
+			movelen = Scroll.ry1 - Scroll.ry0 - this.button_size * 2 - btnCS.height;
+		}
+		else
+		{
+			rcoord = coord - Scroll.rx0 - this.button_size;
+			movelen = Scroll.rx1 - Scroll.rx0 - this.button_size * 2 - btnCS.width;
+		}
+		np = 0;
+		if( movelen )
+			np = rcoord / movelen * ( this.space - this.window );
+		this.moveRel( np - this.position, Scroll, btnCS );
+	}
+	function Scroll_data.Scroll_onmousemove( event ) use( Scroll, btnCS )
+	{
+		if( btnCS.clicked )
+		{
+			Scroll.data.moveToAbs(
+				if( Scroll.data.vertical, event.y - Scroll.frame.getClickOffsetY( event.button ), event.x - Scroll.frame.getClickOffsetX( event.button ) )
+				, Scroll, btnCS );
+		}
+	}
+	
+	btnUP.bindEvent( "click", function() use( Scroll, btnCS ){ Scroll.data.moveRel( -Scroll.data.move_step, Scroll, btnCS ); } );
+	btnDN.bindEvent( "click", function() use( Scroll, btnCS ){ Scroll.data.moveRel( Scroll.data.move_step, Scroll, btnCS ); } );
+	
+	scroll_orig_callback = Scroll.callback;
+	function Scroll.callback( event ) use( scroll_orig_callback, btnCS )
+	{
+		data = this.data;
+		if( event.type == EV_Attach )
+		{
+			this.frame.root.bindEvent( "globalmousemove", data.Scroll_onmousemove );
+		}
+		else if( event.type == EV_Detach )
+		{
+			this.frame.root.unbindEvent( "globalmousemove", data.Scroll_onmousemove );
+		}
+		else if( event.type == EV_Layout )
+		{
+			ret = scroll_orig_callback.thiscall( this, event );
+			
+			scroll_length = if( data.vertical, this.ry1 - this.ry0, this.rx1 - this.rx0 );
+			if( data.auto_window )
+				data.window = scroll_length;
+			
+			scroll_length -= data.button_size * 2;
+			scroll_length = max( scroll_length, data.min_scroll_length );
+			bar_pos = if( data.space, scroll_length * data.position / data.space, 0 );
+			bar_length = if( data.space, scroll_length * data.window / data.space, scroll_length );
+			
+			if( data.vertical )
+			{
+				btnCS.y = bar_pos + data.button_size;
+				btnCS.height = bar_length;
+			}
+			else
+			{
+				btnCS.x = bar_pos + data.button_size;
+				btnCS.width = bar_length;
+			}
+			
+			return ret;
+		}
+		else if( event.type == EV_ButtonDown )
+		{
+			if( event.button == Mouse_ButtonL )
+				data.moveToAbs( if( data.vertical, event.y - btnCS.height / 2, event.x - btnCS.width / 2 ), this, btnCS );
+		}
+		else if( event.type == EV_MouseWheel )
+		{
+			data.moveRel( event.x * data.min_scroll_length, this, btnCS );
+			return 0; // stop bubbling
+		}
+		return scroll_orig_callback.thiscall( this, event );
+	}
+	
+	function Scroll.renderfunc()
+	{
+		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.8, 0.8, 0.8, 1 );
+		draw_color_rect( this.rx0 + 1, this.ry0 + 1, this.rx1 - 1, this.ry1 - 1, 0.7, 0.7, 0.7, 1 );
+	}
+	
+	parent.addChild( Scroll );
+	
+	return Scroll;
+}
+
+function ui_create_hscroll( parent, x, y, width, height, space, window, position ){ return ui_create_scroll( false, parent, x, y, width, height, space, window, position ); }
+function ui_create_vscroll( parent, x, y, width, height, space, window, position ){ return ui_create_scroll( true, parent, x, y, width, height, space, window, position ); }
+
+
+function ui_build_menu( parent, x, y, items, default )
+{
+	Menu = parent.frame.createControl( "menu" );
+	Menu.x = x - parent.x;
+	Menu.y = y - parent.y;
+	Menu.topmost = true;
+	
+	items = clone( items );
+	// each item can have the following used parameters
+	// - text (label text)
+	// - info (info text, usually shortcut key info)
+	// - func (trigger callback, "checked" is updated before this)
+	// - menu (a submenu to display on click/after some time)
+	// - icon (whatever the renderfunc will understand)
+	// - checked (null/true/false)
+	// - disabled (whether entry is a text or a line separator)
+	
+	Menu.data =
+	{
+		item_width = 200,
+		item_height = 24,
+		sep_height = 8,
+		item_spacing = 0,
+		menu_padding = 4,
+		items = items,
+		selected = false,
+		
+		parent_menu = null,
+		menu_open = null,
+		menu_open_for = null,
+		
+		buttonup_fn = function( e ) use( Menu ){ Menu.callback( e ); },
+		
+		icon_submenu = create_texture( "icons/resultset_next.png" ),
+	};
+	
+	if( default !== null && default >= 0 && default < items.size )
+		Menu.data.selected = default;
+	
+	menudata = Menu.data;
+	
+	function menudata.removeOpen()
+	{
+		if( this.menu_open )
+		{
+			mo = this.menu_open;
+			mo.parent.removeChild( mo );
+			this.menu_open = null;
+		}
+		this.menu_open_for = null;
+	}
+	function menudata.removeRecursive( cc )
+	{
+		while( cc && cc.type == "menu" )
+		{
+			pp = cc.data.parent_menu;
+			cc.parent.removeChild( cc );
+			cc = pp;
+		}
+	}
+	
+	ocb = Menu.callback;
+	function Menu.callback( event ) use( ocb )
+	{
+		data = this.data;
+		
+		if( event.type == EV_Detach )
+		{
+			this.frame.root.unbindEvent( "buttonup", data.buttonup_fn );
+			if( data.parent_menu )
+			{
+				if( data.parent_menu.data.menu_open == this )
+					data.parent_menu.data.menu_open = null;
+				data.parent_menu = null;
+			}
+			data.removeOpen();
+		}
+		else if( event.type == EV_HitTest )
+		{
+			// definite hit if hit self..
+			if( ocb.thiscall( this, event ) )
+				return 1;
+			// possible hit if hit parent..
+			if( this.parent && this.parent.callback( event ) )
+			{
+				// but only if there's no parent menu or we haven't hit that
+				pp = data.parent_menu;
+				hit = 1;
+				while( pp && pp.type == "menu" )
+				{
+					if( ocb.thiscall( pp, event ) )
+					{
+						hit = 0;
+						break;
+					}
+					pp = pp.data.parent_menu;
+				}
+				return hit;
+			}
+			return 0;
+		}
+		else if( event.type == EV_Layout )
+		{
+			ht = 0;
+			foreach( i, item : data.items )
+			{
+				if( i )
+					ht += data.item_spacing;
+				if( _( item, "disabled" ) && _( item, "text" ) === null )
+					ht += data.sep_height;
+				else
+					ht += data.item_height;
+			}
+			mp2 = data.menu_padding * 2;
+			this.width = data.item_width + mp2;
+			this.height = ht + mp2;
+		}
+		else if( event.type == EV_MouseMove )
+		{
+			data.selected = false;
+			x0 = this.rx0 + data.menu_padding;
+			x1 = x0 + data.item_width;
+			if( x0 <= event.x && x1 > event.x )
+			{
+				y0 = this.ry0 + data.menu_padding;
+				for( i = 0; i < data.items.size; ++i )
+				{
+					item = data.items[ i ];
+					if( _( item, "disabled" ) && _( item, "text" ) === null )
+						ht = data.sep_height;
+					else
+						ht = data.item_height;
+					
+					y1 = y0 + ht;
+					if( !( _( item, "disabled" ) && _( item, "text" ) === null ) && event.y >= y0 && event.y < y1 )
+					{
+						data.selected = i;
+						break;
+					}
+					
+					y0 = y1 + data.item_spacing;
+				}
+			}
+			if( data.parent_menu )
+			{
+				hitevent = ui_create_event();
+				hitevent.type = EV_HitTest;
+				hitevent.x = event.x;
+				hitevent.y = event.y;
+				if( ocb.thiscall( this, hitevent ) )
+					data.parent_menu.data.selected = data.parent_menu.data.menu_open_for;
+			}
+		}
+		else if( event.type == EV_MouseLeave )
+		{
+			data.selected = false;
+			return false;
+		}
+		else if( event.type == EV_ButtonDown )
+		{
+			hitevent = ui_create_event();
+			hitevent.type = EV_HitTest;
+			hitevent.x = event.x;
+			hitevent.y = event.y;
+			if( this.callback( hitevent ) && !ocb.thiscall( this, hitevent ) )
+				data.removeRecursive( this );
+			return true;
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			data.removeOpen();
+			if( data.selected !== false )
+			{
+				item = data.items[ data.selected ];
+				if( !_( item, "disabled" ) )
+				{
+					if( isset( item, "menu" ) )
+					{
+						if( !data.menu_open )
+						{
+							my = this.ry0;
+							for( i = 0; i < data.selected; ++i )
+							{
+								it2 = data.items[ i ];
+								if( _( it2, "disabled" ) && _( it2, "text" ) === null )
+									ht = data.sep_height;
+								else
+									ht = data.item_height;
+								my += ht + data.item_spacing;
+							}
+							sel = data.selected; // store to avoid modification from the events called in the next line
+							data.menu_open = ui_build_menu( this.frame.root, this.rx1 - 4, my, item.menu );
+							data.menu_open.index = this.index + 1;
+							data.selected = sel;
+							data.menu_open.data.parent_menu = this;
+							data.menu_open_for = data.selected;
+							this.frame.handleMouseMove();
+						}
+					}
+					else if( isset( item, "func" ) )
+						item.func();
+					
+					if( !isset( item, "menu" ) )
+						data.removeRecursive( this );
+				}
+			}
+			return true;
+		}
+		
+		return ocb.thiscall( this, event );
+	}
+	
+	function Menu.renderfunc()
+	{
+		data = this.data;
+		
+		pad = data.menu_padding;
+		
+		draw({ preset = "tile", position = [this.rx0,this.ry0], scale = [this.width,this.height], color = [0.8,0.8,0.8,1] });
+		draw({ preset = "tile", position = [this.rx0+pad,this.ry0+pad], scale = [this.width-pad*2,this.height-pad*2], color = [0.9,0.9,0.9,1] });
+		
+		draw({ preset = "tile", position = [this.rx0+32,this.ry0+2+pad], scale = [1,this.height-4-pad*2], color = [0.8,0.8,0.8,1] });
+		
+		x = this.rx0 + pad;
+		y = this.ry0 + pad;
+		foreach( id, item : data.items )
+		{
+			disabled = _( item, "disabled" );
+			checked = _( item, "checked" );
+			
+			if( id === data.selected )
+				draw({ preset = "tile", position = [x,y], scale = [data.item_width,data.item_height], color = if(disabled,[0.7,0.7,0.7,0.5],[0.4,0.6,0.8,0.8]) });
+			
+			if( isset( item, "menu" ) )
+				draw_fitted( data.icon_submenu, x + data.item_width - data.item_height, x + data.item_width, y, y + data.item_height );
+			
+			if( _( item, "text" ) !== null )
+				draw_text_line_vc( item.text, Font, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
+			else if( disabled )
+				draw({ preset = "tile", position = [x+32,y+data.sep_height/2], scale = [data.item_width-36,1], color = [0.8,0.8,0.8,1] });
+			
+			if( disabled && _( item, "text" ) === null )
+				y += data.sep_height;
+			else
+			{
+				if( checked !== null )
+				{
+					// checkbox
+					cbx0 = x + 4;
+					cby0 = y + 4;
+					cbsz = min( 24, data.item_height - 8 );
+					cbx1 = cbx0 + cbsz;
+					cby1 = cby0 + cbsz;
+					draw_color_rect( cbx0, cby0, cbx1, cby1, 0.5, 0.6, 0.7, 1 );
+					draw_color_rect( cbx0+1, cby0+1, cbx1-1, cby1-1, 0.9, 0.9, 0.9, 1 );
+					if( checked )
+						draw_color_rect( cbx0+3, cby0+3, cbx1-3, cby1-3, 0.1, 0.2, 0.4, 1 );
+				}
+				y += data.item_height;
+			}
+			y += data.item_spacing;
+		}
+	}
+	
+	parent.addChild( Menu );
+	parent.frame.root.bindEvent( "buttonup", Menu.data.buttonup_fn );
+	parent.frame.handleMouseMove();
+	
+	return Menu;
+}
+

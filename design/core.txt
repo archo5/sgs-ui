@@ -52,7 +52,7 @@ UI for EDITORS
 special exts..
 
 + scrollable panels -- contents are scrollable, can contain anything
-- multi-level menus -- same as everywhere else
++ multi-level menus -- same as everywhere else
 - possibly toolbars
 - different color themes
 - tabbed panels (automatically assigning names to buttons)

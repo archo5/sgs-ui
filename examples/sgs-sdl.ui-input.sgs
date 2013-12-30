@@ -1,0 +1,601 @@
+
+
+function ui_create_form( parent )
+{
+	Form = parent.frame.createControl( "form" );
+	Form.data = { ctrls = map() };
+	Form.q1x = 1;
+	Form.q1y = 1;
+	
+	Form_data = Form.data;
+	function Form_data.getData()
+	{
+		out = {};
+		foreach( ctrl ,: this.ctrls )
+		{
+			val = ctrl.data.getValue();
+			if( val !== null )
+			{
+				if( isset( out, ctrl.name ) )
+					out[ ctrl.name ].push( val );
+				else
+					out[ ctrl.name ] = [ val ];
+			}
+			else
+			{
+				if( !isset( out, ctrl.name ) )
+					out[ ctrl.name ] = [];
+			}
+		}
+		return out;
+	}
+	function Form_data.getList( name )
+	{
+		out = [];
+		foreach( ctrl ,: this.ctrls )
+		{
+			if( ctrl.name == name )
+			{
+				val = ctrl.data.getValue();
+				if( val !== null )
+					out.push( val );
+			}
+		}
+		return out;
+	}
+	function Form_data.getString( name )
+	{
+		foreach( ctrl ,: this.ctrls )
+		{
+			if( ctrl.name == name )
+			{
+				val = ctrl.data.getValue();
+				if( val !== null )
+					return val;
+			}
+		}
+		return null;
+	}
+	
+	parent.addChild( Form );
+	
+	return Form;
+}
+
+function form_attach( ctrl )
+{
+	form = ctrl;
+	do
+	{
+		form = form.parent;
+		if( form.type == "form" )
+		{
+			form.data.ctrls[ ctrl ] = true;
+			break;
+		}
+	}
+	while( form.parent );
+}
+
+function form_detach( ctrl )
+{
+	form = ctrl;
+	do
+	{
+		form = form.parent;
+		if( form.type == "form" )
+		{
+			unset( form.data.ctrls, ctrl );
+			break;
+		}
+	}
+	while( form.parent );
+}
+
+function form_controls_by_name( ctrl, name )
+{
+	form = ctrl;
+	do
+	{
+		form = form.parent;
+		if( form.type == "form" )
+		{
+			out = [];
+			foreach( c ,: form.data.ctrls )
+			{
+				if( c.name == name )
+					out.push( c );
+			}
+			return out;
+		}
+	}
+	while( form.parent );
+	return [];
+}
+
+
+function ui_create_checkbox( parent, x, y, width, height, name, value, checked )
+{
+	cb_size = 16;
+	
+	Checkbox = parent.frame.createControl( "checkbox" );
+	x = round( x + width / 2 );
+	y = round( y + width / 2 );
+	Checkbox.x = x - round( cb_size / 2 );
+	Checkbox.y = y - round( cb_size / 2 );
+	Checkbox.width = cb_size;
+	Checkbox.height = cb_size;
+	Checkbox.name = name;
+	Checkbox.data =
+	{
+		border = 1,
+		padding = 2,
+		
+		checked = checked || false,
+		value = if( value === null, 1, value ),
+	};
+	
+	cbdata = Checkbox.data;
+	
+	function cbdata.getValue(){ return if( this.checked, this.value, null ); };
+	
+	orig_callback = Checkbox.callback;
+	function Checkbox.callback( event ) use( orig_callback )
+	{
+		data = this.data;
+		
+		if( event.type == EV_NeedFocus )
+			return 1;
+		else if( event.type == EV_Attach )
+		{
+			form_attach( this );
+		}
+		else if( event.type == EV_Detach )
+		{
+			form_detach( this );
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			if( event.button == 0 && this.clicked )
+			{
+				data.checked = !data.checked;
+				this.callEvent( "change", event );
+			}
+		}
+		return orig_callback.thiscall( this, event );
+	}
+	
+	function Checkbox.renderfunc()
+	{
+		data = this.data;
+		
+		p1 = data.border;
+		p2 = data.padding + p1;
+		
+		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.6, 0.8, 1 );
+		
+		if( this.clicked )
+			draw_color_rect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.8, 0.8, 0.8, 1 );
+		else
+			draw_color_rect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.9, 0.9, 0.9, 1 );
+		
+		if( data.checked )
+			draw_color_rect( this.rx0 + p2, this.ry0 + p2, this.rx1 - p2, this.ry1 - p2, 0.1, 0.2, 0.4, 1 );
+	}
+	
+	parent.addChild( Checkbox );
+	
+	return Checkbox;
+}
+
+function ui_create_radiobtn( parent, x, y, width, height, name, value, checked )
+{
+	cb_size = 16;
+	
+	RadioBtn = parent.frame.createControl( "radiobtn" );
+	x = round( x + width / 2 );
+	y = round( y + width / 2 );
+	RadioBtn.x = x - round( cb_size / 2 );
+	RadioBtn.y = y - round( cb_size / 2 );
+	RadioBtn.width = cb_size;
+	RadioBtn.height = cb_size;
+	RadioBtn.name = name;
+	RadioBtn.data =
+	{
+		border = 1,
+		padding = 2,
+		
+		checked = checked || false,
+		value = if( value === null, 1, value ),
+	};
+	
+	rbdata = RadioBtn.data;
+	
+	function rbdata.getValue(){ return if( this.checked, this.value, null ); };
+	
+	orig_callback = RadioBtn.callback;
+	function RadioBtn.callback( event ) use( orig_callback )
+	{
+		data = this.data;
+		
+		if( event.type == EV_NeedFocus )
+			return 1;
+		else if( event.type == EV_Attach )
+		{
+			form_attach( this );
+		}
+		else if( event.type == EV_Detach )
+		{
+			form_detach( this );
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			if( event.button == 0 && this.clicked )
+			{
+				ctrls = form_controls_by_name( this, this.name );
+				foreach( ctrl : ctrls )
+				{
+					if( ctrl.type == "radiobtn" && ctrl != this )
+					{
+						if( ctrl.data.checked != false )
+						{
+							ctrl.data.checked = false;
+							ctrl.callEvent( "change", event );
+						}
+					}
+				}
+				if( data.checked != true )
+				{
+					data.checked = true;
+					this.callEvent( "change", event );
+				}
+			}
+		}
+		return orig_callback.thiscall( this, event );
+	}
+	
+	function RadioBtn.renderfunc()
+	{
+		data = this.data;
+		
+		p1 = data.border;
+		p2 = data.padding + p1;
+		
+		cx = ( this.rx0 + this.rx1 ) / 2;
+		cy = ( this.ry0 + this.ry1 ) / 2;
+		radius = round( min( this.rx1 - this.rx0, this.ry1 - this.ry0 ) / 2 );
+		
+		draw_color_circle( cx, cy, radius, null, 0.5, 0.6, 0.8, 1 );
+		
+		if( this.clicked )
+			draw_color_circle( cx, cy, radius - p1, null, 0.8, 0.8, 0.8, 1 );
+		else
+			draw_color_circle( cx, cy, radius - p1, null, 0.9, 0.9, 0.9, 1 );
+		
+		if( data.checked )
+			draw_color_circle( cx, cy, radius - p2, null, 0.1, 0.2, 0.4, 1 );
+	}
+	
+	parent.addChild( RadioBtn );
+	
+	return RadioBtn;
+}
+
+
+function ui_create_textbox( parent, x, y, width, caption, text )
+{
+	caption ||= "";
+	text ||= "";
+	
+	Textbox = parent.frame.createControl( "textbox" );
+	Textbox.x = x;
+	Textbox.y = y;
+	Textbox.width = width;
+	
+	Textbox.data =
+	{
+		padding = 1,
+		text_padding = 2,
+		height = 24,
+		caption = caption,
+		
+		offset = 0,
+		sel_from = text.length,
+		sel_to = text.length,
+		fsel_from = null,
+		fsel_to = null,
+		selecting = false,
+		chars = string_utf8_decode( text ),
+		text = text,
+		prevtext = text,
+		show_cursor = true,
+		cursor_timer = null,
+	};
+	
+	tbdata = Textbox.data;
+	
+	function tbdata.getValue(){ return this.text; }
+	
+	function tbdata.removeCursorTimer( frame )
+	{
+		if( this.cursor_timer )
+			frame.clearInterval( this.cursor_timer );
+		this.cursor_timer = null;
+	}
+	function tbdata.resetCursorTimer( frame )
+	{
+		tbdata = this;
+		this.removeCursorTimer();
+		this.cursor_timer = frame.setInterval( 0.5, function() use( tbdata ) { tbdata.show_cursor = !tbdata.show_cursor; } );
+		this.show_cursor = true;
+	}
+	
+	function tbdata.updateSelOffsets()
+	{
+		this.sel_from = max( 0, min( this.sel_from, this.chars.size ) );
+		this.sel_to = max( 0, min( this.sel_to, this.chars.size ) );
+		this.fsel_to = 0;
+		this.fsel_from = 0;
+		
+		pc = null;
+		for( i = 0; i < this.sel_from; ++i )
+		{
+			ch = this.chars[ i ];
+			this.fsel_from += Font.get_advance( pc, ch );
+			pc = ch;
+		}
+		
+		pc = null;
+		for( i = 0; i < this.sel_to; ++i )
+		{
+			ch = this.chars[ i ];
+			this.fsel_to += Font.get_advance( pc, ch );
+			pc = ch;
+		}
+	}
+	
+	function tbdata.updateText()
+	{
+		this.text = string_utf8_encode( this.chars );
+	}
+	
+	function tbdata.findOffset( ctrl, x, y )
+	{
+		cpad = this.padding + this.text_padding;
+		x -= ctrl.rx0 + cpad - this.offset;
+		y -= ctrl.ry0 + cpad;
+		
+		fmin = 0.0;
+		fmax = 0.0;
+		pc = null;
+		for( i = 0; i < this.chars.size; ++i )
+		{
+			ch = this.chars[ i ];
+			fmax += Font.get_advance( pc, ch );
+			if( x <= (fmin+fmax)*0.5 )
+				break;
+			fmin = fmax;
+			pc = ch;
+		}
+		return i;
+	}
+	
+	tbdata.updateSelOffsets();
+	
+	ocb = Textbox.callback;
+	function Textbox.callback( event ) use( ocb )
+	{
+		data = this.data;
+		
+		if( event.type == EV_Attach )
+		{
+			form_attach( this );
+		}
+		if( event.type == EV_Detach )
+		{
+			form_detach( this );
+			data.removeCursorTimer( this.frame );
+		}
+		else if( event.type == EV_Layout )
+		{
+			this.height = data.height;
+		}
+		else if( event.type == EV_NeedFocus )
+			return 1;
+		else if( event.type == EV_FocusEnter )
+		{
+			data.prevtext = data.text;
+			data.resetCursorTimer( this.frame );
+		}
+		else if( event.type == EV_FocusLeave )
+		{
+			data.removeCursorTimer( this.frame );
+			if( data.prevtext != data.text )
+				this.callEvent( "commit", event );
+		}
+		else if( event.type == EV_Char )
+		{
+			if( event.uchar > 0x1f && event.uchar != 0x7f )
+			{
+				if( data.sel_from == data.sel_to )
+				{
+					data.chars.insert( data.sel_from, event.uchar );
+					data.updateText();
+					this.callEvent( "change", event );
+					data.sel_from++;
+					data.sel_to++;
+				}
+				else
+				{
+					from = data.sel_from;
+					to = data.sel_to;
+					if( from > to )
+					{
+						from = data.sel_to;
+						to = data.sel_from;
+					}
+					data.chars.erase( from, to - 1 );
+					data.chars.insert( from, event.uchar );
+					from++;
+					data.updateText();
+					this.callEvent( "change", event );
+					data.sel_from = from;
+					data.sel_to = from;
+				}
+				data.updateSelOffsets();
+			}
+		}
+		else if( event.type == EV_ButtonDown )
+		{
+			if( event.button == Mouse_ButtonL )
+			{
+				data.selecting = true;
+				data.sel_to = data.sel_from = data.findOffset( this, event.x, event.y );
+				data.updateSelOffsets();
+			}
+		}
+		else if( event.type == EV_MouseMove )
+		{
+			if( event.button == Mouse_ButtonL && data.selecting )
+			{
+				data.sel_to = data.findOffset( this, event.x, event.y );
+				data.updateSelOffsets();
+			}
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			if( event.button == Mouse_ButtonL )
+				data.selecting = false;
+		}
+		else if( event.type == EV_KeyDown || event.type == EV_KeyUp )
+		{
+			key = event.key;
+			mods = key & ~KeyMod_Filter;
+			key &= KeyMod_Filter;
+			down = event.type == EV_KeyDown;
+			
+			if( down )
+			{
+				if( key == Key_Left || key == Key_Right )
+				{
+					if( data.sel_from == data.sel_to || mods & KeyMod_Shift )
+						data.sel_to = data.sel_to + if( key == Key_Right, 1, -1 );
+					else
+						data.sel_to = if( key == Key_Left, min( data.sel_from, data.sel_to ), max( data.sel_from, data.sel_to ) );
+					if( !( mods & KeyMod_Shift ) )
+						data.sel_from = data.sel_to;
+					data.updateSelOffsets();
+				}
+				else if( key == Key_DelLeft || key == Key_DelRight )
+				{
+					if( data.sel_from != data.sel_to )
+					{
+						from = data.sel_from;
+						to = data.sel_to;
+						if( from > to )
+						{
+							from = data.sel_to;
+							to = data.sel_from;
+						}
+						data.chars.erase( from, to - 1 );
+						data.sel_from = from;
+						data.sel_to = from;
+					}
+					else if( key == Key_DelLeft && data.sel_from > 0 )
+					{
+						data.chars.erase( data.sel_from - 1 );
+						data.sel_from--;
+						data.sel_to--;
+					}
+					else if( key == Key_DelRight && data.sel_from < data.chars.size )
+					{
+						data.chars.erase( data.sel_from );
+					}
+					data.updateText();
+					this.callEvent( "change", event );
+					data.updateSelOffsets();
+				}
+				else if( key == Key_Cut || key == Key_Copy )
+				{
+					from = data.sel_from;
+					to = data.sel_to;
+					if( from > to )
+					{
+						from = data.sel_to;
+						to = data.sel_from;
+					}
+					// TODO: send data to clipboard (frame)
+					if( key == Key_Cut )
+					{
+						data.chars.erase( from, to - 1 );
+						data.sel_from = from;
+						data.sel_to = from;
+					}
+					data.updateText();
+					this.callEvent( "change", event );
+					data.updateSelOffsets();
+				}
+				else if( key == Key_Paste )
+				{
+					// TODO
+				}
+				else if( key == Key_SelectAll )
+				{
+					data.sel_from = 0;
+					data.sel_to = data.chars.size;
+					data.updateSelOffsets();
+				}
+			}
+		}
+		
+		return ocb.thiscall( this, event );
+	}
+	
+	function Textbox.renderfunc()
+	{
+		data = this.data;
+		
+		pad = data.padding;
+		tpad = data.text_padding;
+		cpad = pad + tpad;
+		
+		draw({ preset = "tile", position = [this.rx0,this.ry0], scale = [this.width,this.height], color = if(this.keyboardFocus,[0.9,0.6,0.3,1],[0.6,0.6,0.6,1]) });
+		draw({ preset = "tile", position = [this.rx0+pad,this.ry0+pad], scale = [this.width-pad*2,this.height-pad*2], color = [0.9,0.9,0.9,1] });
+		
+		x0 = this.rx0 + cpad - data.offset;
+		y0 = this.ry0 + cpad;
+		yc = ( this.ry0 + this.ry1 ) * 0.5;
+		xh = ( this.height-pad*2-tpad*2 - Font.size ) * 0.5;
+		
+		if( this.frame.pushScissorRect( this.rx0 + cpad, this.ry0 + cpad, this.rx1 - cpad, this.ry1 - cpad ) )
+		{
+			if( !data.chars && !this.keyboardFocus )
+			{
+				draw_text_line_vc( data.caption, Font, x0 + xh, yc, [0.1,0.1,0.1,0.5] );
+			}
+			
+			draw_text_line_vc( data.text, Font, x0, yc, [0.1,0.1,0.1,1] );
+			
+			if( data.sel_to !== null )
+			{
+				from = min( data.fsel_from, data.fsel_to );
+				to = max( data.fsel_from, data.fsel_to );
+				if( from != to )
+				{
+					selcol = if( this.keyboardFocus, [0.3,0.6,0.9,0.5], [0.8,0.8,0.8,0.5] );
+					draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,this.height-pad*2-tpad*2], color = selcol });
+				}
+				
+				if( this.keyboardFocus && data.show_cursor )
+					draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,this.height-pad*2-tpad*2], color = [0.1,0.1,0.1,1] });
+			}
+			
+			this.frame.popScissorRect();
+		}
+	}
+	
+	parent.addChild( Textbox );
+	
+	return Textbox;
+}
+
