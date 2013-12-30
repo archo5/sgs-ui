@@ -471,6 +471,16 @@ int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 	return SGS_SUCCESS;
 }
 
+sgsHandle< UIControl > UIFrame::getHoverControl()
+{
+	return sgsHandle< UIControl >( m_hover ? m_hover->m_sgsObject : NULL, C );
+}
+
+sgsHandle< UIControl > UIFrame::getFocusControl()
+{
+	return sgsHandle< UIControl >( m_focus ? m_focus->m_sgsObject : NULL, C );
+}
+
 
 UIControl::UIControl() :
 	id( UI_NO_ID ), x(0.0f), y(0.0f), width(0.0f), height(0.0f),

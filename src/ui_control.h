@@ -139,6 +139,8 @@ struct UIFrame
 	// info retrieval
 	SGS_METHOD float getClickOffsetX( int button ){ if( button < 0 || button >= Mouse_Button_Count ) return 0; return m_clickoffsets[ button ][0]; }
 	SGS_METHOD float getClickOffsetY( int button ){ if( button < 0 || button >= Mouse_Button_Count ) return 0; return m_clickoffsets[ button ][1]; }
+	SGS_METHOD sgsHandle< UIControl > getHoverControl();
+	SGS_METHOD sgsHandle< UIControl > getFocusControl();
 	
 	SGS_PROPERTY sgsVariable render_image;
 	SGS_PROPERTY sgsVariable render_text;

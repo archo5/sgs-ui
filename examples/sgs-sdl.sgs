@@ -743,6 +743,7 @@ function ui_build_menu( parent, x, y, items, default )
 	// - text (label text)
 	// - info (info text, usually shortcut key info)
 	// - func (trigger callback, "checked" is updated before this)
+	// - menu (a submenu to display on click/after some time)
 	// - icon (whatever the renderfunc will understand)
 	// - checked (null/true/false)
 	// - disabled (whether entry is a text or a line separator)
@@ -757,11 +758,37 @@ function ui_build_menu( parent, x, y, items, default )
 		items = items,
 		selected = false,
 		
+		parent_menu = null,
+		menu_open = null,
+		menu_open_for = null,
+		
 		buttonup_fn = function( e ) use( Menu ){ Menu.callback( e ); },
 	};
 	
 	if( default !== null && default >= 0 && default < items.size )
 		Menu.data.selected = default;
+	
+	menudata = Menu.data;
+	
+	function menudata.removeOpen()
+	{
+		if( this.menu_open )
+		{
+			mo = this.menu_open;
+			mo.parent.removeChild( mo );
+			this.menu_open = null;
+		}
+		this.menu_open_for = null;
+	}
+	function menudata.removeRecursive( cc )
+	{
+		while( cc && cc.type == "menu" )
+		{
+			pp = cc.data.parent_menu;
+			cc.parent.removeChild( cc );
+			cc = pp;
+		}
+	}
 	
 	ocb = Menu.callback;
 	function Menu.callback( event ) use( ocb )
@@ -771,10 +798,37 @@ function ui_build_menu( parent, x, y, items, default )
 		if( event.type == EV_Detach )
 		{
 			this.frame.root.unbindEvent( "buttonup", data.buttonup_fn );
+			if( data.parent_menu )
+			{
+				if( data.parent_menu.data.menu_open == this )
+					data.parent_menu.data.menu_open = null;
+				data.parent_menu = null;
+			}
+			data.removeOpen();
 		}
 		else if( event.type == EV_HitTest )
 		{
-			return ocb.thiscall( this, event ) || this.parent.callback( event );
+			// definite hit if hit self..
+			if( ocb.thiscall( this, event ) )
+				return 1;
+			// possible hit if hit parent..
+			if( this.parent && this.parent.callback( event ) )
+			{
+				// but only if there's no parent menu or we haven't hit that
+				pp = data.parent_menu;
+				hit = 1;
+				while( pp && pp.type == "menu" )
+				{
+					if( ocb.thiscall( pp, event ) )
+					{
+						hit = 0;
+						break;
+					}
+					pp = pp.data.parent_menu;
+				}
+				return hit;
+			}
+			return 0;
 		}
 		else if( event.type == EV_Layout )
 		{
@@ -818,6 +872,15 @@ function ui_build_menu( parent, x, y, items, default )
 					y0 = y1 + data.item_spacing;
 				}
 			}
+			if( data.parent_menu )
+			{
+				hitevent = ui_create_event();
+				hitevent.type = EV_HitTest;
+				hitevent.x = event.x;
+				hitevent.y = event.y;
+				if( ocb.thiscall( this, hitevent ) )
+					data.parent_menu.data.selected = data.parent_menu.data.menu_open_for;
+			}
 		}
 		else if( event.type == EV_MouseLeave )
 		{
@@ -831,21 +894,45 @@ function ui_build_menu( parent, x, y, items, default )
 			hitevent.x = event.x;
 			hitevent.y = event.y;
 			if( this.callback( hitevent ) && !ocb.thiscall( this, hitevent ) )
-				this.parent.removeChild( this );
+				data.removeRecursive( this );
 			return true;
 		}
 		else if( event.type == EV_ButtonUp )
 		{
+			data.removeOpen();
 			if( data.selected !== false )
 			{
 				item = data.items[ data.selected ];
 				if( !_( item, "disabled" ) )
 				{
-					if( isset( item, "checked" ) && item.checked !== null )
-						item.checked = !item.checked;
-					if( isset( item, "func" ) )
+					if( isset( item, "menu" ) )
+					{
+						if( !data.menu_open )
+						{
+							my = this.ry0;
+							for( i = 0; i < data.selected; ++i )
+							{
+								it2 = data.items[ i ];
+								if( _( it2, "disabled" ) && _( it2, "text" ) === null )
+									ht = data.sep_height;
+								else
+									ht = data.item_height;
+								my += ht + data.item_spacing;
+							}
+							sel = data.selected; // store to avoid modification from the events called in the next line
+							data.menu_open = ui_build_menu( this.frame.root, this.rx1 - 4, my, item.menu );
+							data.menu_open.index = this.index + 1;
+							data.selected = sel;
+							data.menu_open.data.parent_menu = this;
+							data.menu_open_for = data.selected;
+							this.frame.handleMouseMove();
+						}
+					}
+					else if( isset( item, "func" ) )
 						item.func();
-					this.parent.removeChild( this );
+					
+					if( !isset( item, "menu" ) )
+						data.removeRecursive( this );
 				}
 			}
 			return true;
@@ -870,6 +957,7 @@ function ui_build_menu( parent, x, y, items, default )
 		foreach( id, item : data.items )
 		{
 			disabled = _( item, "disabled" );
+			checked = _( item, "checked" );
 			
 			if( id === data.selected )
 				draw({ preset = "tile", position = [x,y], scale = [data.item_width,data.item_height], color = if(disabled,[0.7,0.7,0.7,0.5],[0.4,0.6,0.8,0.8]) });
@@ -882,7 +970,22 @@ function ui_build_menu( parent, x, y, items, default )
 			if( disabled && _( item, "text" ) === null )
 				y += data.sep_height;
 			else
+			{
+				if( checked !== null )
+				{
+					// checkbox
+					cbx0 = x + 4;
+					cby0 = y + 4;
+					cbsz = min( 24, data.item_height - 8 );
+					cbx1 = cbx0 + cbsz;
+					cby1 = cby0 + cbsz;
+					draw_color_rect( cbx0, cby0, cbx1, cby1, 0.5, 0.6, 0.7, 1 );
+					draw_color_rect( cbx0+1, cby0+1, cbx1-1, cby1-1, 0.9, 0.9, 0.9, 1 );
+					if( checked )
+						draw_color_rect( cbx0+3, cby0+3, cbx1-3, cby1-3, 0.1, 0.2, 0.4, 1 );
+				}
 				y += data.item_height;
+			}
 			y += data.item_spacing;
 		}
 	}
@@ -1319,10 +1422,28 @@ function initialize()
 	global BTN = ui_create_button( STAT, 100, 100, 100, 30, "Action", "icons/disk.png" );
 	BTN.bindEvent( "click", function()
 	{
+		sub3menu =
+		[
+			{ text = "Third Submenu", disabled = true },
+			{ disabled = true },
+			{ text = "One option", disabled = true },
+			{ text = "..or two!", func = function(){ println("TWOOOOOOOOOOO"); } },
+		];
+		
+		submenu =
+		[
+			{ text = "One option", disabled = true },
+			{ disabled = true },
+			{ text = "..or two!" },
+			{ text = "3", menu = sub3menu },
+		];
+		
 		items =
 		[
 			{ text = "Test 1", func = function(){ println("Test 1 - function"); } },
 			{ text = "Some option", checked = false },
+			{ text = "Some checked option", checked = true },
+			{ text = "Submenu?", menu = submenu },
 			{ disabled = true },
 			{ text = "Disabled", disabled = true },
 			{ text = "Exiquit", func = function(){ global sys_exit = true; } },
@@ -1369,6 +1490,12 @@ function update()
 	
 	FRAME.processTimers( delta );
 	FRAME.render();
+	
+//	hctrl = FRAME.getHoverControl();
+//	if( hctrl )
+//	{
+//		draw_color_rect( hctrl.rx0, hctrl.ry0, hctrl.rx1, hctrl.ry1, 0.5, 0.3, 0.1, 0.5 );
+//	}
 	
 //	tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";
 //	draw_text_line( tx, Font, 101, 1, [0,0,0,1] );
