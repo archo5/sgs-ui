@@ -77,6 +77,35 @@ function initialize()
 	global Font = create_font( "verdana.ttf", 11 );
 	
 	
+	/* MENUS */
+	sub3menu =
+	[
+		{ text = "Third Submenu", disabled = true },
+		{ disabled = true },
+		{ text = "One option", disabled = true },
+		{ text = "..or two!", func = function(){ println("TWOOOOOOOOOOO"); } },
+	];
+	
+	submenu =
+	[
+		{ text = "One option", disabled = true },
+		{ disabled = true },
+		{ text = "..or two!" },
+		{ text = "3", menu = sub3menu },
+	];
+	
+	menu1_items =
+	[
+		{ text = "Test 1", func = function(){ println("Test 1 - function"); } },
+		{ text = "Some option", checked = false },
+		{ text = "Some checked option", checked = true },
+		{ text = "Submenu?", menu = submenu },
+		{ disabled = true },
+		{ text = "Disabled", disabled = true },
+		{ text = "Exiquit", func = function(){ global sys_exit = true; } },
+	];
+	
+	
 	global FRAME = ui_create_frame();
 	FRAME.width = 1024;
 	FRAME.height = 576;
@@ -89,6 +118,7 @@ function initialize()
 	}
 	
 	global FORM = ui_create_form( FRAME.root );
+//	FORM.bindEvent( "change", function(){ println("form changed."); } );
 	
 	function formdump()
 	{
@@ -99,52 +129,23 @@ function initialize()
 	mpitems =
 	[
 		{ text = "File", func = formdump },
-		{ text = "Edit" },
+		{ text = "Edit", menu = submenu },
 		{ text = "Disabled", disabled = true },
 		{ text = "Help" },
 	];
 	global STAT = ui_create_menupanel( STATCORE, mpitems );
 	
-	global TOPBAR = ui_create_static( STAT, 0, 0, 0, 48, "", [0.8,0.8,0.8,1] );
+	global TOPBAR = ui_create_static( STAT, 0, 0, 0, 24, "", [0.8,0.8,0.8,1] );
 	TOPBAR.q1x = 1;
 	
-	ui_create_button( TOPBAR, 0, 0, 48, 24, "File" ).bindEvent( "click", formdump );
-	ui_create_button( TOPBAR, 48, 0, 48, 24, "Edit" );
-	
-	ui_create_button( TOPBAR, 0, 24, 24, 24, "", "icons/page.png" );
-	ui_create_button( TOPBAR, 24, 24, 24, 24, "", "icons/disk.png" );
-	ui_create_button( TOPBAR, 48, 24, 24, 24, "", "icons/disk_multiple.png" );
+	ui_create_button( TOPBAR, 0, 0, 24, 24, "", "icons/page.png" );
+	ui_create_button( TOPBAR, 24, 0, 24, 24, "", "icons/disk.png" );
+	ui_create_button( TOPBAR, 48, 0, 24, 24, "", "icons/disk_multiple.png" );
 	
 	global BTN = ui_create_button( STAT, 100, 100, 100, 30, "Action", "icons/disk.png" );
-	BTN.bindEvent( "click", function()
+	BTN.bindEvent( "click", function() use( menu1_items )
 	{
-		sub3menu =
-		[
-			{ text = "Third Submenu", disabled = true },
-			{ disabled = true },
-			{ text = "One option", disabled = true },
-			{ text = "..or two!", func = function(){ println("TWOOOOOOOOOOO"); } },
-		];
-		
-		submenu =
-		[
-			{ text = "One option", disabled = true },
-			{ disabled = true },
-			{ text = "..or two!" },
-			{ text = "3", menu = sub3menu },
-		];
-		
-		items =
-		[
-			{ text = "Test 1", func = function(){ println("Test 1 - function"); } },
-			{ text = "Some option", checked = false },
-			{ text = "Some checked option", checked = true },
-			{ text = "Submenu?", menu = submenu },
-			{ disabled = true },
-			{ text = "Disabled", disabled = true },
-			{ text = "Exiquit", func = function(){ global sys_exit = true; } },
-		];
-		ui_build_menu( this.frame.root, this.rx0, this.ry1, items );
+		ui_build_menu( this.frame.root, this.rx0, this.ry1, menu1_items );
 	});
 	
 	tbKey = ui_create_textbox( STAT, 100, 50, 100, "Key" );

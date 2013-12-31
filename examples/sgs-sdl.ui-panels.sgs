@@ -155,6 +155,26 @@ function ui_create_menupanel( parent, items )
 		MenuPanel.nc_top = y + this.item_height;
 	}
 	
+	function mpdata.removeOpen()
+	{
+		if( this.menu_open )
+		{
+			mo = this.menu_open;
+			mo.parent.removeChild( mo );
+			this.menu_open = null;
+		}
+		this.menu_open_for = null;
+	}
+	function mpdata.removeRecursive( cc )
+	{
+		while( cc && cc.type == "menu" )
+		{
+			pp = cc.data.parent_menu;
+			cc.parent.removeChild( cc );
+			cc = pp;
+		}
+	}
+	
 	mpdata.recalcItemWidths();
 	mpdata.recalcItemPositions( MenuPanel );
 	
@@ -181,14 +201,32 @@ function ui_create_menupanel( parent, items )
 		}
 		else if( event.type == EV_ButtonDown )
 		{
-			if( data.selected !== false )
+			sel = data.selected; // store to avoid modification from the events called
+			mof = data.menu_open_for;
+			data.removeOpen();
+			if( sel !== false )
 			{
-				item = data.items[ data.selected ];
+				item = data.items[ sel ];
 				if( !_( item, "disabled" ) )
 				{
 					if( isset( item, "menu" ) )
 					{
+						if( sel !== mof )
+						{
+							data.menu_open = ui_build_menu( this.frame.root, item.x, item.y + data.item_height, item.menu );
+							data.menu_open.index = this.index + 1;
+							data.menu_open.data.parent_menu = this;
+							data.menu_open_for = sel;
+							this.frame.handleMouseMove();
+						}
 					}
+					else if( isset( item, "func" ) )
+						item.func();
+					
+					if( !isset( item, "menu" ) )
+						data.removeRecursive( data.menu_open );
+					else
+						data.selected = sel; // restore
 				}
 			}
 		}

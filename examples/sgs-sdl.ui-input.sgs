@@ -38,7 +38,12 @@ function ui_create_form( parent )
 			{
 				val = ctrl.data.getValue();
 				if( val !== null )
-					out.push( val );
+				{
+					if( typeof(val) !== "array" )
+						out.push( val );
+					else
+						out = get_concat( out, val );
+				}
 			}
 		}
 		return out;
@@ -62,54 +67,62 @@ function ui_create_form( parent )
 	return Form;
 }
 
-function form_attach( ctrl )
+function form_get_from_ctrl( ctrl )
 {
-	form = ctrl;
-	do
+	while( ctrl )
 	{
-		form = form.parent;
-		if( form.type == "form" )
-		{
-			form.data.ctrls[ ctrl ] = true;
-			break;
-		}
+		if( ctrl.type == "form" )
+			return ctrl;
+		ctrl = ctrl.parent;
 	}
-	while( form.parent );
+	return null;
 }
 
-function form_detach( ctrl )
+function form_change_event( form, event )
 {
-	form = ctrl;
-	do
+	form.callEvent( "change", event );
+}
+
+function form_attach( ctrl, event )
+{
+	form = form_get_from_ctrl( ctrl );
+	if( form )
 	{
-		form = form.parent;
-		if( form.type == "form" )
-		{
-			unset( form.data.ctrls, ctrl );
-			break;
-		}
+		form.data.ctrls[ ctrl ] = true;
+		form_change_event( form, event );
 	}
-	while( form.parent );
+}
+
+function form_detach( ctrl, event )
+{
+	form = form_get_from_ctrl( ctrl );
+	if( form )
+	{
+		unset( form.data.ctrls, ctrl );
+		form_change_event( form, event );
+	}
+}
+
+function form_ctrl_changed( ctrl, event )
+{
+	form = form_get_from_ctrl( ctrl );
+	if( form )
+		form_change_event( form, event );
 }
 
 function form_controls_by_name( ctrl, name )
 {
-	form = ctrl;
-	do
+	form = form_get_from_ctrl( ctrl );
+	if( form )
 	{
-		form = form.parent;
-		if( form.type == "form" )
+		out = [];
+		foreach( c ,: form.data.ctrls )
 		{
-			out = [];
-			foreach( c ,: form.data.ctrls )
-			{
-				if( c.name == name )
-					out.push( c );
-			}
-			return out;
+			if( c.name == name )
+				out.push( c );
 		}
+		return out;
 	}
-	while( form.parent );
 	return [];
 }
 
@@ -148,11 +161,11 @@ function ui_create_checkbox( parent, x, y, width, height, name, value, checked )
 			return 1;
 		else if( event.type == EV_Attach )
 		{
-			form_attach( this );
+			form_attach( this, event );
 		}
 		else if( event.type == EV_Detach )
 		{
-			form_detach( this );
+			form_detach( this, event );
 		}
 		else if( event.type == EV_ButtonUp )
 		{
@@ -160,6 +173,7 @@ function ui_create_checkbox( parent, x, y, width, height, name, value, checked )
 			{
 				data.checked = !data.checked;
 				this.callEvent( "change", event );
+				form_ctrl_changed( this, event );
 			}
 		}
 		return orig_callback.thiscall( this, event );
@@ -222,11 +236,11 @@ function ui_create_radiobtn( parent, x, y, width, height, name, value, checked )
 			return 1;
 		else if( event.type == EV_Attach )
 		{
-			form_attach( this );
+			form_attach( this, event );
 		}
 		else if( event.type == EV_Detach )
 		{
-			form_detach( this );
+			form_detach( this, event );
 		}
 		else if( event.type == EV_ButtonUp )
 		{
@@ -241,6 +255,7 @@ function ui_create_radiobtn( parent, x, y, width, height, name, value, checked )
 						{
 							ctrl.data.checked = false;
 							ctrl.callEvent( "change", event );
+							form_ctrl_changed( this, event );
 						}
 					}
 				}
@@ -248,6 +263,7 @@ function ui_create_radiobtn( parent, x, y, width, height, name, value, checked )
 				{
 					data.checked = true;
 					this.callEvent( "change", event );
+					form_ctrl_changed( this, event );
 				}
 			}
 		}
@@ -389,11 +405,11 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		
 		if( event.type == EV_Attach )
 		{
-			form_attach( this );
+			form_attach( this, event );
 		}
 		if( event.type == EV_Detach )
 		{
-			form_detach( this );
+			form_detach( this, event );
 			data.removeCursorTimer( this.frame );
 		}
 		else if( event.type == EV_Layout )
@@ -411,7 +427,10 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		{
 			data.removeCursorTimer( this.frame );
 			if( data.prevtext != data.text )
+			{
 				this.callEvent( "commit", event );
+				form_ctrl_changed( this, event );
+			}
 		}
 		else if( event.type == EV_Char )
 		{

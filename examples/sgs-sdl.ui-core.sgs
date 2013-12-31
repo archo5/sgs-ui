@@ -347,6 +347,8 @@ function ui_build_menu( parent, x, y, items, default )
 			cc.parent.removeChild( cc );
 			cc = pp;
 		}
+		if( cc && cc.type == "menupanel" )
+			cc.data.removeOpen();
 	}
 	
 	ocb = Menu.callback;
@@ -376,7 +378,7 @@ function ui_build_menu( parent, x, y, items, default )
 				// but only if there's no parent menu or we haven't hit that
 				pp = data.parent_menu;
 				hit = 1;
-				while( pp && pp.type == "menu" )
+				while( pp && ( pp.type == "menu" || pp.type == "menupanel" ) )
 				{
 					if( ocb.thiscall( pp, event ) )
 					{
