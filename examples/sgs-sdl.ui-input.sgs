@@ -169,7 +169,7 @@ function ui_create_checkbox( parent, x, y, width, height, name, value, checked )
 		}
 		else if( event.type == EV_ButtonUp )
 		{
-			if( event.button == 0 && this.clicked )
+			if( event.button == 0 && this.clicked && this.mouseOn )
 			{
 				data.checked = !data.checked;
 				this.callEvent( "change", event );
@@ -244,7 +244,7 @@ function ui_create_radiobtn( parent, x, y, width, height, name, value, checked )
 		}
 		else if( event.type == EV_ButtonUp )
 		{
-			if( event.button == 0 && this.clicked )
+			if( event.button == 0 && this.clicked && this.mouseOn )
 			{
 				ctrls = form_controls_by_name( this, this.name );
 				foreach( ctrl : ctrls )

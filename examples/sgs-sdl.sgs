@@ -131,7 +131,7 @@ function initialize()
 		{ text = "File", func = formdump },
 		{ text = "Edit", menu = submenu },
 		{ text = "Disabled", disabled = true },
-		{ text = "Help" },
+		{ text = "Help", menu = sub3menu },
 	];
 	global STAT = ui_create_menupanel( STATCORE, mpitems );
 	
