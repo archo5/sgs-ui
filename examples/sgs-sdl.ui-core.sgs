@@ -5,8 +5,8 @@ function ui_create_static( parent, x, y, width, height, caption, color, textmode
 	Static = parent.frame.createControl( "static" );
 	Static.data =
 	{
-		color = color || [0.5,0.5,0.5,1],
-		textcolor = [0.1,0.1,0.1,1],
+		color = color || _G.color(0.5,0.5,0.5,1),
+		textcolor = _G.color(0.1,0.1,0.1,1),
 		textmode = textmode || DT_CENTER | DT_VCENTER,
 	};
 	Static.x = x;
@@ -20,12 +20,12 @@ function ui_create_static( parent, x, y, width, height, caption, color, textmode
 		data = this.data;
 		text = this.caption;
 		
-		draw({ preset = "tile", position = [this.rx0,this.ry0],
+		SS_Draw({ preset = "tile", position = [this.rx0,this.ry0],
 			scale = [this.rx1-this.rx0,this.ry1-this.ry0], color = data.color });
 		
 		if( text )
 		{
-			draw_text_rect( text, Font, data.textcolor, data.textmode, this.rx0, this.rx1, this.ry0, this.ry1 );
+			SS_DrawTextRect( text, Font, data.textcolor, data.textmode, this.rx0, this.rx1, this.ry0, this.ry1 );
 		}
 	}
 	
@@ -41,7 +41,7 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 {
 	Button = parent.frame.createControl( "button" );
 	if( typeof(icon) == "string" )
-		icon = create_texture( icon );
+		icon = SS_CreateTexture( icon );
 	Button.data = { icon = icon };
 	Button.x = x;
 	Button.y = y;
@@ -73,8 +73,8 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 		text = this.caption;
 		
 		cadd = if( this.clicked, -0.1, if( this.mouseOn, 0.1, 0.0 ) );
-		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
-		draw_color_rect( this.rx0+1, this.ry0+1, this.rx1-1, this.ry1-1, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
+		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
+		SS_DrawColorRect( this.rx0+1, this.ry0+1, this.rx1-1, this.ry1-1, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
 		
 		if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
 		{
@@ -82,7 +82,7 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 			if( icon ) fullwidth += icon.width;
 			if( text )
 			{
-				textlen = Font.get_text_length( text );
+				textlen = Font.getTextLength( text );
 				fullwidth += textlen;
 			}
 			if( icon && text ) fullwidth += 4;
@@ -93,12 +93,12 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 			if( icon )
 			{
 				text_off += icon.width + 4;
-				draw({ preset = "box", position = [ this.rx0 + round( icon_off + icon.width / 2 ), cy ], scale = [ icon.width, icon.height ], texture = icon });
+				SS_Draw({ preset = "box", position = vec2( this.rx0 + round( icon_off + icon.width / 2 ), cy ), scale = vec2( icon.width, icon.height ), texture = icon });
 			}
 			
 			if( text )
 			{
-				draw_text_line_vc( text, Font, this.rx0 + text_off, cy, [1,1,1,1] );
+				SS_DrawTextLine_VC( text, Font, this.rx0 + text_off, cy, color(1,1,1,1) );
 			}
 			
 			this.frame.popScissorRect();
@@ -275,8 +275,8 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 	
 	function Scroll.renderfunc()
 	{
-		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.8, 0.8, 0.8, 1 );
-		draw_color_rect( this.rx0 + 1, this.ry0 + 1, this.rx1 - 1, this.ry1 - 1, 0.7, 0.7, 0.7, 1 );
+		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.8, 0.8, 0.8, 1 );
+		SS_DrawColorRect( this.rx0 + 1, this.ry0 + 1, this.rx1 - 1, this.ry1 - 1, 0.7, 0.7, 0.7, 1 );
 	}
 	
 	parent.addChild( Scroll );
@@ -321,7 +321,7 @@ function ui_build_menu( parent, x, y, items, default )
 		
 		buttonup_fn = function( e ) use( Menu ){ Menu.callback( e ); },
 		
-		icon_submenu = create_texture( "icons/resultset_next.png" ),
+		icon_submenu = SS_CreateTexture( "icons/resultset_next.png" ),
 	};
 	
 	if( default !== null && default >= 0 && default < items.size )
@@ -510,10 +510,10 @@ function ui_build_menu( parent, x, y, items, default )
 		
 		pad = data.menu_padding;
 		
-		draw({ preset = "tile", position = [this.rx0,this.ry0], scale = [this.width,this.height], color = [0.8,0.8,0.8,1] });
-		draw({ preset = "tile", position = [this.rx0+pad,this.ry0+pad], scale = [this.width-pad*2,this.height-pad*2], color = [0.9,0.9,0.9,1] });
+		SS_Draw({ preset = "tile", position = [this.rx0,this.ry0], scale = [this.width,this.height], color = [0.8,0.8,0.8,1] });
+		SS_Draw({ preset = "tile", position = [this.rx0+pad,this.ry0+pad], scale = [this.width-pad*2,this.height-pad*2], color = [0.9,0.9,0.9,1] });
 		
-		draw({ preset = "tile", position = [this.rx0+32,this.ry0+2+pad], scale = [1,this.height-4-pad*2], color = [0.8,0.8,0.8,1] });
+		SS_Draw({ preset = "tile", position = [this.rx0+32,this.ry0+2+pad], scale = [1,this.height-4-pad*2], color = [0.8,0.8,0.8,1] });
 		
 		x = this.rx0 + pad;
 		y = this.ry0 + pad;
@@ -523,15 +523,15 @@ function ui_build_menu( parent, x, y, items, default )
 			checked = _( item, "checked" );
 			
 			if( id === data.selected )
-				draw({ preset = "tile", position = [x,y], scale = [data.item_width,data.item_height], color = if(disabled,[0.7,0.7,0.7,0.5],[0.4,0.6,0.8,0.8]) });
+				SS_Draw({ preset = "tile", position = [x,y], scale = [data.item_width,data.item_height], color = if(disabled,[0.7,0.7,0.7,0.5],[0.4,0.6,0.8,0.8]) });
 			
 			if( isset( item, "menu" ) )
-				draw_fitted( data.icon_submenu, x + data.item_width - data.item_height, x + data.item_width, y, y + data.item_height );
+				SS_DrawFitted( data.icon_submenu, x + data.item_width - data.item_height, x + data.item_width, y, y + data.item_height );
 			
 			if( _( item, "text" ) !== null )
-				draw_text_line_vc( item.text, Font, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
+				SS_DrawTextLine_VC( item.text, Font, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
 			else if( disabled )
-				draw({ preset = "tile", position = [x+32,y+data.sep_height/2], scale = [data.item_width-36,1], color = [0.8,0.8,0.8,1] });
+				SS_Draw({ preset = "tile", position = [x+32,y+data.sep_height/2], scale = [data.item_width-36,1], color = [0.8,0.8,0.8,1] });
 			
 			if( disabled && _( item, "text" ) === null )
 				y += data.sep_height;
@@ -545,10 +545,10 @@ function ui_build_menu( parent, x, y, items, default )
 					cbsz = min( 24, data.item_height - 8 );
 					cbx1 = cbx0 + cbsz;
 					cby1 = cby0 + cbsz;
-					draw_color_rect( cbx0, cby0, cbx1, cby1, 0.5, 0.6, 0.7, 1 );
-					draw_color_rect( cbx0+1, cby0+1, cbx1-1, cby1-1, 0.9, 0.9, 0.9, 1 );
+					SS_DrawColorRect( cbx0, cby0, cbx1, cby1, 0.5, 0.6, 0.7, 1 );
+					SS_DrawColorRect( cbx0+1, cby0+1, cbx1-1, cby1-1, 0.9, 0.9, 0.9, 1 );
 					if( checked )
-						draw_color_rect( cbx0+3, cby0+3, cbx1-3, cby1-3, 0.1, 0.2, 0.4, 1 );
+						SS_DrawColorRect( cbx0+3, cby0+3, cbx1-3, cby1-3, 0.1, 0.2, 0.4, 1 );
 				}
 				y += data.item_height;
 			}

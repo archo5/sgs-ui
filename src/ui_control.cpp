@@ -695,6 +695,15 @@ void UIControl::sortSiblings()
 		parent->sortChildren();
 }
 
+void UIControl::setAnchorMode( int mode )
+{
+	q0x = mode & Anchor_Left ? 1 : 0;
+	q1x = mode & Anchor_Right ? 1 : 0;
+	q0y = mode & Anchor_Top ? 1 : 0;
+	q1y = mode & Anchor_Bottom ? 1 : 0;
+	updateLayout();
+}
+
 
 bool UIControl::bindEvent( std::string name, sgsVariable callable )
 {
@@ -752,6 +761,15 @@ bool UIControl::callEvent( std::string name, UIEvent* e )
 }
 
 
+int UIControl::sgs_getindex( SGS_CTX, sgs_VarObj* obj, int isprop )
+{
+	UIControl* ctrl = static_cast<UIControl*>(obj->data);
+	sgs_Variable key;
+	if( sgs_GetStackItem( C, 0, &key ) && sgs_PushIndexP( C, &ctrl->_interface.var, &key ) == SGS_SUCCESS )
+		return SGS_SUCCESS;
+	return UIControl::_sgs_getindex( C, obj, isprop );
+}
+
 int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 {
 	UIControl* ctrl = static_cast<UIControl*>(obj->data);
@@ -762,6 +780,7 @@ int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
 	ctrl->callback.gcmark();
 	ctrl->renderfunc.gcmark();
 	ctrl->data.gcmark();
+	ctrl->_interface.gcmark();
 	ctrl->m_events.gcmark();
 	return SGS_SUCCESS;
 }

@@ -9,6 +9,10 @@
 
 #define UI_NO_ID 0xffffffff
 
+#define Anchor_Top    0x01
+#define Anchor_Bottom 0x02
+#define Anchor_Left   0x04
+#define Anchor_Right  0x08
 
 #define EV_Paint      1
 #define EV_Layout     2
@@ -191,12 +195,23 @@ struct UIControl
 	SGS_METHOD sgsVariable children( bool nonclient );
 	SGS_METHOD void sortChildren();
 	SGS_METHOD void sortSiblings();
+	SGS_METHOD void setAnchorMode( int mode );
 	
 	SGS_METHOD bool bindEvent( std::string name, sgsVariable callable );
 	SGS_METHOD bool unbindEvent( std::string name, sgsVariable callable );
 	SGS_METHOD bool callEvent( std::string name, UIEvent* e );
 	
+	SGS_IFUNC(SGS_OP_GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, int isprop );
 	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
+	
+	float _get_marginLeft(){ return x; }
+	float _get_marginRight(){ return -width - x; }
+	float _get_marginTop(){ return y; }
+	float _get_marginBottom(){ return -height - y; }
+	void _set_marginLeft( float v ){ width -= v - x; x = v; updateLayout(); }
+	void _set_marginRight( float v ){ width = -v - x; updateLayout(); }
+	void _set_marginTop( float v ){ height -= v - y; y = v; updateLayout(); }
+	void _set_marginBottom( float v ){ height = -v - y; updateLayout(); }
 	
 	SGS_PROPERTY READ uint32_t id;
 	SGS_PROPERTY std::string name;
@@ -219,12 +234,17 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) int index;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) bool topmost;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) bool nonclient;
+	SGS_PROPERTY_FUNC( READ _get_marginLeft WRITE _set_marginLeft ) SGS_ALIAS( float marginLeft );
+	SGS_PROPERTY_FUNC( READ _get_marginRight WRITE _set_marginRight ) SGS_ALIAS( float marginRight );
+	SGS_PROPERTY_FUNC( READ _get_marginTop WRITE _set_marginTop ) SGS_ALIAS( float marginTop );
+	SGS_PROPERTY_FUNC( READ _get_marginBottom WRITE _set_marginBottom ) SGS_ALIAS( float marginBottom );
 	SGS_PROPERTY std::string type;
 	SGS_PROPERTY READ Handle parent;
 	SGS_PROPERTY READ UIFrame::Handle frame;
 	SGS_PROPERTY sgsVariable callback;
 	SGS_PROPERTY sgsVariable renderfunc;
 	SGS_PROPERTY sgsVariable data;
+	SGS_PROPERTY sgsVariable _interface;
 	
 	SGS_PROPERTY READ float rx0;
 	SGS_PROPERTY READ float rx1;

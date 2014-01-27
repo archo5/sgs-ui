@@ -1,11 +1,18 @@
 
 
+global UI_Form = {};
+function UI_Form.getData(){ return this.data.getData(); }
+function UI_Form.getList( name ){ return this.data.getList( name ); }
+function UI_Form.getString( name ){ return this.data.getString( name ); }
+
 function ui_create_form( parent )
 {
 	Form = parent.frame.createControl( "form" );
 	Form.data = { ctrls = map() };
 	Form.q1x = 1;
 	Form.q1y = 1;
+	
+	Form._interface = UI_Form;
 	
 	Form_data = Form.data;
 	function Form_data.getData()
@@ -186,15 +193,15 @@ function ui_create_checkbox( parent, x, y, width, height, name, value, checked )
 		p1 = data.border;
 		p2 = data.padding + p1;
 		
-		draw_color_rect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.6, 0.8, 1 );
+		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.6, 0.8, 1 );
 		
 		if( this.clicked )
-			draw_color_rect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.8, 0.8, 0.8, 1 );
+			SS_DrawColorRect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.8, 0.8, 0.8, 1 );
 		else
-			draw_color_rect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.9, 0.9, 0.9, 1 );
+			SS_DrawColorRect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.9, 0.9, 0.9, 1 );
 		
 		if( data.checked )
-			draw_color_rect( this.rx0 + p2, this.ry0 + p2, this.rx1 - p2, this.ry1 - p2, 0.1, 0.2, 0.4, 1 );
+			SS_DrawColorRect( this.rx0 + p2, this.ry0 + p2, this.rx1 - p2, this.ry1 - p2, 0.1, 0.2, 0.4, 1 );
 	}
 	
 	parent.addChild( Checkbox );
@@ -578,8 +585,8 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		tpad = data.text_padding;
 		cpad = pad + tpad;
 		
-		draw({ preset = "tile", position = [this.rx0,this.ry0], scale = [this.width,this.height], color = if(this.keyboardFocus,[0.9,0.6,0.3,1],[0.6,0.6,0.6,1]) });
-		draw({ preset = "tile", position = [this.rx0+pad,this.ry0+pad], scale = [this.width-pad*2,this.height-pad*2], color = [0.9,0.9,0.9,1] });
+		SS_Draw({ preset = "tile", position = vec2(this.rx0,this.ry0), scale = vec2(this.width,this.height), color = if(this.keyboardFocus,color(0.9,0.6,0.3,1),color(0.6,0.6,0.6,1)) });
+		SS_Draw({ preset = "tile", position = vec2(this.rx0+pad,this.ry0+pad), scale = vec2(this.width-pad*2,this.height-pad*2), color = color(0.9,0.9,0.9,1) });
 		
 		x0 = this.rx0 + cpad - data.offset;
 		y0 = this.ry0 + cpad;
@@ -590,10 +597,10 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		{
 			if( !data.chars && !this.keyboardFocus )
 			{
-				draw_text_line_vc( data.caption, Font, x0 + xh, yc, [0.1,0.1,0.1,0.5] );
+				SS_DrawTextLine_VC( data.caption, Font, x0 + xh, yc, color(0.1,0.1,0.1,0.5) );
 			}
 			
-			draw_text_line_vc( data.text, Font, x0, yc, [0.1,0.1,0.1,1] );
+			SS_DrawTextLine_VC( data.text, Font, x0, yc, color(0.1,0.1,0.1,1) );
 			
 			if( data.sel_to !== null )
 			{
@@ -602,11 +609,11 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 				if( from != to )
 				{
 					selcol = if( this.keyboardFocus, [0.3,0.6,0.9,0.5], [0.8,0.8,0.8,0.5] );
-					draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,this.height-pad*2-tpad*2], color = selcol });
+					SS_Draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,this.height-pad*2-tpad*2], color = selcol });
 				}
 				
 				if( this.keyboardFocus && data.show_cursor )
-					draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,this.height-pad*2-tpad*2], color = [0.1,0.1,0.1,1] });
+					SS_Draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,this.height-pad*2-tpad*2], color = [0.1,0.1,0.1,1] });
 			}
 			
 			this.frame.popScissorRect();

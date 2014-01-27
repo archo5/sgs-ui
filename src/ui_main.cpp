@@ -22,6 +22,11 @@ int ui_create_frame( SGS_CTX )
 
 sgs_RegIntConst g_iconsts[] =
 {
+	FN( Anchor_Top    ),
+	FN( Anchor_Bottom ),
+	FN( Anchor_Left   ),
+	FN( Anchor_Right  ),
+	
 	FN( EV_Paint      ),
 	FN( EV_Layout     ),
 	FN( EV_KeyDown    ),

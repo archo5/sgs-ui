@@ -44,37 +44,15 @@ function configure()
 	}
 }
 
-// global W, H, W1 = 1024, H1 = 576, F1 = "", W2 = 1600, H2 = 900, F2 = "", which = 2;
-global W, H, W1 = 1024, H1 = 576, F1 = "vsync", W2 = 1024, H2 = 576, F2 = "vsync", which = 2;
-
-function switch()
-{
-	global W, H, W1, H1, F1, W2, H2, F2, which;
-	
-	which = 3 - which;
-	if( which == 1 )
-	{
-		set_video_mode( W1, H1, 32, F1 );
-		W = W1; H = H1;
-	}
-	else
-	{
-		set_video_mode( W2, H2, 32, F2 );
-		W = W2; H = H2;
-	}
-}
-
 function _( obj, prop ){ return if( isset( obj, prop ), obj.(prop), null ); }
 
 function initialize()
 {
-	set_caption( "The SGS-SDL Game Framework" );
-	set_gl_attrib( SDL_GL_DEPTH_SIZE, 24 );
-	set_gl_attrib( SDL_GL_STENCIL_SIZE, 8 );
-	switch();
-	drawfunc_init();
+	global Window = SS_CreateWindow( "SGS-UI Test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 576, SDL_WINDOW_RESIZABLE );
+	Window.initRenderer( SS_RENDERER_DONTCARE, SS_RENDERER_DONTCARE, SS_RENDERER_VSYNC );
+	SS_InitDrawFunctions();
 	
-	global Font = create_font( "verdana.ttf", 11 );
+	global Font = SS_CreateFont( "verdana.ttf", 11 );
 	
 	
 	/* MENUS */
@@ -112,9 +90,9 @@ function initialize()
 	function FRAME.scissor_func( x0, y0, x1, y1 )
 	{
 		if( x0 === null )
-			set_cliprect( null );
+			SS_SetClipRect( null );
 		else
-			set_cliprect( x0, x1, y0, y1 );
+			SS_SetClipRect( x0, x1, y0, y1 );
 	}
 	
 	global FORM = ui_create_form( FRAME.root );
@@ -122,10 +100,12 @@ function initialize()
 	
 	function formdump()
 	{
-		printvar( FORM.data.getData() );
+		printvar( FORM.getData() );
 	}
 	
-	global STATCORE = ui_create_static( FORM, 10, 10, 1024 - 20, 576 - 20 );
+	global STATCORE = ui_create_static( FORM, 10, 10, -20, -20 );
+	STATCORE.q1x = 1;
+	STATCORE.q1y = 1;
 	mpitems =
 	[
 		{ text = "File", func = formdump },
@@ -169,23 +149,22 @@ function initialize()
 }
 
 global lasttime = ftime();
-global rotation = 0;
 
 function update()
 {
-	global lasttime, rotation, P, W, H;
+	global lasttime;
 	var curtime = ftime();
 	var delta = curtime - lasttime;
 	lasttime = curtime;
 	if( delta > 1.0/15.0 )
 		delta = 1.0/15.0;
 	
-	rotation += delta * 2;
+	SS_Clear( color( 0.1, 0.2, 0.4 ) );
 	
-	var cc = [0.1,0.2,0.4];
-	clear( cc );
+	W = Window.width;
+	H = Window.height;
 	
-	set_camera_ui( 0, W, 0, H );
+	SS_SetCameraUI( 0, W, 0, H );
 	
 	FRAME.processTimers( delta );
 	FRAME.render();
@@ -193,14 +172,14 @@ function update()
 //	hctrl = FRAME.getHoverControl();
 //	if( hctrl )
 //	{
-//		draw_color_rect( hctrl.rx0, hctrl.ry0, hctrl.rx1, hctrl.ry1, 0.5, 0.3, 0.1, 0.5 );
+//		SS_DrawColorRect( hctrl.rx0, hctrl.ry0, hctrl.rx1, hctrl.ry1, 0.5, 0.3, 0.1, 0.5 );
 //	}
-	
+//	
 //	tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";
-//	draw_text_line( tx, Font, 101, 1, [0,0,0,1] );
-//	draw_text_line( tx, Font, 100, 0, [0.9,0.8,0.7,1] );
+//	SS_DrawTextLine( tx, Font, 101, 1, [0,0,0,1] );
+//	SS_DrawTextLine( tx, Font, 100, 0, [0.9,0.8,0.7,1] );
 	
-	present();
+	SS_Present();
 
 	sleeptime = 15 - ( ftime() - lasttime ) * 1000;
 //	if( sleeptime > 0 ) sleep( sleeptime );
@@ -254,12 +233,15 @@ function on_event( e )
 	}
 	if( e.type == SDL_KEYDOWN )
 	{
-		FRAME.doPutChar( e.unicode );
+//		FRAME.doPutChar( e.unicode );
 	}
-	if( e.type == SDL_KEYDOWN && e.keycode == SDLK_F11 )
-		switch();
-	if( e.type == SDL_VIDEO_DEVICELOST ) println( "Device lost!" );
-	if( e.type == SDL_VIDEO_DEVICERESET ) println( "Device reset!" );
+	if( e.type == SDL_WINDOWEVENT && e.event == SDL_WINDOWEVENT_RESIZED )
+	{
+		FRAME.width = e.data1;
+		FRAME.height = e.data2;
+	}
+	if( e.type == SDL_VIDEODEVICELOST ) println( "Device lost!" );
+	if( e.type == SDL_VIDEODEVICERESET ) println( "Device reset!" );
 }
 
 function cleanup()
