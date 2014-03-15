@@ -138,7 +138,7 @@ struct UIFrame
 	SGS_METHOD int getScissorRectCount(){ return m_scissorRects.size(); }
 	void _applyScissorState();
 	
-	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
+	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
 	
 	// info retrieval
 	SGS_METHOD float getClickOffsetX( int button ){ if( button < 0 || button >= Mouse_Button_Count ) return 0; return m_clickoffsets[ button ][0]; }
@@ -201,8 +201,8 @@ struct UIControl
 	SGS_METHOD bool unbindEvent( std::string name, sgsVariable callable );
 	SGS_METHOD bool callEvent( std::string name, UIEvent* e );
 	
-	SGS_IFUNC(SGS_OP_GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, int isprop );
-	SGS_IFUNC(SGS_OP_GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int );
+	SGS_IFUNC(GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop );
+	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
 	
 	float _get_marginLeft(){ return x; }
 	float _get_marginRight(){ return -width - x; }

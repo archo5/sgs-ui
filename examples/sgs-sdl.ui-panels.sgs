@@ -85,7 +85,7 @@ function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
 				scrH.callback( event );
 			return 0; // stop bubbling
 		}
-		return orig_callback.thiscall( this, event );
+		return orig_callback.call( this, event );
 	}
 	
 	function Scrollable.renderfunc()
@@ -230,7 +230,7 @@ function ui_create_menupanel( parent, items )
 				}
 			}
 		}
-		return ocb.thiscall( this, event );
+		return ocb.call( this, event );
 	}
 	
 	function MenuPanel.renderfunc()

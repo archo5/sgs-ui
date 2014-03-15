@@ -60,7 +60,7 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 			this.frame.setFocus( this );
 			return;
 		}
-		return orig_callback.thiscall( this, event );
+		return orig_callback.call( this, event );
 	}
 	
 	function Button.renderfunc()
@@ -236,7 +236,7 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 		}
 		else if( event.type == EV_Layout )
 		{
-			ret = scroll_orig_callback.thiscall( this, event );
+			ret = scroll_orig_callback.call( this, event );
 			
 			scroll_length = if( data.vertical, this.ry1 - this.ry0, this.rx1 - this.rx0 );
 			if( data.auto_window )
@@ -270,7 +270,7 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 			data.moveRel( event.x * data.min_scroll_length, this, btnCS );
 			return 0; // stop bubbling
 		}
-		return scroll_orig_callback.thiscall( this, event );
+		return scroll_orig_callback.call( this, event );
 	}
 	
 	function Scroll.renderfunc()
@@ -370,7 +370,7 @@ function ui_build_menu( parent, x, y, items, default )
 		else if( event.type == EV_HitTest )
 		{
 			// definite hit if hit self..
-			if( ocb.thiscall( this, event ) )
+			if( ocb.call( this, event ) )
 				return 1;
 			// possible hit if hit parent..
 			if( this.parent && this.parent.callback( event ) )
@@ -380,7 +380,7 @@ function ui_build_menu( parent, x, y, items, default )
 				hit = 1;
 				while( pp && ( pp.type == "menu" || pp.type == "menupanel" ) )
 				{
-					if( ocb.thiscall( pp, event ) )
+					if( ocb.call( pp, event ) )
 					{
 						hit = 0;
 						break;
@@ -439,7 +439,7 @@ function ui_build_menu( parent, x, y, items, default )
 				hitevent.type = EV_HitTest;
 				hitevent.x = event.x;
 				hitevent.y = event.y;
-				if( ocb.thiscall( this, hitevent ) )
+				if( ocb.call( this, hitevent ) )
 					data.parent_menu.data.selected = data.parent_menu.data.menu_open_for;
 			}
 		}
@@ -454,7 +454,7 @@ function ui_build_menu( parent, x, y, items, default )
 			hitevent.type = EV_HitTest;
 			hitevent.x = event.x;
 			hitevent.y = event.y;
-			if( this.callback( hitevent ) && !ocb.thiscall( this, hitevent ) )
+			if( this.callback( hitevent ) && !ocb.call( this, hitevent ) )
 				data.removeRecursive( this );
 			return true;
 		}
@@ -501,7 +501,7 @@ function ui_build_menu( parent, x, y, items, default )
 			return true;
 		}
 		
-		return ocb.thiscall( this, event );
+		return ocb.call( this, event );
 	}
 	
 	function Menu.renderfunc()

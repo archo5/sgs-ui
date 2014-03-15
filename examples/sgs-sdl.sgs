@@ -216,12 +216,12 @@ function on_event( e )
 		else if( e.keycode == SDLK_BACKSPACE ) key = Key_DelLeft;
 		else if( e.keycode == SDLK_DELETE ) key = Key_DelRight;
 		else if( e.keycode == SDLK_TAB ) key = Key_Tab;
-		else if( e.keycode == SDLK_X && e.mod & KMOD_CTRL ) key = Key_Cut;
-		else if( e.keycode == SDLK_C && e.mod & KMOD_CTRL ) key = Key_Copy;
-		else if( e.keycode == SDLK_V && e.mod & KMOD_CTRL ) key = Key_Paste;
-		else if( e.keycode == SDLK_Z && e.mod & KMOD_CTRL ) key = Key_Undo;
-		else if( e.keycode == SDLK_Y && e.mod & KMOD_CTRL ) key = Key_Redo;
-		else if( e.keycode == SDLK_A && e.mod & KMOD_CTRL ) key = Key_SelectAll;
+		else if( e.keycode == SDLK_X && e.mod & SDL_KMOD_CTRL ) key = Key_Cut;
+		else if( e.keycode == SDLK_C && e.mod & SDL_KMOD_CTRL ) key = Key_Copy;
+		else if( e.keycode == SDLK_V && e.mod & SDL_KMOD_CTRL ) key = Key_Paste;
+		else if( e.keycode == SDLK_Z && e.mod & SDL_KMOD_CTRL ) key = Key_Undo;
+		else if( e.keycode == SDLK_Y && e.mod & SDL_KMOD_CTRL ) key = Key_Redo;
+		else if( e.keycode == SDLK_A && e.mod & SDL_KMOD_CTRL ) key = Key_SelectAll;
 		else if( e.keycode == SDLK_PAGEUP ) key = Key_PageUp;
 		else if( e.keycode == SDLK_PAGEDOWN ) key = Key_PageDown;
 		if( key )

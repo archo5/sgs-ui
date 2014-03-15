@@ -17,12 +17,12 @@ int UIControl_CtrlProc( SGS_CTX )
 	SGSFN( "UIControl_CtrlProc" );
 	sgs_Method( C );
 	if( !sgs_IsObject( C, 0, UIControl::_sgs_interface ) )
-		return sgs_Printf( C, SGS_WARNING, "expected UIControl as argument 0 / this" );
+		return sgs_Msg( C, SGS_WARNING, "expected UIControl as argument 0 / this" );
 	UIControl* ctrl = sgs_GetVar<UIControl::Handle>()( C, 0 );
 	
 	UIEvent* event = sgs_GetVarObj<UIEvent>()( C, 1 );
 	if( !event )
-		return sgs_Printf( C, SGS_WARNING, "expected UIEvent as argument 1" );
+		return sgs_Msg( C, SGS_WARNING, "expected UIEvent as argument 1" );
 	
 	// default return value
 	sgs_PushInt( C, 1 );
@@ -461,7 +461,7 @@ void UIFrame::preRemoveControl( UIControl* ctrl )
 	}
 }
 
-int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
+int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 {
 	UIFrame* frame = static_cast<UIFrame*>(obj->data);
 	frame->render_image.gcmark();
@@ -575,13 +575,13 @@ bool UIControl::addChild( UIControl::Handle ch )
 {
 	if( !ch.object )
 	{
-		sgs_Printf( C, SGS_WARNING, "cannot add null" );
+		sgs_Msg( C, SGS_WARNING, "cannot add null" );
 		return false;
 	}
 	
 	if( ch->frame != frame )
 	{
-		sgs_Printf( C, SGS_WARNING, "frames don't match" );
+		sgs_Msg( C, SGS_WARNING, "frames don't match" );
 		return false;
 	}
 	
@@ -589,7 +589,7 @@ bool UIControl::addChild( UIControl::Handle ch )
 	{
 		if( !ch->parent->removeChild( ch ) )
 		{
-			sgs_Printf( C, SGS_WARNING, "failed to remove child from previous parent" );
+			sgs_Msg( C, SGS_WARNING, "failed to remove child from previous parent" );
 			return false;
 		}
 	}
@@ -707,14 +707,13 @@ void UIControl::setAnchorMode( int mode )
 
 bool UIControl::bindEvent( std::string name, sgsVariable callable )
 {
-	m_events.push();
 	// try reading the existing array
 	sgs_PushStringBuf( C, name.c_str(), name.size() );
-	if( sgs_PushIndexExt( C, -2, -1, 0 ) )
+	if( SGS_FAILED( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) ) )
 	{
 		callable.push();
 		sgs_PushArray( C, 1 ); // create an array if it doesn't exist
-		sgs_StoreIndexExt( C, -3, -2, 0 );
+		sgs_StoreIndexPI( C, &m_events.var, -2, 0 );
 	}
 	else
 	{
@@ -731,10 +730,9 @@ bool UIControl::bindEvent( std::string name, sgsVariable callable )
 
 bool UIControl::unbindEvent( std::string name, sgsVariable callable )
 {
-	m_events.push();
 	// check if there's an entry for the event
 	sgs_PushStringBuf( C, name.c_str(), name.size() );
-	if( sgs_PushIndexExt( C, -2, -1, 0 ) )
+	if( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) )
 		return false;
 	// remove item from array
 	callable.push();
@@ -743,34 +741,36 @@ bool UIControl::unbindEvent( std::string name, sgsVariable callable )
 
 bool UIControl::callEvent( std::string name, UIEvent* e )
 {
-	m_events.push();
 	// check if there's an entry for the event
 	sgs_PushStringBuf( C, name.c_str(), name.size() );
-	if( sgs_PushIndexExt( C, -2, -1, 0 ) )
+	if( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) )
 		return false;
 	// iterate the array
 	sgs_PushIterator( C, -1 );
 	while( sgs_IterAdvance( C, -1 ) > 0 )
 	{
-		sgs_PushHandle( C, UIControl::Handle( m_sgsObject, C ) );
+		sgs_StkIdx ssz = sgs_StackSize( C );
+		
+		sgs_PushObjectPtr( C, m_sgsObject );
 		UI_PushEvent( C, e );
 		sgs_IterPushData( C, -3, 0, 1 );
 		sgs_ThisCall( C, 1, 0 );
+		
+		sgs_SetStackSize( C, ssz );
 	}
 	return true;
 }
 
 
-int UIControl::sgs_getindex( SGS_CTX, sgs_VarObj* obj, int isprop )
+int UIControl::sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop )
 {
 	UIControl* ctrl = static_cast<UIControl*>(obj->data);
-	sgs_Variable key;
-	if( sgs_GetStackItem( C, 0, &key ) && sgs_PushIndexP( C, &ctrl->_interface.var, &key ) == SGS_SUCCESS )
+	if( sgs_PushIndexPP( C, &ctrl->_interface.var, key, isprop ) == SGS_SUCCESS )
 		return SGS_SUCCESS;
-	return UIControl::_sgs_getindex( C, obj, isprop );
+	return UIControl::_sgs_getindex( C, obj, key, isprop );
 }
 
-int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj, int )
+int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 {
 	UIControl* ctrl = static_cast<UIControl*>(obj->data);
 	for( HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
