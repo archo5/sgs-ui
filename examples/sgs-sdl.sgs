@@ -52,6 +52,8 @@ function initialize()
 	Window.initRenderer( SS_RENDERER_DONTCARE, SS_RENDERER_DONTCARE, SS_RENDERER_VSYNC );
 	SS_InitDrawFunctions();
 	
+	SS_StartTextInput();
+	
 	global Font = SS_CreateFont( "verdana.ttf", 11 );
 	
 	
@@ -93,6 +95,12 @@ function initialize()
 			SS_SetClipRect( null );
 		else
 			SS_SetClipRect( x0, x1, y0, y1 );
+	}
+	function FRAME.clipboard_func( text )
+	{
+		if( text === null )
+			return SS_GetClipboardText();
+		return SS_SetClipboardText( text ) || "";
 	}
 	
 	global FORM = ui_create_form( FRAME.root );
@@ -195,16 +203,15 @@ function on_event( e )
 	}
 	if( e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP )
 	{
-		if( e.button == 4 || e.button == 5 )
-			FRAME.doMouseWheel( ( e.button == 5 ) - ( e.button == 4 ) );
-		else
-		{
-			btn = -1;
-			if( e.button == 1 ) btn = 0;
-			else if( e.button == 3 ) btn = 1;
-			else if( e.button == 2 ) btn = 2;
-			FRAME.doMouseButton( btn, e.type == SDL_MOUSEBUTTONDOWN );
-		}
+		btn = -1;
+		if( e.button == 1 ) btn = 0;
+		else if( e.button == 3 ) btn = 1;
+		else if( e.button == 2 ) btn = 2;
+		FRAME.doMouseButton( btn, e.type == SDL_MOUSEBUTTONDOWN );
+	}
+	if( e.type == SDL_MOUSEWHEEL )
+	{
+		FRAME.doMouseWheel( -e.y );
 	}
 	if( e.type == SDL_KEYUP || e.type == SDL_KEYDOWN )
 	{
@@ -226,14 +233,15 @@ function on_event( e )
 		else if( e.keycode == SDLK_PAGEDOWN ) key = Key_PageDown;
 		if( key )
 		{
-			if( e.mod & KMOD_SHIFT ) key |= KeyMod_Shift;
+			if( e.mod & SDL_KMOD_SHIFT ) key |= KeyMod_Shift;
 			// submit event
 			FRAME.doKeyPress( key, e.type == SDL_KEYDOWN );
 		}
 	}
-	if( e.type == SDL_KEYDOWN )
+	if( e.type == SDL_TEXTINPUT )
 	{
-//		FRAME.doPutChar( e.unicode );
+		chrs = string_utf8_decode( e.text );
+		FRAME.doPutChar( chrs[0] );
 	}
 	if( e.type == SDL_WINDOWEVENT && e.event == SDL_WINDOWEVENT_RESIZED )
 	{

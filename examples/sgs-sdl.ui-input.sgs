@@ -364,7 +364,7 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		for( i = 0; i < this.sel_from; ++i )
 		{
 			ch = this.chars[ i ];
-			this.fsel_from += Font.get_advance( pc, ch );
+			this.fsel_from += Font.getAdvance( pc, ch );
 			pc = ch;
 		}
 		
@@ -372,7 +372,7 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		for( i = 0; i < this.sel_to; ++i )
 		{
 			ch = this.chars[ i ];
-			this.fsel_to += Font.get_advance( pc, ch );
+			this.fsel_to += Font.getAdvance( pc, ch );
 			pc = ch;
 		}
 	}
@@ -394,7 +394,7 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		for( i = 0; i < this.chars.size; ++i )
 		{
 			ch = this.chars[ i ];
-			fmax += Font.get_advance( pc, ch );
+			fmax += Font.getAdvance( pc, ch );
 			if( x <= (fmin+fmax)*0.5 )
 				break;
 			fmin = fmax;
@@ -543,27 +543,54 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 				}
 				else if( key == Key_Cut || key == Key_Copy )
 				{
-					from = data.sel_from;
-					to = data.sel_to;
-					if( from > to )
+					if( this.frame.clipboard_func )
 					{
-						from = data.sel_to;
-						to = data.sel_from;
+						from = data.sel_from;
+						to = data.sel_to;
+						if( from > to )
+						{
+							from = data.sel_to;
+							to = data.sel_from;
+						}
+						this.frame.clipboard_func( string_part( data.text, from, to - from ) );
+						if( key == Key_Cut )
+						{
+							data.chars.erase( from, to - 1 );
+							data.sel_from = from;
+							data.sel_to = from;
+						}
+						data.updateText();
+						this.callEvent( "change", event );
+						data.updateSelOffsets();
 					}
-					// TODO: send data to clipboard (frame)
-					if( key == Key_Cut )
-					{
-						data.chars.erase( from, to - 1 );
-						data.sel_from = from;
-						data.sel_to = from;
-					}
-					data.updateText();
-					this.callEvent( "change", event );
-					data.updateSelOffsets();
 				}
 				else if( key == Key_Paste )
 				{
-					// TODO
+					if( this.frame.clipboard_func )
+					{
+						if( data.sel_from != data.sel_to )
+						{
+							from = data.sel_from;
+							to = data.sel_to;
+							if( from > to )
+							{
+								from = data.sel_to;
+								to = data.sel_from;
+							}
+							data.chars.erase( from, to - 1 );
+							data.sel_from = from;
+							data.sel_to = from;
+						}
+						
+						text = this.frame.clipboard_func();
+						at = data.sel_from;
+						utext = string_utf8_decode( text );
+						data.chars = get_concat( data.chars.part( 0, at ), utext, data.chars.part( at ) );
+						data.sel_from = data.sel_to = at + utext.size;
+						data.updateText();
+						this.callEvent( "change", event );
+						data.updateSelOffsets();
+					}
 				}
 				else if( key == Key_SelectAll )
 				{
