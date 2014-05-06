@@ -183,7 +183,7 @@ function ui_create_checkbox( parent, x, y, width, height, name, value, checked )
 				form_ctrl_changed( this, event );
 			}
 		}
-		return orig_callback.call( this, event );
+		return this!orig_callback( event );
 	}
 	
 	function Checkbox.renderfunc()
@@ -274,7 +274,7 @@ function ui_create_radiobtn( parent, x, y, width, height, name, value, checked )
 				}
 			}
 		}
-		return orig_callback.call( this, event );
+		return this!orig_callback( event );
 	}
 	
 	function RadioBtn.renderfunc()
@@ -601,7 +601,7 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 			}
 		}
 		
-		return ocb.call( this, event );
+		return this!ocb( event );
 	}
 	
 	function Textbox.renderfunc()

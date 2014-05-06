@@ -85,7 +85,7 @@ function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
 				scrH.callback( event );
 			return 0; // stop bubbling
 		}
-		return orig_callback.call( this, event );
+		return this!orig_callback( event );
 	}
 	
 	function Scrollable.renderfunc()
@@ -109,7 +109,7 @@ function ui_create_menupanel( parent, items )
 	items = clone( items );
 	foreach( item : items )
 	{
-		item.text = _( item, "text" );
+		item.text = @item.text;
 	}
 	// each item can have the following used parameters
 	// - text (label text)
@@ -207,7 +207,7 @@ function ui_create_menupanel( parent, items )
 			if( sel !== false )
 			{
 				item = data.items[ sel ];
-				if( !_( item, "disabled" ) )
+				if( !@item.disabled )
 				{
 					if( isset( item, "menu" ) )
 					{
@@ -230,7 +230,7 @@ function ui_create_menupanel( parent, items )
 				}
 			}
 		}
-		return ocb.call( this, event );
+		return this!ocb( event );
 	}
 	
 	function MenuPanel.renderfunc()
@@ -242,7 +242,7 @@ function ui_create_menupanel( parent, items )
 		
 		foreach( i, item : data.items )
 		{
-			disabled = _( item, "disabled" );
+			disabled = @item.disabled;
 			
 			if( data.selected === i )
 			{

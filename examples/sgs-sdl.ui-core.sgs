@@ -60,7 +60,7 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 			this.frame.setFocus( this );
 			return;
 		}
-		return orig_callback.call( this, event );
+		return this!orig_callback( event );
 	}
 	
 	function Button.renderfunc()
@@ -69,7 +69,7 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 			return;
 		
 		data = this.data;
-		icon = _( data, "icon" );
+		icon = @data.icon;
 		text = this.caption;
 		
 		cadd = if( this.clicked, -0.1, if( this.mouseOn, 0.1, 0.0 ) );
@@ -236,7 +236,7 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 		}
 		else if( event.type == EV_Layout )
 		{
-			ret = scroll_orig_callback.call( this, event );
+			ret = this!scroll_orig_callback( event );
 			
 			scroll_length = if( data.vertical, this.ry1 - this.ry0, this.rx1 - this.rx0 );
 			if( data.auto_window )
@@ -270,7 +270,7 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 			data.moveRel( event.x * data.min_scroll_length, this, btnCS );
 			return 0; // stop bubbling
 		}
-		return scroll_orig_callback.call( this, event );
+		return this!scroll_orig_callback( event );
 	}
 	
 	function Scroll.renderfunc()
@@ -370,7 +370,7 @@ function ui_build_menu( parent, x, y, items, default )
 		else if( event.type == EV_HitTest )
 		{
 			// definite hit if hit self..
-			if( ocb.call( this, event ) )
+			if( this!ocb( event ) )
 				return 1;
 			// possible hit if hit parent..
 			if( this.parent && this.parent.callback( event ) )
@@ -380,7 +380,7 @@ function ui_build_menu( parent, x, y, items, default )
 				hit = 1;
 				while( pp && ( pp.type == "menu" || pp.type == "menupanel" ) )
 				{
-					if( ocb.call( pp, event ) )
+					if( pp!ocb( event ) )
 					{
 						hit = 0;
 						break;
@@ -398,7 +398,7 @@ function ui_build_menu( parent, x, y, items, default )
 			{
 				if( i )
 					ht += data.item_spacing;
-				if( _( item, "disabled" ) && _( item, "text" ) === null )
+				if( @item.disabled && @item.text === null )
 					ht += data.sep_height;
 				else
 					ht += data.item_height;
@@ -418,13 +418,13 @@ function ui_build_menu( parent, x, y, items, default )
 				for( i = 0; i < data.items.size; ++i )
 				{
 					item = data.items[ i ];
-					if( _( item, "disabled" ) && _( item, "text" ) === null )
+					if( @item.disabled && @item.text === null )
 						ht = data.sep_height;
 					else
 						ht = data.item_height;
 					
 					y1 = y0 + ht;
-					if( !( _( item, "disabled" ) && _( item, "text" ) === null ) && event.y >= y0 && event.y < y1 )
+					if( !( @item.disabled && @item.text === null ) && event.y >= y0 && event.y < y1 )
 					{
 						data.selected = i;
 						break;
@@ -439,7 +439,7 @@ function ui_build_menu( parent, x, y, items, default )
 				hitevent.type = EV_HitTest;
 				hitevent.x = event.x;
 				hitevent.y = event.y;
-				if( ocb.call( this, hitevent ) )
+				if( this!ocb( hitevent ) )
 					data.parent_menu.data.selected = data.parent_menu.data.menu_open_for;
 			}
 		}
@@ -454,7 +454,7 @@ function ui_build_menu( parent, x, y, items, default )
 			hitevent.type = EV_HitTest;
 			hitevent.x = event.x;
 			hitevent.y = event.y;
-			if( this.callback( hitevent ) && !ocb.call( this, hitevent ) )
+			if( this.callback( hitevent ) && !this!ocb( hitevent ) )
 				data.removeRecursive( this );
 			return true;
 		}
@@ -466,7 +466,7 @@ function ui_build_menu( parent, x, y, items, default )
 			if( sel !== false )
 			{
 				item = data.items[ sel ];
-				if( !_( item, "disabled" ) )
+				if( !@item.disabled )
 				{
 					if( isset( item, "menu" ) )
 					{
@@ -476,7 +476,7 @@ function ui_build_menu( parent, x, y, items, default )
 							for( i = 0; i < sel; ++i )
 							{
 								it2 = data.items[ i ];
-								if( _( it2, "disabled" ) && _( it2, "text" ) === null )
+								if( @it2.disabled && @it2.text === null )
 									ht = data.sep_height;
 								else
 									ht = data.item_height;
@@ -501,7 +501,7 @@ function ui_build_menu( parent, x, y, items, default )
 			return true;
 		}
 		
-		return ocb.call( this, event );
+		return this!ocb( event );
 	}
 	
 	function Menu.renderfunc()
@@ -519,8 +519,8 @@ function ui_build_menu( parent, x, y, items, default )
 		y = this.ry0 + pad;
 		foreach( id, item : data.items )
 		{
-			disabled = _( item, "disabled" );
-			checked = _( item, "checked" );
+			disabled = @item.disabled;
+			checked = @item.checked;
 			
 			if( id === data.selected )
 				SS_Draw({ preset = "tile", position = [x,y], scale = [data.item_width,data.item_height], color = if(disabled,[0.7,0.7,0.7,0.5],[0.4,0.6,0.8,0.8]) });
@@ -528,12 +528,12 @@ function ui_build_menu( parent, x, y, items, default )
 			if( isset( item, "menu" ) )
 				SS_DrawFitted( data.icon_submenu, x + data.item_width - data.item_height, x + data.item_width, y, y + data.item_height );
 			
-			if( _( item, "text" ) !== null )
+			if( @item.text !== null )
 				SS_DrawTextLine_VC( item.text, Font, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
 			else if( disabled )
 				SS_Draw({ preset = "tile", position = [x+32,y+data.sep_height/2], scale = [data.item_width-36,1], color = [0.8,0.8,0.8,1] });
 			
-			if( disabled && _( item, "text" ) === null )
+			if( disabled && @item.text === null )
 				y += data.sep_height;
 			else
 			{

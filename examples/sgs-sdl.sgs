@@ -9,19 +9,10 @@ include "sgs-sdl.ui-panels";
 
 function configure()
 {
-	global sys_exit;
-
-	editor = false;
-	
 	for( i = 0; i < sys_args.size; ++i )
 	{
 		var arg = sys_args[ i ];
-		if( arg == "-preexit" )
-		{
-			println( "PREEXIT" );
-			sys_exit = true;
-		}
-		else if( arg == "-profile" )
+		if( arg == "-profile" )
 		{
 			enable_profiler();
 			println( "PROFILER ENABLED" );
@@ -31,24 +22,14 @@ function configure()
 			enable_profiler2();
 			println( "PROFILER [mode 2] ENABLED" );
 		}
-		else if( arg == "-editor" )
-		{
-			editor = true;
-		}
-	}
-
-	if( editor )
-	{
-		include "editor/main";
-		configure();
 	}
 }
 
-function _( obj, prop ){ return if( isset( obj, prop ), obj.(prop), null ); }
-
 function initialize()
 {
-	global Window = SS_CreateWindow( "SGS-UI Test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 576, SDL_WINDOW_RESIZABLE );
+	global Window = SS_CreateWindow( "SGS-UI Test",
+		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+		1024, 576, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGLMAYBE );
 	Window.initRenderer( SS_RENDERER_DONTCARE, SS_RENDERER_DONTCARE, SS_RENDERER_VSYNC );
 	SS_InitDrawFunctions();
 	
