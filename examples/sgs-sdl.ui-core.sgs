@@ -1,6 +1,6 @@
 
 
-function ui_create_static( parent, x, y, width, height, caption, color, textmode )
+function UI_CreateStatic( parent, x, y, width, height, caption, color, textmode )
 {
 	Static = parent.frame.createControl( "static" );
 	Static.data =
@@ -37,7 +37,7 @@ function ui_create_static( parent, x, y, width, height, caption, color, textmode
 	return Static;
 }
 
-function ui_create_button( parent, x, y, width, height, caption, icon )
+function UI_CreateButton( parent, x, y, width, height, caption, icon )
 {
 	Button = parent.frame.createControl( "button" );
 	if( typeof(icon) == "string" )
@@ -111,7 +111,7 @@ function ui_create_button( parent, x, y, width, height, caption, icon )
 }
 
 
-function ui_create_scroll( vertical, parent, x, y, width, height, space, window, position )
+function UI_CreateScroll( vertical, parent, x, y, width, height, space, window, position )
 {
 	space ||= 0;
 	auto_window = if( window, false, true );
@@ -144,17 +144,17 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 	
 	if( vertical )
 	{
-		btnUP = ui_create_button( Scroll, 0, 0, 0, bsize, "", "icons/arrow_up.png" );
-		btnDN = ui_create_button( Scroll, 0, -bsize, 0, bsize, "", "icons/arrow_down.png" );
-		btnCS = ui_create_button( Scroll, 0, bsize + bar_pos, 0, bar_length, "" );
+		btnUP = UI_CreateButton( Scroll, 0, 0, 0, bsize, "", "icons/arrow_up.png" );
+		btnDN = UI_CreateButton( Scroll, 0, -bsize, 0, bsize, "", "icons/arrow_down.png" );
+		btnCS = UI_CreateButton( Scroll, 0, bsize + bar_pos, 0, bar_length, "" );
 		btnUP.q1x = 1; btnDN.q1x = 1; btnCS.q1x = 1;
 		btnDN.q0y = 1; btnDN.q1y = 1;
 	}
 	else
 	{
-		btnUP = ui_create_button( Scroll, 0, 0, bsize, 0, "", "icons/arrow_left.png" );
-		btnDN = ui_create_button( Scroll, -bsize, 0, bsize, 0, "", "icons/arrow_right.png" );
-		btnCS = ui_create_button( Scroll, bsize + bar_pos, 0, bar_length, 0, "" );
+		btnUP = UI_CreateButton( Scroll, 0, 0, bsize, 0, "", "icons/arrow_left.png" );
+		btnDN = UI_CreateButton( Scroll, -bsize, 0, bsize, 0, "", "icons/arrow_right.png" );
+		btnCS = UI_CreateButton( Scroll, bsize + bar_pos, 0, bar_length, 0, "" );
 		btnUP.q1y = 1; btnDN.q1y = 1; btnCS.q1y = 1;
 		btnDN.q0x = 1; btnDN.q1x = 1;
 	}
@@ -184,7 +184,7 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 		
 		if( opos != this.position )
 		{
-			e = ui_create_event();
+			e = UI_CreateEvent();
 			if( this.vertical )
 				e.y = this.position;
 			else
@@ -284,11 +284,11 @@ function ui_create_scroll( vertical, parent, x, y, width, height, space, window,
 	return Scroll;
 }
 
-function ui_create_hscroll( parent, x, y, width, height, space, window, position ){ return ui_create_scroll( false, parent, x, y, width, height, space, window, position ); }
-function ui_create_vscroll( parent, x, y, width, height, space, window, position ){ return ui_create_scroll( true, parent, x, y, width, height, space, window, position ); }
+function UI_CreateHScroll( parent, x, y, width, height, space, window, position ){ return UI_CreateScroll( false, parent, x, y, width, height, space, window, position ); }
+function UI_CreateVScroll( parent, x, y, width, height, space, window, position ){ return UI_CreateScroll( true, parent, x, y, width, height, space, window, position ); }
 
 
-function ui_build_menu( parent, x, y, items, default )
+function UI_BuildMenu( parent, x, y, items, default )
 {
 	Menu = parent.frame.createControl( "menu" );
 	Menu.x = x - parent.x;
@@ -435,7 +435,7 @@ function ui_build_menu( parent, x, y, items, default )
 			}
 			if( data.parent_menu )
 			{
-				hitevent = ui_create_event();
+				hitevent = UI_CreateEvent();
 				hitevent.type = EV_HitTest;
 				hitevent.x = event.x;
 				hitevent.y = event.y;
@@ -450,7 +450,7 @@ function ui_build_menu( parent, x, y, items, default )
 		}
 		else if( event.type == EV_ButtonDown )
 		{
-			hitevent = ui_create_event();
+			hitevent = UI_CreateEvent();
 			hitevent.type = EV_HitTest;
 			hitevent.x = event.x;
 			hitevent.y = event.y;
@@ -482,7 +482,7 @@ function ui_build_menu( parent, x, y, items, default )
 									ht = data.item_height;
 								my += ht + data.item_spacing;
 							}
-							data.menu_open = ui_build_menu( this.frame.root, this.rx1 - 4, my, item.menu );
+							data.menu_open = UI_BuildMenu( this.frame.root, this.rx1 - 4, my, item.menu );
 							data.menu_open.index = this.index + 1;
 							data.menu_open.data.parent_menu = this;
 							data.menu_open_for = sel;

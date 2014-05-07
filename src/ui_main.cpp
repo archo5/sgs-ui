@@ -6,14 +6,14 @@
 
 
 
-int ui_create_event( SGS_CTX )
+int UI_CreateEvent( SGS_CTX )
 {
 	UIEvent* ev = SGS_PUSHCLASS( C, UIEvent, () );
 	ev->type = sgs_GetInt( C, 0 );
 	return 1;
 }
 
-int ui_create_frame( SGS_CTX )
+int UI_CreateFrame( SGS_CTX )
 {
 	SGS_PUSHCLASS( C, UIFrame, () );
 	return 1;
@@ -79,8 +79,8 @@ sgs_RegIntConst g_iconsts[] =
 
 sgs_RegFuncConst g_fconsts[] =
 {
-	FN( ui_create_event ),
-	FN( ui_create_frame ),
+	FN( UI_CreateEvent ),
+	FN( UI_CreateFrame ),
 	{NULL,NULL},
 };
 

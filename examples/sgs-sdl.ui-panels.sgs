@@ -1,6 +1,6 @@
 
 
-function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
+function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 {
 	vscroll ||= "auto";
 	hscroll ||= "auto";
@@ -20,8 +20,8 @@ function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
 	pad = Scrollable.data.padding;
 	ssize = Scrollable.data.scroll_size;
 	
-	scrV = ui_create_vscroll( Scrollable, pad, -pad, ssize, pad * 2 );
-	scrH = ui_create_hscroll( Scrollable, -pad, pad, pad * 2, ssize );
+	scrV = UI_CreateVScroll( Scrollable, pad, -pad, ssize, pad * 2 );
+	scrH = UI_CreateHScroll( Scrollable, -pad, pad, pad * 2, ssize );
 	scrV.nonclient = true; scrV.visible = false; scrV.q0x = 1; scrV.q1x = 1; scrV.q1y = 1;
 	scrH.nonclient = true; scrH.visible = false; scrH.q0y = 1; scrH.q1y = 1; scrH.q1x = 1;
 	
@@ -100,7 +100,7 @@ function ui_create_scrollable( parent, x, y, width, height, vscroll, hscroll )
 	return Scrollable;
 }
 
-function ui_create_menupanel( parent, items )
+function UI_CreateMenuPanel( parent, items )
 {
 	MenuPanel = parent.frame.createControl( "menupanel" );
 	MenuPanel.q1x = 1;
@@ -213,7 +213,7 @@ function ui_create_menupanel( parent, items )
 					{
 						if( sel !== mof )
 						{
-							data.menu_open = ui_build_menu( this.frame.root, item.x, item.y + data.item_height, item.menu );
+							data.menu_open = UI_BuildMenu( this.frame.root, item.x, item.y + data.item_height, item.menu );
 							data.menu_open.index = this.index + 1;
 							data.menu_open.data.parent_menu = this;
 							data.menu_open_for = sel;

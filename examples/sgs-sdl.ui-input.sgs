@@ -5,7 +5,7 @@ function UI_Form.getData(){ return this.data.getData(); }
 function UI_Form.getList( name ){ return this.data.getList( name ); }
 function UI_Form.getString( name ){ return this.data.getString( name ); }
 
-function ui_create_form( parent )
+function UI_CreateForm( parent )
 {
 	Form = parent.frame.createControl( "form" );
 	Form.data = { ctrls = map() };
@@ -90,7 +90,7 @@ function form_change_event( form, event )
 	form.callEvent( "change", event );
 }
 
-function form_attach( ctrl, event )
+function UIForm_Attach( ctrl, event )
 {
 	form = form_get_from_ctrl( ctrl );
 	if( form )
@@ -100,7 +100,7 @@ function form_attach( ctrl, event )
 	}
 }
 
-function form_detach( ctrl, event )
+function UIForm_Detach( ctrl, event )
 {
 	form = form_get_from_ctrl( ctrl );
 	if( form )
@@ -134,7 +134,7 @@ function form_controls_by_name( ctrl, name )
 }
 
 
-function ui_create_checkbox( parent, x, y, width, height, name, value, checked )
+function UI_CreateCheckbox( parent, x, y, width, height, name, value, checked )
 {
 	cb_size = 16;
 	
@@ -168,11 +168,11 @@ function ui_create_checkbox( parent, x, y, width, height, name, value, checked )
 			return 1;
 		else if( event.type == EV_Attach )
 		{
-			form_attach( this, event );
+			UIForm_Attach( this, event );
 		}
 		else if( event.type == EV_Detach )
 		{
-			form_detach( this, event );
+			UIForm_Detach( this, event );
 		}
 		else if( event.type == EV_ButtonUp )
 		{
@@ -209,7 +209,7 @@ function ui_create_checkbox( parent, x, y, width, height, name, value, checked )
 	return Checkbox;
 }
 
-function ui_create_radiobtn( parent, x, y, width, height, name, value, checked )
+function UI_CreateRadioButton( parent, x, y, width, height, name, value, checked )
 {
 	cb_size = 16;
 	
@@ -243,11 +243,11 @@ function ui_create_radiobtn( parent, x, y, width, height, name, value, checked )
 			return 1;
 		else if( event.type == EV_Attach )
 		{
-			form_attach( this, event );
+			UIForm_Attach( this, event );
 		}
 		else if( event.type == EV_Detach )
 		{
-			form_detach( this, event );
+			UIForm_Detach( this, event );
 		}
 		else if( event.type == EV_ButtonUp )
 		{
@@ -305,7 +305,7 @@ function ui_create_radiobtn( parent, x, y, width, height, name, value, checked )
 }
 
 
-function ui_create_textbox( parent, x, y, width, caption, text )
+function UI_CreateTextbox( parent, x, y, width, caption, text )
 {
 	caption ||= "";
 	text ||= "";
@@ -412,11 +412,11 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 		
 		if( event.type == EV_Attach )
 		{
-			form_attach( this, event );
+			UIForm_Attach( this, event );
 		}
 		if( event.type == EV_Detach )
 		{
-			form_detach( this, event );
+			UIForm_Detach( this, event );
 			data.removeCursorTimer( this.frame );
 		}
 		else if( event.type == EV_Layout )
@@ -650,5 +650,139 @@ function ui_create_textbox( parent, x, y, width, caption, text )
 	parent.addChild( Textbox );
 	
 	return Textbox;
+}
+
+
+global UI_SelectBox = {};
+function UI_SelectBox.setItems( items )
+{
+	// validate items
+	foreach( item : items )
+	{
+		if( typeof( item ) != "string" && typeof( @item.text ) != "string" )
+			return WARNING( "item must be string or { text, value } dict" );
+	}
+	// overwrite item array
+	data = this.data;
+	data.items.clear();
+	foreach( item : items )
+	{
+		oitem =
+		{
+			text = @item.text || item,
+			value = @item.value || @item.text || item,
+			group = @item.group,
+		};
+		data.items.push( oitem );
+	}
+	
+	this.selectItem( 0 );
+}
+function UI_SelectBox.selectItem( id, event )
+{
+	id = parseint( id );
+	if( id === null )
+		return WARNING( "ID must be an integer" );
+	
+	data = this.data;
+	if( id < 0 || id >= data.items.size )
+		id = 0;
+	if( data.items.size )
+	{
+		this.caption = data.items[ id ].text;
+		data.selectedIndex = id;
+		data.selectedValue = data.items[ id ].value;
+	}
+	else
+	{
+		this.caption = "";
+		data.selectedIndex = -1;
+		data.selectedValue = null;
+	}
+	this.callEvent( "change", event );
+}
+
+function UI_CreateSelectBox( parent, x, y, width, height, name, items )
+{
+	SelectBox = parent.frame.createControl( "selectbox" );
+	SelectBox._interface = UI_SelectBox;
+	SelectBox.data =
+	{
+		items = [],
+		icon = SS_CreateTexture( "icons/bullet_arrow_down.png" ),
+	};
+	SelectBox.x = x;
+	SelectBox.y = y;
+	SelectBox.width = width;
+	SelectBox.height = height;
+	SelectBox.name = name;
+	
+	orig_callback = SelectBox.callback;
+	SelectBoxData = SelectBox.data;
+	
+	function SelectBoxData.getValue(){ return this.selectedValue; }
+	
+	function SelectBox.callback( event ) use( orig_callback )
+	{
+		if( event.type == EV_NeedFocus )
+			return 1;
+		else if( event.type == EV_Attach )
+		{
+			UIForm_Attach( this, event );
+		}
+		else if( event.type == EV_Detach )
+		{
+			UIForm_Detach( this, event );
+		}
+		else if( event.type == EV_ButtonDown && event.button != 0 )
+		{
+			this.frame.setFocus( this );
+			return;
+		}
+		return this!orig_callback( event );
+	}
+	
+	function SelectBox.renderfunc()
+	{
+		if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
+			return;
+		
+		data = this.data;
+		icon = data.icon;
+		text = this.caption;
+		
+		cadd = if( this.clicked, -0.02, if( this.mouseOn, 0.02, 0.0 ) );
+		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.6+cadd, 0.6+cadd, 0.6+cadd, 1 );
+		SS_DrawColorRect( this.rx0+1, this.ry0+1, this.rx1-1, this.ry1-1, 0.8+cadd, 0.8+cadd, 0.8+cadd, 1 );
+		
+		if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
+		{
+			fullwidth = 0;
+			if( text )
+			{
+				textlen = Font.getTextLength( text );
+				fullwidth += textlen;
+			}
+			
+			cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
+			if( icon )
+			{
+				SS_Draw({ preset = "box", position = vec2( this.rx1 - icon.width, cy ), scale = vec2( icon.width, icon.height ), texture = icon });
+			}
+			
+			if( text )
+			{
+				SS_DrawTextLine_VC( text, Font, this.rx0 + 4, cy, color(0,1) );
+			}
+			
+			this.frame.popScissorRect();
+		}
+	}
+	
+	SelectBox.setItems( items );
+	
+	parent.addChild( SelectBox );
+	
+	return SelectBox;
 }
 
