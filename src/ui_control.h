@@ -66,6 +66,19 @@
 #define Hit_NonClient 1
 #define Hit_None      0
 
+#define UI_Cursor_Arrow      0
+#define UI_Cursor_Text       1
+#define UI_Cursor_Wait       2
+#define UI_Cursor_Crosshair  3
+#define UI_Cursor_WaitArrow  4
+#define UI_Cursor_SizeNWSE   5
+#define UI_Cursor_SizeNESW   6
+#define UI_Cursor_SizeWE     7
+#define UI_Cursor_SizeNS     8
+#define UI_Cursor_SizeAll    9
+#define UI_Cursor_No         10
+#define UI_Cursor_Hand       11
+
 #define KeyMod_Filter 0x0FF
 #define KeyMod_Shift  0x100
 
@@ -157,6 +170,18 @@ struct UIFrame
 	SGS_PROPERTY sgsVariable render_text;
 	SGS_PROPERTY sgsVariable scissor_func; /* no arguments (all NULL) -> clear, 4 arguments (int) -> set */
 	SGS_PROPERTY sgsVariable clipboard_func; /* no arguments -> get; 1 argument (string) -> set */
+	
+	/*	cursor_func
+		argument: cursor variable from control (unknown type)
+		function must support the following values:
+		- null: default / do not change (cursor outside UI)
+		- boolean `false`: no cursor
+		- boolean `true`: default cursor
+		- integer UI_Cursor_ constants
+	*/
+	SGS_PROPERTY sgsVariable cursor_func;
+	
+	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float y;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float width;
@@ -167,6 +192,7 @@ struct UIFrame
 	SGS_PROPERTY READ float mouseY;
 	
 	void updateLayout();
+	void forceUpdateCursor( UIControl* ctrl );
 	void preRemoveControl( UIControl* ctrl );
 	
 	UIControl* m_hover;
@@ -195,6 +221,7 @@ struct UIControl
 	void niBubblingEvent( UIEvent* e );
 	void niRender();
 	SGS_METHOD void updateLayout();
+	void updateCursor();
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
@@ -258,6 +285,7 @@ struct UIControl
 	SGS_PROPERTY sgsString type;
 	SGS_PROPERTY READ Handle parent;
 	SGS_PROPERTY READ UIFrame::Handle frame;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateCursor ) sgsVariable cursor;
 	SGS_PROPERTY sgsVariable callback;
 	SGS_PROPERTY sgsVariable renderfunc;
 	SGS_PROPERTY sgsVariable data;

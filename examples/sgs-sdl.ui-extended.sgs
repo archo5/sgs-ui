@@ -73,9 +73,6 @@ function UI_CreateListBoxMenu( parent, x, y, width, height )
 	ListBoxMenu.data.AutoLayout = AutoLayout;
 	ListBoxMenu.data.OpCont = AutoLayout;
 	
-	ListBoxMenu.addOption({ text = "Test option 1" });
-	ListBoxMenu.addOption({ text = "Test/2", icon = "icons/disk_multiple.png" });
-	
 	parent.addChild( ListBoxMenu );
 	
 	return ListBoxMenu;
@@ -182,10 +179,10 @@ function UI_CreateWindow( parent, x, y, width, height, caption, adjust )
 					data.setDragging( this, 0, event );
 				// test for resizing
 				rsz = 0;
-				if( event.x >= this.rx0 && event.x < this.rx0 + 4 ) rsz |= 0b0001;
-				if( event.x >= this.rx1 - 4 && event.x < this.rx1 ) rsz |= 0b0010;
-				if( event.y >= this.ry0 && event.y < this.ry0 + 4 ) rsz |= 0b0100;
-				if( event.y >= this.ry1 - 4 && event.y < this.ry1 ) rsz |= 0b1000;
+				if( event.x >= this.rx0 && event.x <= this.rx0 + 4 ) rsz |= 0b0001;
+				if( event.x >= this.rx1 - 4 && event.x <= this.rx1 ) rsz |= 0b0010;
+				if( event.y >= this.ry0 && event.y <= this.ry0 + 4 ) rsz |= 0b0100;
+				if( event.y >= this.ry1 - 4 && event.y <= this.ry1 ) rsz |= 0b1000;
 				if( rsz )
 					data.setDragging( this, rsz, event );
 			}
@@ -197,6 +194,18 @@ function UI_CreateWindow( parent, x, y, width, height, caption, adjust )
 		}
 		else if( event.type == EV_MouseMove )
 		{
+			this.cursor = true;
+			rsz = 0;
+			if( event.x >= this.rx0 && event.x <= this.rx0 + 4 ) rsz |= 0b0001;
+			if( event.x >= this.rx1 - 4 && event.x <= this.rx1 ) rsz |= 0b0010;
+			if( event.y >= this.ry0 && event.y <= this.ry0 + 4 ) rsz |= 0b0100;
+			if( event.y >= this.ry1 - 4 && event.y <= this.ry1 ) rsz |= 0b1000;
+			
+			if( rsz == 0b0101 || rsz == 0b1010 ) this.cursor = UI_Cursor_SizeNWSE;
+			else if( rsz == 0b0110 || rsz == 0b1001 ) this.cursor = UI_Cursor_SizeNESW;
+			else if( rsz == 0b0001 || rsz == 0b0010 ) this.cursor = UI_Cursor_SizeWE;
+			else if( rsz == 0b0100 || rsz == 0b1000 ) this.cursor = UI_Cursor_SizeNS;
+			
 			data.handleDragging( this, event );
 		}
 		return this!ocb( event );

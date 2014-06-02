@@ -74,6 +74,19 @@ sgs_RegIntConst g_iconsts[] =
 	FN( Hit_NonClient ),
 	FN( Hit_None      ),
 	
+	FN( UI_Cursor_Arrow     ),
+	FN( UI_Cursor_Text      ),
+	FN( UI_Cursor_Wait      ),
+	FN( UI_Cursor_Crosshair ),
+	FN( UI_Cursor_WaitArrow ),
+	FN( UI_Cursor_SizeNWSE  ),
+	FN( UI_Cursor_SizeNESW  ),
+	FN( UI_Cursor_SizeWE    ),
+	FN( UI_Cursor_SizeNS    ),
+	FN( UI_Cursor_SizeAll   ),
+	FN( UI_Cursor_No        ),
+	FN( UI_Cursor_Hand      ),
+	
 	FN( KeyMod_Filter ),
 	FN( KeyMod_Shift  ),
 	

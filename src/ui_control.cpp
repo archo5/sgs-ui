@@ -188,6 +188,10 @@ void UIFrame::render()
 
 void UIFrame::handleMouseMove()
 {
+	for( int i = 0; i < Mouse_Button_Count; ++i )
+		if( m_clicktargets[ i ] )
+			return;
+	
 	// find new mouse-over item
 	UIEvent htev;
 	htev.type = EV_HitTest;
@@ -225,6 +229,7 @@ void UIFrame::handleMouseMove()
 		mev.y = mouseY;
 		if( prevhover ){ mev.type = EV_MouseLeave; prevhover->niBubblingEvent( &mev ); }
 		if( m_hover ){ mev.type = EV_MouseEnter; m_hover->niBubblingEvent( &mev ); }
+		forceUpdateCursor( m_hover );
 	}
 }
 
@@ -469,6 +474,19 @@ void UIFrame::updateLayout()
 	root->updateLayout();
 }
 
+void UIFrame::forceUpdateCursor( UIControl* ctrl )
+{
+	if( cursor_func.not_null() )
+	{
+		if( ctrl )
+			ctrl->cursor.push( C );
+		else
+			sgs_PushNull( C );
+		if( SGS_FAILED( sgs_CallP( C, &cursor_func.var, 1, 0 ) ) )
+			sgs_Pop( C, 1 );
+	}
+}
+
 void UIFrame::preRemoveControl( UIControl* ctrl )
 {
 	if( m_hover == ctrl )
@@ -521,6 +539,9 @@ UIControl::UIControl() :
 	sgs_PushDict( C, 0 );
 	m_events = sgsVariable( C, -1 );
 	sgs_Pop( C, 1 );
+	
+	sgs_InitBool( &cursor.var, 1 );
+	cursor.C = C;
 }
 
 UIControl::~UIControl()
@@ -592,6 +613,19 @@ void UIControl::updateLayout()
 	e.type = EV_Layout;
 	niEvent( &e );
 	_updatingLayout = false;
+}
+
+void UIControl::updateCursor()
+{
+	if( frame.object )
+	{
+		for( int i = 0; i < Mouse_Button_Count; ++i )
+			if( frame->m_clicktargets[ i ] )
+				return;
+		
+		if( frame->m_hover == this )
+			frame->forceUpdateCursor( this );
+	}
 }
 
 bool UIControl::addChild( UIControl::Handle ch )

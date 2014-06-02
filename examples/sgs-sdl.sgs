@@ -89,6 +89,16 @@ function initialize()
 			return SS_GetClipboardText();
 		return SS_SetClipboardText( text ) || "";
 	}
+	function FRAME.cursor_func( cursor )
+	{
+		if( cursor === null )
+			return;
+		SS_ShowCursor( cursor !== false );
+		if( cursor === true )
+			SS_SetSystemCursor( UI_Cursor_Arrow );
+		else if( typeid( cursor ) == VT_INT )
+			SS_SetSystemCursor( cursor );
+	}
 	
 	global FORM = UI_CreateForm( FRAME.root );
 //	FORM.bindEvent( "change", function(){ println("form changed."); } );
@@ -110,7 +120,7 @@ function initialize()
 	];
 	global STAT = UI_CreateMenuPanel( STATCORE, mpitems );
 	
-	global TOPBAR = UI_CreateStatic( STAT, 0, 0, 0, 24, "", [0.8,0.8,0.8,1] );
+	global TOPBAR = UI_CreateStatic( STAT, 0, 0, 0, 24, "", color(0.8,0.8,0.8,1) );
 	TOPBAR.q1x = 1;
 	
 	UI_CreateButton( TOPBAR, 0, 0, 24, 24, "", "icons/page.png" );
@@ -140,7 +150,7 @@ function initialize()
 	SCROLL = UI_CreateScrollable( STAT, 500, 100, 200, 300 );
 	text = string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] );
 	text = string_part( text, 0, 1024 );
-	UI_CreateStatic( SCROLL, 0, 0, 20, 500, text, [0.9,0.9,0.9,1], DT_LEFT | DT_TOP ).q1x = 1;
+	UI_CreateStatic( SCROLL, 0, 0, 20, 500, text, color(0.9,0.9,0.9,1), DT_LEFT | DT_TOP ).q1x = 1;
 	
 	SELECT = UI_CreateSelectBox( STAT, 500, 50, 180, 24, "sBoX",
 		[
@@ -168,6 +178,9 @@ function initialize()
 	
 	LBMENU = UI_CreateListBoxMenu( WINDOW, 0, 0, 0, 0 );
 	LBMENU.setAnchorMode( Anchor_All );
+	
+	LBMENU.addOption({ text = "Test option 1" });
+	LBMENU.addOption({ text = "Test/2", icon = "icons/book.png" });
 }
 
 global lasttime = ftime();
