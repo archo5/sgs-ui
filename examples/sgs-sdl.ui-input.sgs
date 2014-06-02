@@ -348,7 +348,7 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 	function tbdata.resetCursorTimer( frame )
 	{
 		tbdata = this;
-		this.removeCursorTimer();
+		this.removeCursorTimer( frame );
 		this.cursor_timer = frame.setInterval( 0.5, function() use( tbdata ) { tbdata.show_cursor = !tbdata.show_cursor; } );
 		this.show_cursor = true;
 	}
@@ -469,6 +469,7 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 					data.sel_to = from;
 				}
 				data.updateSelOffsets();
+				data.resetCursorTimer( this.frame );
 			}
 		}
 		else if( event.type == EV_ButtonDown )
@@ -478,6 +479,7 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 				data.selecting = true;
 				data.sel_to = data.sel_from = data.findOffset( this, event.x, event.y );
 				data.updateSelOffsets();
+				data.resetCursorTimer( this.frame );
 			}
 		}
 		else if( event.type == EV_MouseMove )
@@ -486,6 +488,7 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 			{
 				data.sel_to = data.findOffset( this, event.x, event.y );
 				data.updateSelOffsets();
+				data.resetCursorTimer( this.frame );
 			}
 		}
 		else if( event.type == EV_ButtonUp )
@@ -511,6 +514,7 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 					if( !( mods & KeyMod_Shift ) )
 						data.sel_from = data.sel_to;
 					data.updateSelOffsets();
+					data.resetCursorTimer( this.frame );
 				}
 				else if( key == Key_DelLeft || key == Key_DelRight )
 				{
@@ -540,6 +544,7 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 					data.updateText();
 					this.callEvent( "change", event );
 					data.updateSelOffsets();
+					data.resetCursorTimer( this.frame );
 				}
 				else if( key == Key_Cut || key == Key_Copy )
 				{
@@ -562,6 +567,7 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 						data.updateText();
 						this.callEvent( "change", event );
 						data.updateSelOffsets();
+						data.resetCursorTimer( this.frame );
 					}
 				}
 				else if( key == Key_Paste )
@@ -590,6 +596,7 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 						data.updateText();
 						this.callEvent( "change", event );
 						data.updateSelOffsets();
+						data.resetCursorTimer( this.frame );
 					}
 				}
 				else if( key == Key_SelectAll )
@@ -597,6 +604,7 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 					data.sel_from = 0;
 					data.sel_to = data.chars.size;
 					data.updateSelOffsets();
+					data.resetCursorTimer( this.frame );
 				}
 			}
 		}

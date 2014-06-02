@@ -113,14 +113,14 @@ int UIControl_CtrlProc( SGS_CTX )
 		return 1;
 	case EV_ButtonDown:
 		ctrl->clicked = ctrl->mouseOn;
-		ctrl->callEvent( "mousedown", event );
+		ctrl->callEvent( sgsString( "mousedown", C ), event );
 		if( ctrl->frame.object )
 			ctrl->frame->setFocus( ctrl );
 		return 1;
 	case EV_ButtonUp:
-		ctrl->callEvent( "mouseup", event );
+		ctrl->callEvent( sgsString( "mouseup", C ), event );
 		if( ctrl->clicked && ctrl->mouseOn )
-			ctrl->callEvent( "click", event );
+			ctrl->callEvent( sgsString( "click", C ), event );
 		ctrl->clicked = false;
 		return 1;
 		
@@ -152,7 +152,7 @@ UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0)
 	memset( m_clicktargets, 0, sizeof(m_clicktargets) );
 	memset( m_clickoffsets, 0, sizeof(m_clickoffsets) );
 	
-	root = createControl( "root" );
+	root = createControl( sgsString( "root", C ) );
 	root->q1x = 1;
 	root->q1y = 1;
 	root->updateLayout();
@@ -163,7 +163,7 @@ UIFrame::~UIFrame()
 	root = UIControl::Handle();
 }
 
-UIControl::Handle UIFrame::createControl( std::string type )
+UIControl::Handle UIFrame::createControl( sgsString type )
 {
 	UIControl* ctrl = SGS_PUSHCLASS( C, UIControl, () );
 	ctrl->type = type;
@@ -267,9 +267,29 @@ void UIFrame::doMouseMove( float x, float y )
 		if( m_hover ){ mev.type = EV_MouseMove; m_hover->niBubblingEvent( &mev ); }
 	}
 	
+	for( int i = 0; i < Mouse_Button_Count; ++i )
+	{
+		if( !m_clicktargets[ i ] )
+			continue;
+		
+		bool already = false;
+		for( int j = 0; j < i; ++j )
+		{
+			if( m_clicktargets[ j ] == m_clicktargets[ i ] )
+			{
+				already = true;
+				break;
+			}
+		}
+		if( already )
+			continue;
+		
+		m_clicktargets[ i ]->niBubblingEvent( &e );
+	}
+	
 	if( root.object )
 	{
-		root->callEvent( "globalmousemove", &e );
+		root->callEvent( sgsString( "globalmousemove", C ), &e );
 	}
 }
 
@@ -302,15 +322,16 @@ void UIFrame::doMouseButton( int btn, bool down )
 	
 	if( root.object )
 	{
-		root->callEvent( down ? "globalbuttondown" : "globalbuttonup", &e );
+		root->callEvent( sgsString( down ? "globalbuttondown" : "globalbuttonup", C ), &e );
 	}
 }
 
-void UIFrame::doMouseWheel( float down )
+void UIFrame::doMouseWheel( float x, float y )
 {
 	UIEvent e;
 	e.type = EV_MouseWheel;
-	e.x = e.y = down;
+	e.x = x;
+	e.y = y;
 	
 	if( m_hover )
 	{
@@ -319,7 +340,7 @@ void UIFrame::doMouseWheel( float down )
 	
 	if( root.object )
 	{
-		root->callEvent( "globalmousewheel", &e );
+		root->callEvent( sgsString( "globalmousewheel", C ), &e );
 	}
 }
 
@@ -488,8 +509,10 @@ UIControl::UIControl() :
 	scroll_x(0.0f), scroll_y(0.0f),
 	nc_top(0.0f), nc_left(0.0f), nc_right(0.0f), nc_bottom(0.0f),
 	visible(true), index(0), topmost(false), nonclient(false),
+	minWidth(0.0f), maxWidth(FLT_MAX), minHeight(0.0f), maxHeight(FLT_MAX),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
-	_updatingLayout(false), mouseOn(false), clicked(false), keyboardFocus(false)
+	_updatingLayout(false), _updatingMinMaxWH(false), _whNoAuth(false),
+	mouseOn(false), clicked(false), keyboardFocus(false)
 {
 	sgs_PushCFunction( C, UIControl_CtrlProc );
 	callback = sgsVariable( C, -1 );
@@ -653,7 +676,7 @@ bool UIControl::removeChild( UIControl::Handle ch )
 	return found;
 }
 
-UIControl::Handle UIControl::findChild( std::string name )
+UIControl::Handle UIControl::findChild( sgsString name )
 {
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
@@ -697,18 +720,40 @@ void UIControl::sortSiblings()
 
 void UIControl::setAnchorMode( int mode )
 {
-	q0x = mode & Anchor_Left ? 1 : 0;
-	q1x = mode & Anchor_Right ? 1 : 0;
-	q0y = mode & Anchor_Top ? 1 : 0;
-	q1y = mode & Anchor_Bottom ? 1 : 0;
+	if( mode & Anchor_Left )
+	{
+		q0x = 0;
+		if( mode & Anchor_Right )
+			q1x = 1;
+		else
+			q1x = 0;
+	}
+	else if( mode & Anchor_Right )
+	{
+		q0x = 1;
+		q1x = 1;
+	}
+	if( mode & Anchor_Top )
+	{
+		q0y = 0;
+		if( mode & Anchor_Bottom )
+			q1y = 1;
+		else
+			q1y = 0;
+	}
+	else if( mode & Anchor_Bottom )
+	{
+		q0y = 1;
+		q1y = 1;
+	}
 	updateLayout();
 }
 
 
-bool UIControl::bindEvent( std::string name, sgsVariable callable )
+bool UIControl::bindEvent( sgsString name, sgsVariable callable )
 {
 	// try reading the existing array
-	sgs_PushStringBuf( C, name.c_str(), name.size() );
+	name.push( C );
 	if( SGS_FAILED( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) ) )
 	{
 		callable.push();
@@ -728,10 +773,10 @@ bool UIControl::bindEvent( std::string name, sgsVariable callable )
 	return true;
 }
 
-bool UIControl::unbindEvent( std::string name, sgsVariable callable )
+bool UIControl::unbindEvent( sgsString name, sgsVariable callable )
 {
 	// check if there's an entry for the event
-	sgs_PushStringBuf( C, name.c_str(), name.size() );
+	name.push( C );
 	if( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) )
 		return false;
 	// remove item from array
@@ -739,10 +784,10 @@ bool UIControl::unbindEvent( std::string name, sgsVariable callable )
 	return !!sgs_ObjectAction( C, -2, SGS_ACT_ARRAY_RM_ONE, -1 );
 }
 
-bool UIControl::callEvent( std::string name, UIEvent* e )
+bool UIControl::callEvent( sgsString name, UIEvent* e )
 {
 	// check if there's an entry for the event
-	sgs_PushStringBuf( C, name.c_str(), name.size() );
+	name.push( C );
 	if( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) )
 		return false;
 	// iterate the array

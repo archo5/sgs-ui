@@ -1,9 +1,80 @@
 
 
+function UI_CreateAutoLayout( parent, x, y, width, height )
+{
+	AutoLayout = parent.frame.createControl( "autolayout" );
+	AutoLayout.x = x;
+	AutoLayout.y = y;
+	AutoLayout.minWidth = 0;
+	AutoLayout.maxWidth = if( width !== null, width, UI_MaxValue );
+	AutoLayout.minHeight = 0;
+	AutoLayout.maxHeight = if( height !== null, height, UI_MaxValue );
+	AutoLayout.data = {};
+	
+	AutoLayout_data = AutoLayout.data;
+	function AutoLayout_data.recalc( AutoLayout )
+	{
+		maxwidth = AutoLayout.maxWidth;
+		x = 0;
+		y = 0;
+		mostwidth_total = 0;
+		mostheight_line = 0;
+		
+		children = AutoLayout.children();
+		foreach( ch : children )
+		{
+			ch._updatingLayout = true;
+			chwidth = max( ch.rx1 - ch.rx0, ch.minWidth );
+			chheight = max( ch.height, ch.minHeight );
+			if( x > 0 && x + chwidth > maxwidth )
+			{
+				y += mostheight_line;
+				mostwidth_total = max( mostwidth_total, x );
+				x = 0;
+				mostheight_line = 0;
+			}
+			
+			ch.x = x;
+			ch.y = y;
+			
+			x += chwidth;
+			mostheight_line = max( mostheight_line, chheight );
+		}
+		foreach( ch : children )
+		{
+			ch._updatingLayout = false;
+			ch.updateLayout();
+		}
+		y += mostheight_line;
+		mostwidth_total = max( mostwidth_total, x );
+		
+		AutoLayout._whNoAuth = true;
+		if( AutoLayout.q1x == 0 ) AutoLayout.width = mostwidth_total;
+		if( AutoLayout.q1y == 0 ) AutoLayout.height = y;
+		AutoLayout._whNoAuth = false;
+	}
+	
+	orig_callback = AutoLayout.callback;
+	function AutoLayout.callback( event ) use( orig_callback )
+	{
+		data = this.data;
+		if( event.type == EV_Layout )
+		{
+			this!orig_callback( event );
+			data.recalc( this );
+		}
+		return this!orig_callback( event );
+	}
+	
+	parent.addChild( AutoLayout );
+	
+	return AutoLayout;
+}
+
 function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 {
-	vscroll ||= "auto";
-	hscroll ||= "auto";
+	vscroll = if( vscroll === null, "auto", vscroll );
+	hscroll = if( hscroll === null, "auto", hscroll );
 	
 	Scrollable = parent.frame.createControl( "scrollable" );
 	Scrollable.x = x;
@@ -15,6 +86,8 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 		padding = 1,
 		scroll_size = 12,
 		x0 = 0, x1 = 0, y0 = 0, y1 = 0,
+		hscroll = hscroll,
+		vscroll = vscroll,
 	};
 	
 	pad = Scrollable.data.padding;
@@ -33,10 +106,10 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 		x0 = x1 = y0 = y1 = 0;
 		foreach( ch : chlist )
 		{
-			p0x = ch.rx0 - Scrollable.rx0;
-			p0y = ch.ry0 - Scrollable.ry0;
-			p1x = ch.rx1 - Scrollable.rx0;
-			p1y = ch.ry1 - Scrollable.ry0;
+			p0x = ch.rx0 - Scrollable.rx0 - pad;
+			p0y = ch.ry0 - Scrollable.ry0 - pad;
+			p1x = ch.rx1 - Scrollable.rx0 - pad;
+			p1y = ch.ry1 - Scrollable.ry0 - pad;
 			
 			x0 = min( x0, min( p0x, p1x ) );
 			x1 = max( x1, max( p0x, p1x ) );
@@ -53,8 +126,8 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 		iw = x1 - x0;
 		ih = y1 - y0;
 		
-		showV = ih > Scrollable.height - this.scroll_size;
-		showH = iw > Scrollable.width - this.scroll_size;
+		showV = if( this.vscroll === "auto", ih > Scrollable.height - this.scroll_size, this.vscroll );
+		showH = if( this.hscroll === "auto", iw > Scrollable.width - this.scroll_size, this.hscroll );
 		
 		scrV.visible = showV;
 		scrH.visible = showH;
@@ -81,7 +154,7 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 		{
 			if( scrV.visible )
 				scrV.callback( event );
-			else if( scrH.visible )
+			if( scrH.visible )
 				scrH.callback( event );
 			return 0; // stop bubbling
 		}
@@ -164,6 +237,7 @@ function UI_CreateMenuPanel( parent, items )
 			this.menu_open = null;
 		}
 		this.menu_open_for = null;
+		this.selected = false;
 	}
 	function mpdata.removeRecursive( cc )
 	{

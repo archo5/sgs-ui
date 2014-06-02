@@ -4,6 +4,7 @@ include "sgs-sdl.utils";
 include "sgs-sdl.ui-core";
 include "sgs-sdl.ui-input";
 include "sgs-sdl.ui-panels";
+include "sgs-sdl.ui-extended";
 
 
 
@@ -40,7 +41,7 @@ function initialize()
 	
 	SS_StartTextInput();
 	
-	global Font = SS_CreateFont( "verdana.ttf", 11 );
+	global Font = SS_CreateFont( "fonts/lato-regular.ttf", 11 );
 	
 	
 	/* MENUS */
@@ -80,7 +81,7 @@ function initialize()
 		if( x0 === null )
 			SS_SetClipRect( null );
 		else
-			SS_SetClipRect( x0, x1, y0, y1 );
+			SS_SetClipRect( x0, y0, x1, y1 );
 	}
 	function FRAME.clipboard_func( text )
 	{
@@ -148,6 +149,25 @@ function initialize()
 			{ text = "Something else", value = "other" },
 		]
 	);
+	
+	AUTOLAYOUT = UI_CreateAutoLayout( STAT, 800, 50, 100 );
+	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/page.png" );
+	BUTTON = UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/disk.png" );
+	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/disk_multiple.png" );
+	ocb = BUTTON.callback;
+	function BUTTON.callback( event ) use( ocb )
+	{
+		if( event.type == EV_MouseEnter )
+			this.width += 10;
+		else if( event.type == EV_MouseLeave )
+			this.width -= 10;
+		return this!ocb( event );
+	}
+	
+	WINDOW = UI_CreateWindow( FRAME.root, 300, 300, 200, 150, "Info window", true );
+	
+	LBMENU = UI_CreateListBoxMenu( WINDOW, 0, 0, 0, 0 );
+	LBMENU.setAnchorMode( Anchor_All );
 }
 
 global lasttime = ftime();
@@ -205,7 +225,7 @@ function on_event( e )
 	}
 	if( e.type == SDL_MOUSEWHEEL )
 	{
-		FRAME.doMouseWheel( -e.y );
+		FRAME.doMouseWheel( e.x, -e.y );
 	}
 	if( e.type == SDL_KEYUP || e.type == SDL_KEYDOWN )
 	{

@@ -1,0 +1,219 @@
+
+
+global UI_ListBoxMenu = {};
+
+function UI_ListBoxMenu._optionRenderFunc()
+{
+	if( this.rx0 >= this.rx1 || this.ry0 >= this.ry1 )
+		return;
+	
+	data = this.data;
+	icon = @data.icon;
+	text = this.caption;
+	
+	caddt = if( this.clicked, 0.02, if( this.mouseOn, -0.05, 0.0 ) );
+	caddb = if( this.clicked, 0.09, if( this.mouseOn, 0.05, 0.0 ) );
+	SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.4-caddt, 0.6-caddt, 0.8-caddt, 1, 0.4+caddb, 0.5+caddb, 0.6+caddb, 1 );
+//		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
+//		SS_DrawColorRect( this.rx0+1, this.ry0+1, this.rx1-1, this.ry1-1, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
+	
+	if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
+	{
+		cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
+		if( icon )
+		{
+			SS_Draw({ preset = "box", position = vec2( this.rx1 - round( 4 + icon.width / 2 ), cy ), scale = vec2( icon.width, icon.height ), texture = icon });
+		}
+		
+		if( text )
+		{
+			SS_DrawTextLine_VC( text, Font, this.rx0 + 4, cy, color(1,1,1,1) );
+		}
+		
+		this.frame.popScissorRect();
+	}
+}
+
+function UI_ListBoxMenu.addOption( option )
+{
+	data = this.data;
+	data.options.push( option );
+	
+	ListBoxItem = UI_CreateButton( data.OpCont, 0, 0, 0, 24, option.text, @option.icon );
+	ListBoxItem.q1x = 1;
+	ListBoxItem.renderfunc = UI_ListBoxMenu._optionRenderFunc;
+}
+
+function UI_CreateListBoxMenu( parent, x, y, width, height )
+{
+	ListBoxMenu = parent.frame.createControl( "listboxmenu" );
+	ListBoxMenu.x = x;
+	ListBoxMenu.y = y;
+	ListBoxMenu.width = width;
+	ListBoxMenu.height = height;
+	ListBoxMenu._interface = UI_ListBoxMenu;
+	ListBoxMenu.data =
+	{
+		options = [],
+	};
+	
+	border = 2;
+	ListBoxMenu.nc_top = border;
+	ListBoxMenu.nc_bottom = border;
+	ListBoxMenu.nc_left = border;
+	ListBoxMenu.nc_right = border;
+	
+	Scrollable = UI_CreateScrollable( ListBoxMenu, 0, 0, 0, 0, "auto", false );
+	Scrollable.q1x = 1;
+	Scrollable.q1y = 1;
+	ListBoxMenu.data.Scrollable = Scrollable;
+	
+	AutoLayout = UI_CreateAutoLayout( Scrollable, 0, 0, 100 );
+	AutoLayout.q1x = 1;
+	ListBoxMenu.data.AutoLayout = AutoLayout;
+	ListBoxMenu.data.OpCont = AutoLayout;
+	
+	ListBoxMenu.addOption({ text = "Test option 1" });
+	ListBoxMenu.addOption({ text = "Test/2", icon = "icons/disk_multiple.png" });
+	
+	parent.addChild( ListBoxMenu );
+	
+	return ListBoxMenu;
+}
+
+
+global UI_Window = {};
+
+function UI_Window.close()
+{
+	this.parent.removeChild( this );
+}
+
+function UI_CreateWindow( parent, x, y, width, height, caption, adjust )
+{
+	if( adjust )
+	{
+		x -= 4;
+		y -= 24;
+		width += 8;
+		height += 28;
+	}
+	Window = parent.frame.createControl( "window" );
+	Window.x = x;
+	Window.y = y;
+	Window.width = width;
+	Window.height = height;
+	Window.nc_top = 24;
+	Window.nc_bottom = 4;
+	Window.nc_left = 4;
+	Window.nc_right = 4;
+	Window.caption = caption;
+	Window.data =
+	{
+		dragging = null,
+		dragorig_x = null,
+		dragorig_y = null,
+		dragstart_x = null,
+		dragstart_y = null,
+	};
+	Window._interface = UI_Window;
+	
+	Window_data = Window.data;
+	function Window_data.setDragging( Window, type, cursor )
+	{
+		this.dragging = type;
+		if( type !== null )
+		{
+			if( type & 0b0010 )
+				this.dragorig_x = Window.width;
+			else
+				this.dragorig_x = Window.x;
+			
+			if( type & 0b1000 )
+				this.dragorig_y = Window.height;
+			else
+				this.dragorig_y = Window.y;
+			
+			this.dragstart_x = cursor.x;
+			this.dragstart_y = cursor.y;
+		}
+	}
+	function Window_data.handleDragging( Window, cursor )
+	{
+		if( this.dragging === null )
+			return;
+		if( this.dragging === 0 )
+		{
+			Window.x = this.dragorig_x + cursor.x - this.dragstart_x;
+			Window.y = this.dragorig_y + cursor.y - this.dragstart_y;
+		}
+		else
+		{
+			if( this.dragging & 0b0010 )
+				Window.width = this.dragorig_x + cursor.x - this.dragstart_x;
+			else if( this.dragging & 0b0001 )
+				Window.marginLeft = this.dragorig_x + cursor.x - this.dragstart_x;
+			
+			if( this.dragging & 0b1000 )
+				Window.height = this.dragorig_y + cursor.y - this.dragstart_y;
+			else if( this.dragging & 0b0100 )
+				Window.marginTop = this.dragorig_y + cursor.y - this.dragstart_y;
+		}
+	}
+	
+	CloseBtn = UI_CreateButton( Window, -20, -22, 20, 18, "", "icons/cross.png" );
+	CloseBtn.nonclient = true;
+	CloseBtn.q0x = 1;
+	CloseBtn.q1x = 1;
+	CloseBtn.bindEvent( "click", function(){ this.parent.close(); } );
+	Window.data.CloseBtn = CloseBtn;
+	
+	ocb = Window.callback;
+	function Window.callback( event ) use( ocb )
+	{
+		data = this.data;
+		if( event.type == EV_ButtonDown )
+		{
+			if( event.button == Mouse_ButtonL )
+			{
+				// test for dragging
+				if( event.x >= this.rx0 + 4 && event.x < this.rx1 - 4 &&
+					event.y >= this.ry0 + 4 && event.y < this.ry0 + 24 )
+					data.setDragging( this, 0, event );
+				// test for resizing
+				rsz = 0;
+				if( event.x >= this.rx0 && event.x < this.rx0 + 4 ) rsz |= 0b0001;
+				if( event.x >= this.rx1 - 4 && event.x < this.rx1 ) rsz |= 0b0010;
+				if( event.y >= this.ry0 && event.y < this.ry0 + 4 ) rsz |= 0b0100;
+				if( event.y >= this.ry1 - 4 && event.y < this.ry1 ) rsz |= 0b1000;
+				if( rsz )
+					data.setDragging( this, rsz, event );
+			}
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			if( event.button == Mouse_ButtonL )
+				data.setDragging( this, null );
+		}
+		else if( event.type == EV_MouseMove )
+		{
+			data.handleDragging( this, event );
+		}
+		return this!ocb( event );
+	}
+	
+	function Window.renderfunc()
+	{
+		SS_DrawColorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 + 2, this.ry1 + 2, 0.0, 0.0, 0.0, 0.2 );
+		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.4, 0.6, 0.8, 1 );
+		SS_DrawColorRect( this.rx0 + 1, this.ry0 + 1, this.rx1 - 1, this.ry1 - 1, 0.3, 0.5, 0.7, 1 );
+		SS_DrawColorRect( this.rx0 + this.nc_left, this.ry0 + this.nc_top, this.rx1 - this.nc_right, this.ry1 - this.nc_bottom, 0.4, 0.6, 0.8, 1 );
+		
+		SS_DrawTextLine_VC( this.caption, Font, this.rx0 + 4, this.ry0 + 12, color(1) );
+	}
+	
+	parent.addChild( Window );
+	
+	return Window;
+}
+

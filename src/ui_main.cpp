@@ -26,6 +26,9 @@ sgs_RegIntConst g_iconsts[] =
 	FN( Anchor_Bottom ),
 	FN( Anchor_Left   ),
 	FN( Anchor_Right  ),
+	FN( Anchor_Hor    ),
+	FN( Anchor_Vert   ),
+	FN( Anchor_All    ),
 	
 	FN( EV_Paint      ),
 	FN( EV_Layout     ),
@@ -77,6 +80,12 @@ sgs_RegIntConst g_iconsts[] =
 	{NULL,0},
 };
 
+sgs_RegRealConst g_rconsts[] =
+{
+	FN( UI_MaxValue ),
+	{NULL,0},
+};
+
 sgs_RegFuncConst g_fconsts[] =
 {
 	FN( UI_CreateEvent ),
@@ -92,6 +101,7 @@ __declspec(dllexport)
 int sgscript_main( SGS_CTX )
 {
 	sgs_RegIntConsts( C, g_iconsts, -1 );
+	sgs_RegRealConsts( C, g_rconsts, -1 );
 	sgs_RegFuncConsts( C, g_fconsts, -1 );
 	
 	return SGS_SUCCESS;

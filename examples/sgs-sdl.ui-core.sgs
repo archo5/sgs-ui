@@ -73,8 +73,13 @@ function UI_CreateButton( parent, x, y, width, height, caption, icon )
 		text = this.caption;
 		
 		cadd = if( this.clicked, -0.1, if( this.mouseOn, 0.1, 0.0 ) );
-		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
-		SS_DrawColorRect( this.rx0+1, this.ry0+1, this.rx1-1, this.ry1-1, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
+		B = 0;
+		if( !this.nonclient )
+		{
+			SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
+			B = 1;
+		}
+		SS_DrawColorRect( this.rx0+B, this.ry0+B, this.rx1-B, this.ry1-B, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
 		
 		if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
 		{
@@ -209,15 +214,6 @@ function UI_CreateScroll( vertical, parent, x, y, width, height, space, window, 
 			np = rcoord / movelen * ( this.space - this.window );
 		this.moveRel( np - this.position, Scroll, btnCS );
 	}
-	function Scroll_data.Scroll_onmousemove( event ) use( Scroll, btnCS )
-	{
-		if( btnCS.clicked )
-		{
-			Scroll.data.moveToAbs(
-				if( Scroll.data.vertical, event.y - Scroll.frame.getClickOffsetY( event.button ), event.x - Scroll.frame.getClickOffsetX( event.button ) )
-				, Scroll, btnCS );
-		}
-	}
 	
 	btnUP.bindEvent( "click", function() use( Scroll, btnCS ){ Scroll.data.moveRel( -Scroll.data.move_step, Scroll, btnCS ); } );
 	btnDN.bindEvent( "click", function() use( Scroll, btnCS ){ Scroll.data.moveRel( Scroll.data.move_step, Scroll, btnCS ); } );
@@ -226,15 +222,7 @@ function UI_CreateScroll( vertical, parent, x, y, width, height, space, window, 
 	function Scroll.callback( event ) use( scroll_orig_callback, btnCS )
 	{
 		data = this.data;
-		if( event.type == EV_Attach )
-		{
-			this.frame.root.bindEvent( "globalmousemove", data.Scroll_onmousemove );
-		}
-		else if( event.type == EV_Detach )
-		{
-			this.frame.root.unbindEvent( "globalmousemove", data.Scroll_onmousemove );
-		}
-		else if( event.type == EV_Layout )
+		if( event.type == EV_Layout )
 		{
 			ret = this!scroll_orig_callback( event );
 			
@@ -244,8 +232,28 @@ function UI_CreateScroll( vertical, parent, x, y, width, height, space, window, 
 			
 			scroll_length -= data.button_size * 2;
 			scroll_length = max( scroll_length, data.min_scroll_length );
-			bar_pos = if( data.space, scroll_length * data.position / data.space, 0 );
-			bar_length = if( data.space, scroll_length * data.window / data.space, scroll_length );
+			bar_pos = 0;
+			bar_length = scroll_length;
+			if( data.space )
+			{
+				bar_pos = scroll_length * data.position / data.space;
+				bar_length = scroll_length * data.window / data.space;
+				
+				orig_bar_pos = bar_pos;
+				if( bar_length > scroll_length )
+					bar_length = scroll_length;
+				if( bar_pos + bar_length > scroll_length )
+					bar_pos = scroll_length - bar_length;
+				if( bar_pos < 0 )
+					bar_pos = 0;
+			//	println(bar_pos,"//",bar_length,"///",scroll_length," - ",data.window,"//",data.space);
+				if( bar_pos != orig_bar_pos )
+				{
+			//		println(bar_pos,",",orig_bar_pos);
+					data.moveRel( 0, this, btnCS );
+					ret = this!scroll_orig_callback( event );
+				}
+			}
 			
 			if( data.vertical )
 			{
@@ -265,9 +273,17 @@ function UI_CreateScroll( vertical, parent, x, y, width, height, space, window, 
 			if( event.button == Mouse_ButtonL )
 				data.moveToAbs( if( data.vertical, event.y - btnCS.height / 2, event.x - btnCS.width / 2 ), this, btnCS );
 		}
+		else if( event.type == EV_MouseMove )
+		{
+			if( btnCS.clicked )
+			{
+				abspos = if( data.vertical, event.y - this.frame.getClickOffsetY( event.button ), event.x - this.frame.getClickOffsetX( event.button ) );
+				data.moveToAbs( abspos, this, btnCS );
+			}
+		}
 		else if( event.type == EV_MouseWheel )
 		{
-			data.moveRel( event.x * data.min_scroll_length, this, btnCS );
+			data.moveRel( if( !data.vertical, event.x, event.y ) * data.min_scroll_length, this, btnCS );
 			return 0; // stop bubbling
 		}
 		return this!scroll_orig_callback( event );

@@ -6,6 +6,10 @@
 
 #include "ui_utils.h"
 
+#include <float.h>
+
+
+#define UI_MaxValue FLT_MAX
 
 #define UI_NO_ID 0xffffffff
 
@@ -13,6 +17,9 @@
 #define Anchor_Bottom 0x02
 #define Anchor_Left   0x04
 #define Anchor_Right  0x08
+#define Anchor_Hor   (Anchor_Left | Anchor_Right)
+#define Anchor_Vert  (Anchor_Top | Anchor_Bottom)
+#define Anchor_All   (Anchor_Hor | Anchor_Vert)
 
 #define EV_Paint      1
 #define EV_Layout     2
@@ -108,7 +115,7 @@ struct UIFrame
 	UIFrame();
 	~UIFrame();
 	
-	SGS_METHOD sgsHandle< UIControl > createControl( std::string type );
+	SGS_METHOD sgsHandle< UIControl > createControl( sgsString type );
 	
 	SGS_METHOD void event( UIEvent* e );
 	SGS_METHOD void render();
@@ -118,7 +125,7 @@ struct UIFrame
 	// event generation shortcuts
 	SGS_METHOD void doMouseMove( float x, float y );
 	SGS_METHOD void doMouseButton( int btn, bool down );
-	SGS_METHOD void doMouseWheel( float down );
+	SGS_METHOD void doMouseWheel( float x, float y );
 	SGS_METHOD void doKeyPress( int key, bool down );
 	SGS_METHOD void doPutChar( int chr );
 	
@@ -187,23 +194,29 @@ struct UIControl
 	int niEvent( UIEvent* event );
 	void niBubblingEvent( UIEvent* e );
 	void niRender();
-	void updateLayout();
+	SGS_METHOD void updateLayout();
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
-	SGS_METHOD UIControl::Handle findChild( std::string name );
+	SGS_METHOD UIControl::Handle findChild( sgsString name );
 	SGS_METHOD sgsVariable children( bool nonclient );
 	SGS_METHOD void sortChildren();
 	SGS_METHOD void sortSiblings();
 	SGS_METHOD void setAnchorMode( int mode );
 	
-	SGS_METHOD bool bindEvent( std::string name, sgsVariable callable );
-	SGS_METHOD bool unbindEvent( std::string name, sgsVariable callable );
-	SGS_METHOD bool callEvent( std::string name, UIEvent* e );
+	SGS_METHOD bool bindEvent( sgsString name, sgsVariable callable );
+	SGS_METHOD bool unbindEvent( sgsString name, sgsVariable callable );
+	SGS_METHOD bool callEvent( sgsString name, UIEvent* e );
 	
 	SGS_IFUNC(GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop );
 	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
 	
+	void _set_width( float v ){ width = v; if( !_whNoAuth ){ minWidth = maxWidth = width; } updateLayout(); }
+	void _set_height( float v ){ height = v; if( !_whNoAuth ){ minHeight = maxHeight = height; } updateLayout(); }
+	void _set_minWidth( float v ){ minWidth = v; if( !_updatingMinMaxWH && width < minWidth ){ width = minWidth; updateLayout(); } }
+	void _set_maxWidth( float v ){ maxWidth = v; if( !_updatingMinMaxWH && width > maxWidth ){ width = maxWidth; updateLayout(); } }
+	void _set_minHeight( float v ){ minHeight = v; if( !_updatingMinMaxWH && height < minHeight ){ height = minHeight; updateLayout(); } }
+	void _set_maxHeight( float v ){ maxHeight = v; if( !_updatingMinMaxWH && height > maxHeight ){ height = maxHeight; updateLayout(); } }
 	float _get_marginLeft(){ return x; }
 	float _get_marginRight(){ return -width - x; }
 	float _get_marginTop(){ return y; }
@@ -214,12 +227,12 @@ struct UIControl
 	void _set_marginBottom( float v ){ height = -v - y; updateLayout(); }
 	
 	SGS_PROPERTY READ uint32_t id;
-	SGS_PROPERTY std::string name;
-	SGS_PROPERTY std::string caption;
+	SGS_PROPERTY sgsString name;
+	SGS_PROPERTY sgsString caption;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float y;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float width;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float height;
+	SGS_PROPERTY_FUNC( READ WRITE _set_width ) float width;
+	SGS_PROPERTY_FUNC( READ WRITE _set_height ) float height;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q0x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q0y;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1x;
@@ -234,11 +247,15 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) int index;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) bool topmost;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) bool nonclient;
+	SGS_PROPERTY_FUNC( READ WRITE _set_minWidth ) float minWidth;
+	SGS_PROPERTY_FUNC( READ WRITE _set_maxWidth ) float maxWidth;
+	SGS_PROPERTY_FUNC( READ WRITE _set_minHeight ) float minHeight;
+	SGS_PROPERTY_FUNC( READ WRITE _set_maxHeight ) float maxHeight;
 	SGS_PROPERTY_FUNC( READ _get_marginLeft WRITE _set_marginLeft ) SGS_ALIAS( float marginLeft );
 	SGS_PROPERTY_FUNC( READ _get_marginRight WRITE _set_marginRight ) SGS_ALIAS( float marginRight );
 	SGS_PROPERTY_FUNC( READ _get_marginTop WRITE _set_marginTop ) SGS_ALIAS( float marginTop );
 	SGS_PROPERTY_FUNC( READ _get_marginBottom WRITE _set_marginBottom ) SGS_ALIAS( float marginBottom );
-	SGS_PROPERTY std::string type;
+	SGS_PROPERTY sgsString type;
 	SGS_PROPERTY READ Handle parent;
 	SGS_PROPERTY READ UIFrame::Handle frame;
 	SGS_PROPERTY sgsVariable callback;
@@ -251,7 +268,9 @@ struct UIControl
 	SGS_PROPERTY READ float ry0;
 	SGS_PROPERTY READ float ry1;
 	
-	SGS_PROPERTY bool _updatingLayout;
+	SGS_PROPERTY bool _updatingLayout : 1; /* true if updating layout and don't want to trigger further layout changes */
+	SGS_PROPERTY bool _updatingMinMaxWH : 1; /* true if updating min/max width/height and don't watn to trigger further size changes */
+	SGS_PROPERTY bool _whNoAuth : 1; /* true if width/height shouldn't set min/max width/height too */
 	SGS_PROPERTY READ bool mouseOn;
 	SGS_PROPERTY READ bool clicked;
 	SGS_PROPERTY READ bool keyboardFocus;
