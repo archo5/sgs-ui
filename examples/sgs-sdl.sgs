@@ -1,6 +1,7 @@
 
 include "../bin/sgs-ui";
 include "sgs-sdl.utils";
+include "sgs-sdl.themes";
 include "sgs-sdl.ui-core";
 include "sgs-sdl.ui-input";
 include "sgs-sdl.ui-panels";
@@ -74,6 +75,7 @@ function initialize()
 	
 	
 	global FRAME = UI_CreateFrame();
+	FRAME.theme = SS_UI_Theme_Default;
 	FRAME.width = 1024;
 	FRAME.height = 576;
 	function FRAME.scissor_func( x0, y0, x1, y1 )

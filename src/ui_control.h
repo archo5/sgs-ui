@@ -23,6 +23,7 @@
 
 #define EV_Paint      1
 #define EV_Layout     2
+#define EV_ChgTheme   3
 #define EV_KeyDown    10
 #define EV_KeyUp      11
 #define EV_Char       12
@@ -181,6 +182,14 @@ struct UIFrame
 	*/
 	SGS_PROPERTY sgsVariable cursor_func;
 	
+	/*	theme
+		dict containing data about theme
+		the convention:
+		- <type>_renderfunc - rendering function for the specified control type
+		- <type>_<other> - misc. data for the specified control type
+	*/
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateTheme ) sgsVariable theme;
+	
 	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float y;
@@ -192,6 +201,7 @@ struct UIFrame
 	SGS_PROPERTY READ float mouseY;
 	
 	void updateLayout();
+	void updateTheme();
 	void forceUpdateCursor( UIControl* ctrl );
 	void preRemoveControl( UIControl* ctrl );
 	
@@ -221,6 +231,8 @@ struct UIControl
 	void niBubblingEvent( UIEvent* e );
 	void niRender();
 	SGS_METHOD void updateLayout();
+	SGS_METHOD void updateTheme();
+	void updateThemeRecursive();
 	void updateCursor();
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );

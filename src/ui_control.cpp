@@ -75,7 +75,7 @@ int UIControl_CtrlProc( SGS_CTX )
 		if( ctrl->parent.object )
 			ctrl->parent->updateLayout();
 		return 1;
-	
+		
 	case EV_Attach:
 	case EV_Detach:
 	case EV_AddChild:
@@ -83,7 +83,7 @@ int UIControl_CtrlProc( SGS_CTX )
 		ctrl->updateLayout();
 		sgs_PushInt( C, 1 );
 		return 1;
-	
+		
 	case EV_HitTest:
 		if( event->x >= ctrl->rx0 && event->x <= ctrl->rx1 &&
 			event->y >= ctrl->ry0 && event->y <= ctrl->ry1 )
@@ -104,7 +104,7 @@ int UIControl_CtrlProc( SGS_CTX )
 	case EV_KeyUp:
 		// allow bubbling
 		return 1;
-	
+		
 	case EV_MouseEnter:
 		ctrl->mouseOn = true;
 		return 1;
@@ -132,7 +132,7 @@ int UIControl_CtrlProc( SGS_CTX )
 		return 1;
 	case EV_NeedFocus:
 		return 0; // don't take focus by default
-	
+		
 	}
 	
 	sgs_PushInt( C, 0 );
@@ -474,6 +474,12 @@ void UIFrame::updateLayout()
 	root->updateLayout();
 }
 
+void UIFrame::updateTheme()
+{
+	root->updateThemeRecursive();
+	updateLayout();
+}
+
 void UIFrame::forceUpdateCursor( UIControl* ctrl )
 {
 	if( cursor_func.not_null() )
@@ -613,6 +619,21 @@ void UIControl::updateLayout()
 	e.type = EV_Layout;
 	niEvent( &e );
 	_updatingLayout = false;
+}
+
+void UIControl::updateTheme()
+{
+	UIEvent e;
+	e.type = EV_ChgTheme;
+	niEvent( &e );
+}
+
+void UIControl::updateThemeRecursive()
+{
+	updateTheme();
+	
+	for( UIControl::HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+		(*it)->updateTheme();
 }
 
 void UIControl::updateCursor()

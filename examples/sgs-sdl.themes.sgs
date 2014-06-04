@@ -1,0 +1,59 @@
+
+global SS_UI_Theme_Default =
+{
+	// BUTTON
+	button_renderfunc = function SS_UI_Theme_Default_button_renderfunc()
+	{
+		if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
+			return;
+		
+		data = this.data;
+		icon = @data.icon;
+		text = this.caption;
+		
+		cadd = if( this.clicked, -0.1, if( this.mouseOn, 0.1, 0.0 ) );
+		B = 0;
+		if( !this.nonclient )
+		{
+			SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
+			B = 1;
+		}
+		SS_DrawColorRect( this.rx0+B, this.ry0+B, this.rx1-B, this.ry1-B, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
+		
+		if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
+		{
+			fullwidth = 0;
+			if( icon ) fullwidth += icon.width;
+			if( text )
+			{
+				textlen = Font.getTextLength( text );
+				fullwidth += textlen;
+			}
+			if( icon && text ) fullwidth += 4;
+			
+			icon_off = ( this.rx1 - this.rx0 - fullwidth ) / 2;
+			text_off = icon_off;
+			cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
+			if( icon )
+			{
+				text_off += icon.width + 4;
+				SS_Draw({ preset = "box", position = vec2( this.rx0 + round( icon_off + icon.width / 2 ), cy ), scale = vec2( icon.width, icon.height ), texture = icon });
+			}
+			
+			if( text )
+			{
+				SS_DrawTextLine_VC( text, Font, this.rx0 + text_off, cy, color(1,1,1,1) );
+			}
+			
+			this.frame.popScissorRect();
+		}
+	},
+	
+	// SCROLL
+	scroll_renderfunc = function SS_UI_Theme_Default_scroll_renderfunc()
+	{
+		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.8, 0.8, 0.8, 1 );
+		SS_DrawColorRect( this.rx0 + 1, this.ry0 + 1, this.rx1 - 1, this.ry1 - 1, 0.7, 0.7, 0.7, 1 );
+	},
+	scroll_button_size = 0,
+};
