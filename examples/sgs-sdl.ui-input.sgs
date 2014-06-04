@@ -661,6 +661,72 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 }
 
 
+global UI_Slider = {};
+
+function UI_Slider.setNumStops( num )
+{
+	num = toint( num );
+	if( num == 0 || num >= 2 )
+	{
+		this.data.numstops = num;
+		return true;
+	}
+	return false;
+}
+
+function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical )
+{
+	Slider = parent.frame.createControl( "slider" );
+	Slider.x = x;
+	Slider.y = y;
+	Slider.width = width;
+	Slider.height = height;
+	Slider.name = name;
+	Slider._interface = UI_Slider;
+	Slider.data =
+	{
+		mhs_x = 6, // marker half-size
+		mhs_y = 8,
+		
+		numstops = toint( numstops ) || 0,
+		whichstop = 0,
+		position = 0,
+		vertical = vertical,
+		
+		dragging = false,
+		dragoff_x = 0,
+		dragoff_y = 0,
+	};
+	Slider_data = Slider.data;
+	function Slider_data.getValue(){ return if( this.numstops, this.whichstop, this.position ); }
+	
+	function Slider_data.updatePosData( Slider, dx, dy )
+	{
+	}
+	function Slider_data.getMarkerPos( Slider )
+	{
+		pos = if( this.numstops, this.whichstop / ( this.numstops - 1 ), this.position );
+	}
+	function Slider_data.startDragging( Slider, cx, cy )
+	{
+		this.dragging = true;
+	}
+	
+	ocb = Slider.callback;
+	function Slider.callback( event ) use( ocb )
+	{
+	}
+	
+	function Slider.renderfunc()
+	{
+	}
+	
+	parent.addChild( Slider );
+	
+	return Slider;
+}
+
+
 global UI_SelectBox = {};
 function UI_SelectBox.setItems( items )
 {
