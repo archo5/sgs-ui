@@ -58,3 +58,5 @@ function draw_color_circle( x, y, radius, numsides, r, g, b, a )
 	g_RB.draw( null, g_VD_P2CC4, 0, numsides + 1, SS_PT_TRIANGLE_FAN );
 }
 
+function first_non_null( a, b ){ return if( a === null, b, a ); }
+

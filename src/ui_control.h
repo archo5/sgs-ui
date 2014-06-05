@@ -133,6 +133,7 @@ struct UIFrame
 	
 	SGS_METHOD void event( UIEvent* e );
 	SGS_METHOD void render();
+	UIControl* _getControlAtPosition( float x, float y );
 	SGS_METHOD void handleMouseMove();
 	SGS_METHOD void setFocus( UIControl* ctrl );
 	
@@ -166,6 +167,8 @@ struct UIFrame
 	SGS_METHOD float getClickOffsetY( int button ){ if( button < 0 || button >= Mouse_Button_Count ) return 0; return m_clickoffsets[ button ][1]; }
 	SGS_METHOD sgsHandle< UIControl > getHoverControl();
 	SGS_METHOD sgsHandle< UIControl > getFocusControl();
+	SGS_METHOD sgsHandle< UIControl > getControlUnderCursor();
+	SGS_METHOD sgsHandle< UIControl > getControlUnderPoint( float x, float y );
 	
 	SGS_PROPERTY sgsVariable render_image;
 	SGS_PROPERTY sgsVariable render_text;

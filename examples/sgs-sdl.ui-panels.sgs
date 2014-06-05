@@ -155,7 +155,10 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 			if( scrV.visible )
 				scrV.callback( event );
 			if( scrH.visible )
+			{
+				event.y = event.x;
 				scrH.callback( event );
+			}
 			return 0; // stop bubbling
 		}
 		return this!orig_callback( event );

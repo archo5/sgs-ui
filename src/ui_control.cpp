@@ -186,24 +186,19 @@ void UIFrame::render()
 		root->niRender();
 }
 
-void UIFrame::handleMouseMove()
+UIControl* UIFrame::_getControlAtPosition( float x, float y )
 {
-	for( int i = 0; i < Mouse_Button_Count; ++i )
-		if( m_clicktargets[ i ] )
-			return;
-	
-	// find new mouse-over item
 	UIEvent htev;
 	htev.type = EV_HitTest;
-	htev.x = mouseX;
-	htev.y = mouseY;
+	htev.x = x;
+	htev.y = y;
 	
-	UIControl* ctrl = root, *prevhover = m_hover;
+	UIControl* ctrl = root, *atpos = NULL;
 	int nonclient = -1;
-	m_hover = NULL;
-	while( ctrl && m_hover != ctrl )
+	atpos = NULL;
+	while( ctrl && atpos != ctrl )
 	{
-		m_hover = ctrl;
+		atpos = ctrl;
 		for( UIControl::HandleArray::reverse_iterator it = ctrl->m_sorted.rbegin(), itend = ctrl->m_sorted.rend(); it != itend; ++it )
 		{
 			UIControl* nc = *it;
@@ -221,6 +216,19 @@ void UIFrame::handleMouseMove()
 			}
 		}
 	}
+	
+	return atpos;
+}
+
+void UIFrame::handleMouseMove()
+{
+	for( int i = 0; i < Mouse_Button_Count; ++i )
+		if( m_clicktargets[ i ] )
+			return;
+	
+	// find new mouse-over item
+	UIControl* prevhover = m_hover;
+	m_hover = _getControlAtPosition( mouseX, mouseY );
 	
 	if( m_hover != prevhover )
 	{
@@ -524,6 +532,18 @@ sgsHandle< UIControl > UIFrame::getHoverControl()
 sgsHandle< UIControl > UIFrame::getFocusControl()
 {
 	return sgsHandle< UIControl >( m_focus ? m_focus->m_sgsObject : NULL, C );
+}
+
+sgsHandle< UIControl > UIFrame::getControlUnderCursor()
+{
+	UIControl* ctrl = _getControlAtPosition( mouseX, mouseY );
+	return sgsHandle< UIControl >( ctrl ? ctrl->m_sgsObject : NULL, C );
+}
+
+sgsHandle< UIControl > UIFrame::getControlUnderPoint( float x, float y )
+{
+	UIControl* ctrl = _getControlAtPosition( x, y );
+	return sgsHandle< UIControl >( ctrl ? ctrl->m_sgsObject : NULL, C );
 }
 
 
