@@ -176,6 +176,9 @@ function initialize()
 		return this!ocb( event );
 	}
 	
+	UI_CreateSlider( STAT, 800, 300, 150, 20, "sldr1", 0, false );
+	UI_CreateSlider( STAT, 800, 340, 150, 20, "sldr2", 5, false );
+	
 	WINDOW = UI_CreateWindow( FRAME.root, 300, 300, 200, 150, "Info window", true );
 	
 	WINSTAT = UI_CreateStatic( WINDOW, 0, 0, 0, 32, "The Options", color(0.9,1), DT_CENTER | DT_VCENTER );

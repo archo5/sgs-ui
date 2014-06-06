@@ -655,12 +655,15 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 	{
 		mhs_x = 6, // marker half-size
 		mhs_y = 8,
+		border = 1,
+		padding = 1,
 		
 		numstops = toint( numstops ) || 0,
 		whichstop = 0,
 		position = 0,
 		vertical = vertical,
 		
+		mouse_on = false,
 		dragging = false,
 		dragoff_x = 0,
 		dragoff_y = 0,
@@ -674,6 +677,19 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 	function Slider_data.getMarkerPos( Slider )
 	{
 		pos = if( this.numstops, this.whichstop / ( this.numstops - 1 ), this.position );
+		BP = this.padding + this.border;
+		if( !this.vertical )
+		{
+			pmin = Slider.rx0 + this.mhs_x + BP;
+			pmax = Slider.rx1 - this.mhs_x - BP;
+			return (pmin*(1-pos) + pmax*pos), floor((Slider.ry0+Slider.ry1)*0.5);
+		}
+		else
+		{
+			pmin = Slider.ry0 + this.mhs_y + BP;
+			pmax = Slider.ry1 - this.mhs_y - BP;
+			return floor((Slider.rx0+Slider.rx1)*0.5), (pmin*(1-pos) + pmax*pos);
+		}
 	}
 	function Slider_data.startDragging( Slider, cx, cy )
 	{
@@ -683,10 +699,35 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 	ocb = Slider.callback;
 	function Slider.callback( event ) use( ocb )
 	{
+		data = this.data;
+		if( event.type == EV_NeedFocus )
+			return 1;
+		else if( event.type == EV_MouseMove )
+		{
+			if( !data.dragging )
+			{
+				(x,y) = data.getMarkerPos( this );
+				MX = data.mhs_x;
+				MY = data.mhs_y;
+				data.mouse_on = event.x >= x-MX && event.x <= x+MX && event.y >= y-MY && event.y <= y+MY;
+			}
+		}
+		return this!ocb( event );
 	}
 	
 	function Slider.renderfunc()
 	{
+		data = this.data;
+		B = data.border;
+		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.85, 0.85, 0.85, 1 );
+		SS_DrawColorRect( this.rx0+B, this.ry0+B, this.rx1-B, this.ry1-B, 0.65, 0.65, 0.65, 1 );
+		
+		(x,y) = data.getMarkerPos( this );
+		MX = data.mhs_x;
+		MY = data.mhs_y;
+		mf = if( data.mouse_on, 0.1, 0.0 );
+		SS_DrawColorRect( x-MX, y-MY, x+MX, y+MY, 0.6, 0.7, 0.8, 1 );
+		SS_DrawColorRect( x-MX+1, y-MY+1, x+MX-1, y+MY-1, 0.3+mf, 0.5+mf, 0.7+mf, 1 );
 	}
 	
 	parent.addChild( Slider );
