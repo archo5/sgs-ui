@@ -751,6 +751,14 @@ bool UIControl::removeChild( UIControl::Handle ch )
 	return found;
 }
 
+bool UIControl::removeAllChildren()
+{
+	bool removed = !!m_children.size();
+	while( m_children.size() )
+		removeChild( *m_children.begin() );
+	return removed;
+}
+
 UIControl::Handle UIControl::findChild( sgsString name )
 {
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )

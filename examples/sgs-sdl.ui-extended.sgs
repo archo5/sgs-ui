@@ -79,6 +79,161 @@ function UI_CreateListBoxMenu( parent, x, y, width, height )
 }
 
 
+global UI_PropertyGrid = {};
+
+function UI_PropertyGrid._create_label( text )
+{
+	data = this.data;
+	ctrl = UI_CreateStatic( data.OpCont, 0, 0, data.label_width_min, data.label_height, text, color(0,0.1), DT_LEFT | DT_VCENTER );
+	ctrl.minWidth = data.label_width_min;
+	ctrl.maxWidth = data.label_width_max;
+	ctrl.q1x = data.label_width_percent;
+	return ctrl;
+}
+
+function UI_PropertyGrid._createDefaultLabel( name, option )
+{
+	return this._create_label( @option.label || name );
+}
+
+function UI_PropertyGrid._create_checkbox( name, value, option )
+{
+	this._createDefaultLabel( name, option );
+	
+	data = this.data;
+	ctrl = UI_CreateCheckbox( data.OpCont, 0, 0, data.value_height, data.value_height, name, null, !!value );
+	return ctrl;
+}
+
+function UI_PropertyGrid._create_textbox( name, value, option )
+{
+	this._createDefaultLabel( name, option );
+	
+	data = this.data;
+	ctrl = UI_CreateTextbox( data.OpCont, 0, 0, data.value_width_min, name, @option.textbox_caption, value );
+	ctrl.minWidth = data.label_width_min;
+	ctrl.maxWidth = data.label_width_max;
+	ctrl.q1x = data.label_width_percent;
+	return ctrl;
+}
+
+function UI_PropertyGrid._create_button( name, value, option )
+{
+	data = this.data;
+	ctrl = UI_CreateButton( data.OpCont, 0, 0, 0, data.value_height, @option.label || name, @option.icon );
+	ctrl.bindEvent( "click", value );
+	ctrl.q1x = 1;
+	return ctrl;
+}
+
+function UI_PropertyGrid.getType( value, option )
+{
+	if( @option.type )
+		return option.type;
+	if( typeid( value ) == VT_BOOL ) return "checkbox", toint;
+	if( is_callable( value ) ) return "button", null;
+	return "textbox", tostring;
+}
+
+function UI_PropertyGrid.setData( input_values, options )
+{
+	data = this.data;
+	all_values = {};
+	options ||= {};
+	data.options = options;
+	foreach( k, v : input_values )
+	{
+		if( is_callable( v ) )
+			continue;
+		all_values[ k ] = v;
+		if( !isset( options, k ) )
+			options[ k ] = {};
+		option = options[ k ];
+		if( !isset( option, "convert" ) )
+		{
+			(type,convfunc) = this.getType( v, option );
+			option.convert = convfunc;
+		}
+	}
+	data.values = all_values;
+	
+	// Rebuild options
+	data.OpCont.removeAllChildren();
+	foreach( k, v : input_values )
+	{
+		option = @options.(name);
+		type = this.getType( v, option );
+		this.("_create_"$type)( k, v, option );
+	}
+}
+
+function UI_PropertyGrid._updateData()
+{
+	data = this.data;
+	form = data.Form;
+	foreach( k, : data.values )
+	{
+		fditem = form.getString( k );
+		if( fditem !== null )
+		{
+			option = @data.options.(k);
+			if( @option.convert )
+				fditem = option.convert( fditem );
+			data.values[ k ] = fditem;
+		}
+	}
+}
+
+function UI_PropertyGrid.getData()
+{
+	return this.data.values;
+}
+
+function UI_CreatePropertyGrid( parent, x, y, width, height, seed, options )
+{
+	PropertyGrid = parent.frame.createControl( "propertygrid" );
+	PropertyGrid.x = x;
+	PropertyGrid.y = y;
+	PropertyGrid.width = width;
+	PropertyGrid.height = height;
+	PropertyGrid._interface = UI_PropertyGrid;
+	PropertyGrid.data =
+	{
+		label_width_min = 0,
+		label_width_max = UI_MaxValue,
+		label_width_percent = 0.5,
+		label_height = 24,
+		value_width_min = 0,
+		value_width_max = UI_MaxValue,
+		value_width_percent = 0.5,
+		value_height = 24,
+		
+		values = {},
+		options = {},
+	};
+	
+	Form = UI_CreateForm( PropertyGrid );
+	PropertyGrid.data.Form = Form;
+	Form.bindEvent( "change", function( e ){ this.parent._updateData(); this.parent.callEvent( "change", e ); } );
+	
+	Scrollable = UI_CreateScrollable( Form, 0, 0, 0, 0, "auto", false );
+	Scrollable.q1x = 1;
+	Scrollable.q1y = 1;
+	PropertyGrid.data.Scrollable = Scrollable;
+	
+	AutoLayout = UI_CreateAutoLayout( Scrollable, 0, 0, 0 );
+	AutoLayout.q1x = 1;
+	PropertyGrid.data.AutoLayout = AutoLayout;
+	PropertyGrid.data.OpCont = AutoLayout;
+	
+	parent.addChild( PropertyGrid );
+	
+	PropertyGrid.setData( seed, options );
+	
+	return PropertyGrid;
+}
+
+
 global UI_Window = {};
 
 function UI_Window.close()

@@ -5,16 +5,18 @@ function UI_CreateAutoLayout( parent, x, y, width, height )
 	AutoLayout = parent.frame.createControl( "autolayout" );
 	AutoLayout.x = x;
 	AutoLayout.y = y;
-	AutoLayout.minWidth = 0;
-	AutoLayout.maxWidth = if( width !== null, width, UI_MaxValue );
-	AutoLayout.minHeight = 0;
-	AutoLayout.maxHeight = if( height !== null, height, UI_MaxValue );
+	AutoLayout.width = width;
+	AutoLayout.height = height;
+//	AutoLayout.minWidth = 0;
+//	AutoLayout.maxWidth = if( width !== null, width, UI_MaxValue );
+//	AutoLayout.minHeight = 0;
+//	AutoLayout.maxHeight = if( height !== null, height, UI_MaxValue );
 	AutoLayout.data = {};
 	
 	AutoLayout_data = AutoLayout.data;
 	function AutoLayout_data.recalc( AutoLayout )
 	{
-		maxwidth = AutoLayout.maxWidth;
+		maxwidth = AutoLayout.rx1 - AutoLayout.rx0;
 		x = 0;
 		y = 0;
 		mostwidth_total = 0;
@@ -49,7 +51,7 @@ function UI_CreateAutoLayout( parent, x, y, width, height )
 		mostwidth_total = max( mostwidth_total, x );
 		
 		AutoLayout._whNoAuth = true;
-		if( AutoLayout.q1x == 0 ) AutoLayout.width = mostwidth_total;
+	//	if( AutoLayout.q1x == 0 ) AutoLayout.width = mostwidth_total;
 		if( AutoLayout.q1y == 0 ) AutoLayout.height = y;
 		AutoLayout._whNoAuth = false;
 	}

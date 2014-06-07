@@ -85,7 +85,7 @@ function UIForm_GetFromCtrl( ctrl )
 	return null;
 }
 
-function form_change_event( form, event )
+function UIForm_ChangeEvent( form, event )
 {
 	form.callEvent( "change", event );
 }
@@ -96,7 +96,7 @@ function UIForm_Attach( ctrl, event )
 	if( form )
 	{
 		form.data.ctrls[ ctrl ] = true;
-		form_change_event( form, event );
+		UIForm_ChangeEvent( form, event );
 	}
 }
 
@@ -106,7 +106,7 @@ function UIForm_Detach( ctrl, event )
 	if( form )
 	{
 		unset( form.data.ctrls, ctrl );
-		form_change_event( form, event );
+		UIForm_ChangeEvent( form, event );
 	}
 }
 
@@ -114,7 +114,7 @@ function UIForm_CtrlChanged( ctrl, event )
 {
 	form = UIForm_GetFromCtrl( ctrl );
 	if( form )
-		form_change_event( form, event );
+		UIForm_ChangeEvent( form, event );
 }
 
 function UIForm_ControlsByName( ctrl, name )
@@ -149,12 +149,12 @@ function UI_CreateCheckbox( parent, x, y, width, height, name, value, checked )
 	Checkbox.data =
 	{
 		checked = checked || false,
-		value = if( value === null, 1, value ),
+		value = value,
 	};
 	
 	cbdata = Checkbox.data;
 	
-	function cbdata.getValue(){ return if( this.checked, this.value, null ); };
+	function cbdata.getValue(){ return if( this.value === null, if( this.checked, 1, 0 ), if( this.checked, this.value, null ) ); };
 	
 	orig_callback = Checkbox.callback;
 	function Checkbox.callback( event ) use( orig_callback )
@@ -273,7 +273,7 @@ function UI_CreateRadioButton( parent, x, y, width, height, name, value, checked
 }
 
 
-function UI_CreateTextbox( parent, x, y, width, caption, text )
+function UI_CreateTextbox( parent, x, y, width, name, caption, text )
 {
 	caption ||= "";
 	text ||= "";
@@ -282,6 +282,7 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 	Textbox.x = x;
 	Textbox.y = y;
 	Textbox.width = width;
+	Textbox.name = name;
 	
 	Textbox.data =
 	{
@@ -587,14 +588,16 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 		pad = data.padding;
 		tpad = data.text_padding;
 		cpad = pad + tpad;
+		W = this.rx1 - this.rx0;
+		H = this.ry1 - this.ry0;
 		
-		SS_Draw({ preset = "tile", position = vec2(this.rx0,this.ry0), scale = vec2(this.width,this.height), color = if(this.keyboardFocus,color(0.9,0.6,0.3,1),color(0.6,0.6,0.6,1)) });
-		SS_Draw({ preset = "tile", position = vec2(this.rx0+pad,this.ry0+pad), scale = vec2(this.width-pad*2,this.height-pad*2), color = color(0.9,0.9,0.9,1) });
+		SS_Draw({ preset = "tile", position = vec2(this.rx0,this.ry0), scale = vec2(W,H), color = if(this.keyboardFocus,color(0.9,0.6,0.3,1),color(0.6,0.6,0.6,1)) });
+		SS_Draw({ preset = "tile", position = vec2(this.rx0+pad,this.ry0+pad), scale = vec2(W-pad*2,H-pad*2), color = color(0.9,0.9,0.9,1) });
 		
 		x0 = this.rx0 + cpad - data.offset;
 		y0 = this.ry0 + cpad;
 		yc = ( this.ry0 + this.ry1 ) * 0.5;
-		xh = ( this.height-pad*2-tpad*2 - Font.size ) * 0.5;
+		xh = ( H-pad*2-tpad*2 - Font.size ) * 0.5;
 		
 		if( this.frame.pushScissorRect( this.rx0 + cpad, this.ry0 + cpad, this.rx1 - cpad, this.ry1 - cpad ) )
 		{
@@ -612,11 +615,11 @@ function UI_CreateTextbox( parent, x, y, width, caption, text )
 				if( from != to )
 				{
 					selcol = if( this.keyboardFocus, [0.3,0.6,0.9,0.5], [0.8,0.8,0.8,0.5] );
-					SS_Draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,this.height-pad*2-tpad*2], color = selcol });
+					SS_Draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,H-pad*2-tpad*2], color = selcol });
 				}
 				
 				if( this.keyboardFocus && data.show_cursor )
-					SS_Draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,this.height-pad*2-tpad*2], color = [0.1,0.1,0.1,1] });
+					SS_Draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,H-pad*2-tpad*2], color = [0.1,0.1,0.1,1] });
 			}
 			
 			this.frame.popScissorRect();
@@ -653,8 +656,8 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 	Slider._interface = UI_Slider;
 	Slider.data =
 	{
-		mhs_x = 6, // marker half-size
-		mhs_y = 8,
+		mhs_x = if( !vertical, 6, 8 ), // marker half-size
+		mhs_y = if( !vertical, 8, 6 ),
 		border = 1,
 		padding = 1,
 		
@@ -671,12 +674,39 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 	Slider_data = Slider.data;
 	function Slider_data.getValue(){ return if( this.numstops, this.whichstop, this.position ); }
 	
-	function Slider_data.updatePosData( Slider, dx, dy )
+	function Slider_data.updatePosData( Slider, dx, dy, event )
 	{
+		BP = this.padding + this.border;
+		if( !this.vertical )
+		{
+			pmin = Slider.rx0 + this.mhs_x + BP;
+			pmax = Slider.rx1 - this.mhs_x - BP;
+			q = ( dx + this.dragoff_x - pmin ) / if( pmax > pmin + 0.0001, pmax - pmin, 0.0001 );
+		}
+		else
+		{
+			pmin = Slider.ry0 + this.mhs_y + BP;
+			pmax = Slider.ry1 - this.mhs_y - BP;
+			q = ( dy + this.dragoff_y - pmin ) / if( pmax > pmin + 0.0001, pmax - pmin, 0.0001 );
+		}
+		q = if( q < 0, 0, if( q > 1, 1, q ) );
+		if( this.numstops )
+		{
+			nss1 = this.numstops - 1;
+			this.whichstop = round( q * nss1 );
+			q = this.whichstop / nss1;
+		}
+		pp = this.position;
+		this.position = q;
+		if( q != pp )
+		{
+			Slider.callEvent( "change", event );
+			UIForm_CtrlChanged( Slider, event );
+		}
 	}
 	function Slider_data.getMarkerPos( Slider )
 	{
-		pos = if( this.numstops, this.whichstop / ( this.numstops - 1 ), this.position );
+		pos = this.position;
 		BP = this.padding + this.border;
 		if( !this.vertical )
 		{
@@ -694,6 +724,21 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 	function Slider_data.startDragging( Slider, cx, cy )
 	{
 		this.dragging = true;
+		(px,py) = this.getMarkerPos( Slider );
+		this.dragoff_x = px - cx;
+		this.dragoff_y = py - cy;
+		this.prev_position = this.position;
+	}
+	function Slider_data.stopDragging( Slider, event )
+	{
+		if( !this.dragging )
+			return;
+		this.dragging = false;
+		if( this.prev_position != this.position )
+		{
+			Slider.callEvent( "commit", event );
+			UIForm_CtrlChanged( Slider, event );
+		}
 	}
 	
 	ocb = Slider.callback;
@@ -702,6 +747,14 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 		data = this.data;
 		if( event.type == EV_NeedFocus )
 			return 1;
+		else if( event.type == EV_Attach )
+		{
+			UIForm_Attach( this, event );
+		}
+		else if( event.type == EV_Detach )
+		{
+			UIForm_Detach( this, event );
+		}
 		else if( event.type == EV_MouseMove )
 		{
 			if( !data.dragging )
@@ -711,6 +764,19 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 				MY = data.mhs_y;
 				data.mouse_on = event.x >= x-MX && event.x <= x+MX && event.y >= y-MY && event.y <= y+MY;
 			}
+			else
+				data.updatePosData( this, event.x, event.y, event );
+		}
+		else if( event.type == EV_MouseLeave )
+			data.mouse_on = false;
+		else if( event.type == EV_ButtonDown )
+		{
+			if( event.button == Mouse_ButtonL && data.mouse_on )
+				data.startDragging( this, event.x, event.y );
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			data.stopDragging( this, event );
 		}
 		return this!ocb( event );
 	}
@@ -718,9 +784,58 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 	function Slider.renderfunc()
 	{
 		data = this.data;
-		B = data.border;
-		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.85, 0.85, 0.85, 1 );
-		SS_DrawColorRect( this.rx0+B, this.ry0+B, this.rx1-B, this.ry1-B, 0.65, 0.65, 0.65, 1 );
+		OFSX = data.border + data.padding + data.mhs_x - 3;
+		OFSY = data.border + data.padding + data.mhs_y - 3;
+		P1X = this.rx0 + OFSX;
+		P1Y = this.ry0 + OFSY;
+		P2X = this.rx1 - OFSX;
+		P2Y = this.ry1 - OFSY;
+		if( !data.vertical )
+		{
+			mp = round( ( P1Y + P2Y ) * 0.5 );
+			P1Y = mp - 3;
+			P2Y = mp + 3;
+		}
+		else
+		{
+			mp = round( ( P1X + P2X ) * 0.5 );
+			P1X = mp - 3;
+			P2X = mp + 3;
+		}
+		SS_DrawColorRect( P1X, P1Y, P2X, P2Y, 0.85, 0.85, 0.85, 1 );
+		SS_DrawColorRect( P1X+1, P1Y+1, P2X-1, P2Y-1, 0.65, 0.65, 0.65, 1 );
+		
+		NS = data.numstops;
+		if( !data.vertical )
+		{
+			BPS = data.border + data.padding + data.mhs_x;
+			SRS = this.rx0 + BPS;
+			SRE = this.rx1 - BPS;
+			if( NS * 2 < SRE - SRS )
+			{
+				for( i = 0; i < NS; ++i )
+				{
+					q = i / ( NS - 1 );
+					spf = SRS * ( 1 - q ) + SRE * q;
+					SS_DrawColorRect( spf, P1Y + 1, spf + 1, P2Y - 1, 0.2, 0.3, 0.4, 0.5 );
+				}
+			}
+		}
+		else
+		{
+			BPS = data.border + data.padding + data.mhs_y;
+			SRS = this.ry0 + BPS;
+			SRE = this.ry1 - BPS;
+			if( NS * 2 < SRE - SRS )
+			{
+				for( i = 0; i < NS; ++i )
+				{
+					q = i / ( NS - 1 );
+					spf = SRS * ( 1 - q ) + SRE * q;
+					SS_DrawColorRect( P1X + 1, spf, P2X - 1, spf + 1, 0.2, 0.3, 0.4, 0.5 );
+				}
+			}
+		}
 		
 		(x,y) = data.getMarkerPos( this );
 		MX = data.mhs_x;

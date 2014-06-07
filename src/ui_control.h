@@ -240,6 +240,7 @@ struct UIControl
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
+	SGS_METHOD bool removeAllChildren();
 	SGS_METHOD UIControl::Handle findChild( sgsString name );
 	SGS_METHOD sgsVariable children( bool nonclient );
 	SGS_METHOD void sortChildren();

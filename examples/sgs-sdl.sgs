@@ -7,7 +7,7 @@ include "sgs-sdl.ui-input";
 include "sgs-sdl.ui-panels";
 include "sgs-sdl.ui-extended";
 
-
+global gDBGDRAW = false;
 
 function configure()
 {
@@ -135,12 +135,10 @@ function initialize()
 		UI_BuildMenu( this.frame.root, this.rx0, this.ry1, menu1_items );
 	});
 	
-	tbKey = UI_CreateTextbox( STAT, 100, 50, 100, "Key" );
+	tbKey = UI_CreateTextbox( STAT, 100, 50, 100, "key", "Key" );
 	tbKey.bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
-	tbKey.name = "key";
-	tbVal = UI_CreateTextbox( STAT, 220, 50, 100, "Value" );
+	tbVal = UI_CreateTextbox( STAT, 220, 50, 100, "value", "Value" );
 	tbVal.bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
-	tbVal.name = "value";
 	
 	UI_CreateCheckbox( STAT, 340, 50, 24, 24, "cbox", "set" );
 	UI_CreateRadioButton( STAT, 364, 50, 24, 24, "rbtn", "A" );
@@ -162,7 +160,7 @@ function initialize()
 		]
 	);
 	
-	AUTOLAYOUT = UI_CreateAutoLayout( STAT, 800, 50, 100 );
+	AUTOLAYOUT = UI_CreateAutoLayout( STAT, 840, 30, 100 );
 	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/page.png" );
 	BUTTON = UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/disk.png" );
 	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/disk_multiple.png" );
@@ -176,10 +174,26 @@ function initialize()
 		return this!ocb( event );
 	}
 	
-	UI_CreateSlider( STAT, 800, 300, 150, 20, "sldr1", 0, false );
-	UI_CreateSlider( STAT, 800, 340, 150, 20, "sldr2", 5, false );
+	UI_CreateSlider( STAT, 800, 100, 150, 20, "sldr1", 0, false );
+	UI_CreateSlider( STAT, 800, 140, 150, 20, "sldr2", 5, false );
+	UI_CreateSlider( STAT, 720, 40, 30, 120, "sldr3", 0, true );
+	UI_CreateSlider( STAT, 760, 40, 30, 120, "sldr4", 8, true );
+	
+	global PGRID;
+	PGRID_data =
+	{
+		boolean1 = true,
+		boolean2 = false,
+		"text ctl" = "Text Here !",
+		"Dump ALL" = function(){ printvar( PGRID.getData() ); },
+	};
+	PGRID_options = null;
+	PGRID = UI_CreatePropertyGrid( STAT, 720, 180, 200, 300, PGRID_data, PGRID_options );
+	
 	
 	WINDOW = UI_CreateWindow( FRAME.root, 300, 300, 200, 150, "Info window", true );
+	WINDOW.minWidth = 100;
+	WINDOW.minHeight = 80;
 	
 	WINSTAT = UI_CreateStatic( WINDOW, 0, 0, 0, 32, "The Options", color(0.9,1), DT_CENTER | DT_VCENTER );
 	WINSTAT.setAnchorMode( Anchor_Hor | Anchor_Top );
@@ -212,15 +226,18 @@ function update()
 	FRAME.processTimers( delta );
 	FRAME.render();
 	
-//	hctrl = FRAME.getHoverControl();
-//	if( hctrl )
-//	{
-//		SS_DrawColorRect( hctrl.rx0, hctrl.ry0, hctrl.rx1, hctrl.ry1, 0.5, 0.3, 0.1, 0.5 );
-//	}
-//	
-//	tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";
-//	SS_DrawTextLine( tx, Font, 101, 1, [0,0,0,1] );
-//	SS_DrawTextLine( tx, Font, 100, 0, [0.9,0.8,0.7,1] );
+	if( gDBGDRAW )
+	{
+		hctrl = FRAME.getHoverControl();
+		if( hctrl )
+		{
+			SS_DrawColorRect( hctrl.rx0, hctrl.ry0, hctrl.rx1, hctrl.ry1, 0.2, 0.8, 0.1, 0.5 );
+		}
+		
+		tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";
+		SS_DrawTextLine( tx, Font, 101, 1, [0,0,0,1] );
+		SS_DrawTextLine( tx, Font, 100, 0, [0.9,0.8,0.7,1] );
+	}
 	
 	SS_Present();
 
@@ -272,6 +289,8 @@ function on_event( e )
 			// submit event
 			FRAME.doKeyPress( key, e.type == SDL_KEYDOWN );
 		}
+		if( e.keycode == SDLK_F3 && e.type == SDL_KEYDOWN )
+			global gDBGDRAW = !gDBGDRAW;
 	}
 	if( e.type == SDL_TEXTINPUT )
 	{
