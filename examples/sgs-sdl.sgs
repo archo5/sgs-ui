@@ -36,8 +36,8 @@ function initialize()
 {
 	global Window = SS_CreateWindow( "SGS-UI Test",
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-		1024, 576, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGLMAYBE );
-	Window.initRenderer( SS_RENDERER_DONTCARE, SS_RENDERER_DONTCARE, SS_RENDERER_VSYNC );
+		1024, 576, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL );
+	Window.initRenderer( SS_RENDERER_OPENGL, SS_RENDERER_DONTCARE, SS_RENDERER_VSYNC );
 	SS_InitDrawFunctions();
 	
 	SS_StartTextInput();
@@ -184,10 +184,14 @@ function initialize()
 	{
 		boolean1 = true,
 		boolean2 = false,
+		value1 = 35,
 		"text ctl" = "Text Here !",
 		"Dump ALL" = function(){ printvar( PGRID.getData() ); },
 	};
-	PGRID_options = null;
+	PGRID_options =
+	{
+		value1 = { type = "slider", min = 0, max = 50, num_stops = 50/5+1 },
+	};
 	PGRID = UI_CreatePropertyGrid( STAT, 720, 180, 200, 300, PGRID_data, PGRID_options );
 	
 	
@@ -203,6 +207,15 @@ function initialize()
 	
 	LBMENU.addOption({ text = "Test option 1" });
 	LBMENU.addOption({ text = "Test/2", icon = "icons/book.png" });
+	
+	WINIMAGE = UI_CreateImage( WINSTAT, 0, 0, 0, 0, "icons/add.png", UI_ImageScale_None );
+	WINIMAGE.setAnchorMode( Anchor_Left | Anchor_Vert );
+	WINIMAGE.q1x = 0.2;
+	WINIMAGE.index = 10;
+	WINIMAGE2 = UI_CreateImage( WINSTAT, 0, 0, 0, 0, "icons/delete.png", UI_ImageScale_None );
+	WINIMAGE2.setAnchorMode( Anchor_Right | Anchor_Vert );
+	WINIMAGE2.q0x = 0.8;
+	WINIMAGE2.index = 10;
 }
 
 global lasttime = ftime();

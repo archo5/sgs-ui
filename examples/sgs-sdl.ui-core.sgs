@@ -37,6 +37,95 @@ function UI_CreateStatic( parent, x, y, width, height, caption, color, textmode 
 	return Static;
 }
 
+global
+	UI_ImageScale_None    = 1,
+	UI_ImageScale_Stretch = -1,
+	UI_ImageScale_Fit     = -2,
+	UI_ImageScale_Crop    = -3;
+
+function UI_CreateImage( parent, x, y, width, height, src, scale, align_x, align_y )
+{
+	if( typeof(src) == "string" )
+		src = SS_CreateTexture( src );
+	
+	Image = parent.frame.createControl( "image" );
+	Image.x = x;
+	Image.y = y;
+	Image.width = width;
+	Image.height = height;
+	Image.data =
+	{
+		image = src,
+		scale = if( scale !== null, scale, UI_ImageScale_None ),
+		align_x = if( align_x !== null, align_x, 0.5 ),
+		align_y = if( align_y !== null, align_y, 0.5 ),
+	};
+	
+	function Image.renderfunc()
+	{
+		data = this.data;
+		scale = data.scale;
+		
+		W = this.rx1 - this.rx0;
+		H = this.ry1 - this.ry0;
+		IW = data.image.width;
+		IH = data.image.height;
+		IW = if( IW >= 1, IW, 1 );
+		IH = if( IH >= 1, IH, 1 );
+		
+		if( scale === UI_ImageScale_Stretch )
+		{
+			xscale = W / IW;
+			yscale = H / IH;
+		}
+		else if( scale === UI_ImageScale_Crop )
+		{
+			xscale = W / IW;
+			yscale = H / IH;
+			if( xscale > yscale )
+				yscale = xscale;
+			else
+				xscale = yscale;
+		}
+		else if( scale === UI_ImageScale_Fit )
+		{
+			xscale = W / IW;
+			yscale = H / IH;
+			if( xscale > yscale )
+				xscale = yscale;
+			else
+				yscale = xscale;
+		}
+		else
+		{
+			xscale = scale;
+			yscale = scale;
+		}
+		
+		realsize_x = round( IW * xscale );
+		realsize_y = round( IH * yscale );
+		
+		off_x = round( ( W - realsize_x ) * data.align_x );// - 0.5;
+		off_y = round( ( H - realsize_y ) * data.align_y );// - 0.5;
+		
+		if( this.frame.pushScissorRect( this.rx0, this.ry0, this.rx1, this.ry1 ) )
+		{
+			X = this.rx0 + off_x;
+			Y = this.ry0 + off_y;
+			SS_Draw({ preset = "tile", texture = data.image, position = vec2(X,Y), scale = vec2(realsize_x,realsize_y) });
+		//	SS_DrawTexRect( X, Y, X + realsize_x, Y + realsize_y, data.image );
+			
+			this.frame.popScissorRect();
+		}
+	}
+	
+	Image.updateTheme();
+	
+	parent.addChild( Image );
+	
+	return Image;
+}
+
 function UI_CreateButton( parent, x, y, width, height, caption, icon )
 {
 	Button = parent.frame.createControl( "button" );

@@ -105,15 +105,26 @@ function UI_PropertyGrid._create_checkbox( name, value, option )
 	return ctrl;
 }
 
+function UI_PropertyGrid._create_slider( name, value, option )
+{
+	this._createDefaultLabel( name, option );
+	
+	data = this.data;
+	ctrl = UI_CreateSlider( data.OpCont, 0, 0, data.value_width_min, data.value_height, name, @option.num_stops );
+	ctrl.minWidth = data.value_width_min;
+	ctrl.maxWidth = data.value_width_max;
+	ctrl.q1x = data.value_width_percent;
+}
+
 function UI_PropertyGrid._create_textbox( name, value, option )
 {
 	this._createDefaultLabel( name, option );
 	
 	data = this.data;
 	ctrl = UI_CreateTextbox( data.OpCont, 0, 0, data.value_width_min, name, @option.textbox_caption, value );
-	ctrl.minWidth = data.label_width_min;
-	ctrl.maxWidth = data.label_width_max;
-	ctrl.q1x = data.label_width_percent;
+	ctrl.minWidth = data.value_width_min;
+	ctrl.maxWidth = data.value_width_max;
+	ctrl.q1x = data.value_width_percent;
 	return ctrl;
 }
 
@@ -161,7 +172,7 @@ function UI_PropertyGrid.setData( input_values, options )
 	data.OpCont.removeAllChildren();
 	foreach( k, v : input_values )
 	{
-		option = @options.(name);
+		option = @options[ k ];
 		type = this.getType( v, option );
 		this.("_create_"$type)( k, v, option );
 	}

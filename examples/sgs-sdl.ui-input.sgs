@@ -277,6 +277,7 @@ function UI_CreateTextbox( parent, x, y, width, name, caption, text )
 {
 	caption ||= "";
 	text ||= "";
+	text = tostring( text );
 	
 	Textbox = parent.frame.createControl( "textbox" );
 	Textbox.x = x;
@@ -817,7 +818,7 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 				{
 					q = i / ( NS - 1 );
 					spf = SRS * ( 1 - q ) + SRE * q;
-					SS_DrawColorRect( spf, P1Y + 1, spf + 1, P2Y - 1, 0.2, 0.3, 0.4, 0.5 );
+					SS_DrawColorRect( spf, P1Y + 1, spf + 1, P2Y - 1, 0.9, 0.9, 0.9, 0.5 );
 				}
 			}
 		}
@@ -832,7 +833,7 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 				{
 					q = i / ( NS - 1 );
 					spf = SRS * ( 1 - q ) + SRE * q;
-					SS_DrawColorRect( P1X + 1, spf, P2X - 1, spf + 1, 0.2, 0.3, 0.4, 0.5 );
+					SS_DrawColorRect( P1X + 1, spf, P2X - 1, spf + 1, 0.9, 0.9, 0.9, 0.5 );
 				}
 			}
 		}
