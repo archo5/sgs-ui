@@ -178,11 +178,25 @@ function sgs_ui_example_menu()
 	mm_menu = UI_CreateAutoLayout( MAIN_MENU, 0, 0, 0 );
 	mm_menu.setAnchorRect( 0.4, 0.5, 0.6, 1.0 );
 	
+	// Menu animations
+	function main_menu_shrink() use( mm_title, mm_menu )
+	{
+		mm_title.animate({ q1y = 0.2 }, 0.5 );
+		mm_menu.animate({ q0x = 0.05, q1x = 0.2 }, 0.5 );
+	}
+	function main_menu_grow() use( mm_title, mm_menu )
+	{
+		mm_title.animate({ q1y = 0.5 }, 0.5 );
+		mm_menu.animate({ q0x = 0.4, q1x = 0.6 }, 0.5 );
+	}
+	
 	btn_start = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Start" );
 	UI_CreateImage( btn_start, 0, 0, 36, 36, "icons/control_play.png" );
+	btn_start.bindEvent( "click", main_menu_shrink );
 	
 	btn_info = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Info" );
 	UI_CreateImage( btn_info, 0, 0, 36, 36, "icons/information.png" );
+	btn_info.bindEvent( "click", main_menu_grow );
 	
 	btn_options = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Options" );
 	UI_CreateImage( btn_options, 0, 0, 36, 36, "icons/cog.png" );

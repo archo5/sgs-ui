@@ -431,6 +431,17 @@ void UIFrame::processTimers( float t )
 		}
 		++it;
 	}
+	
+	for( size_t i = 0; i < m_animatedControls.size(); ++i )
+	{
+		UIControl* ctrl = m_animatedControls[ i ];
+		ctrl->_advanceAnimation( t );
+		if( !ctrl->m_animQueue.size() )
+		{
+			m_animatedControls.erase( m_animatedControls.begin() + i );
+			i--;
+		}
+	}
 }
 
 bool UIFrame::pushScissorRect( float x0, float y0, float x1, float y1 )
@@ -606,6 +617,15 @@ UIControl::UIControl() :
 
 UIControl::~UIControl()
 {
+	size_t sz = frame->m_animatedControls.size();
+	for( size_t i = 0; i < sz; ++i )
+	{
+		if( frame->m_animatedControls[ i ] == this )
+		{
+			frame->m_animatedControls.erase( frame->m_animatedControls.begin() + i );
+			break;
+		}
+	}
 	frame->m_controlIDGen.ReleaseID( id );
 }
 
@@ -953,6 +973,205 @@ bool UIControl::callEvent( sgsString name, UIEvent* e )
 }
 
 
+UIControl::Handle UIControl::animate( sgsVariable state, float length, sgsVariable func, sgsVariable oncomplete )
+{
+	if( !frame.object )
+		return Handle();
+	
+	// EASING FUNCTION
+	// if function is null, assume "smooth"
+	if( !func.not_null() )
+	{
+		sgs_PushString( C, "smooth" );
+		func = sgsVariable( C, -1 );
+		sgs_Pop( C, 1 );
+	}
+	// retrieve function from a list of global easing functions if it's a string
+	if( func.var.type == SGS_VT_STRING )
+	{
+		sgs_Variable var;
+		if( SGS_FAILED( sgs_PushGlobal( C, "UI_EasingFunctions" ) ) ||
+			SGS_FAILED( sgs_GetIndexIPP( C, -1, &func.var, &var, 0 ) ) )
+		{
+			sgs_Msg( C, SGS_WARNING, "could not find easing function: %s", sgs_var_cstr( &func.var ) );
+			return Handle();
+		}
+		func = sgsVariable( C, &var );
+		sgs_Release( C, &var );
+	}
+	// check if that function is callable to avoid doing so later
+	if( !sgs_IsCallableP( &func.var ) )
+	{
+		sgs_Msg( C, SGS_WARNING, "easing function is not callable" );
+		return Handle();
+	}
+	
+	// PREVIOUS STATE AND STATE FILTERING
+	sgs_PushDict( C, 0 );
+	sgsVariable prevState( C, -1 );
+	sgs_Pop( C, 1 );
+	sgs_PushDict( C, 0 );
+	sgsVariable currState( C, -1 );
+	sgs_Pop( C, 1 );
+	sgs_PushHandle( C, UIControl::CreateHandle( this ) );
+	sgsVariable me( C, -1 );
+	sgs_Pop( C, 1 );
+	// try to read state and on success, add data to prev/curr states
+	sgs_StkIdx orig = sgs_StackSize( C );
+	if( SGS_SUCCEEDED( sgs_PushIteratorP( C, &state.var ) ) )
+	{
+		while( sgs_IterAdvance( C, -1 ) > 0 )
+		{
+			sgs_StkIdx orig2 = sgs_StackSize( C );
+			
+			sgs_IterPushData( C, -1, 1, 1 ); /* name, tgt.value */
+			sgs_ToString( C, -2 );
+			if( SGS_SUCCEEDED( sgs_PushIndexPI( C, &me.var, -2, 1 ) ) )
+			{
+				sgs_StoreIndexPI( C, &prevState.var, -3, 0 );
+				sgs_StoreIndexPI( C, &currState.var, -2, 0 );
+			}
+			
+			sgs_SetStackSize( C, orig2 );
+		}
+	}
+	sgs_SetStackSize( C, orig );
+	
+	// PUSH ANIMATION
+	Animation A =
+	{
+		prevState,
+		currState,
+		0.0f,
+		length,
+		func,
+		oncomplete
+	};
+	m_animQueue.push_back( A );
+	
+	// ENABLE ANIMATION IN FRAME
+	size_t i = 0, sz = frame->m_animatedControls.size();
+	for( ; i < sz; ++i )
+	{
+		if( frame->m_animatedControls[ i ] == this )
+			break;
+	}
+	if( i >= sz )
+	{
+		frame->m_animatedControls.push_back( this );
+	}
+	
+	return Handle( m_sgsObject, C );
+}
+
+UIControl::Handle UIControl::stop( bool nofinish )
+{
+	if( !nofinish && m_animQueue.size() && m_animQueue[0].time > 0 )
+		_finishCurAnim();
+	
+	m_animQueue.clear();
+	return Handle( m_sgsObject, C );
+}
+
+UIControl::Handle UIControl::dequeue()
+{
+	if( m_animQueue.size() && m_animQueue[0].time > 0 )
+		m_animQueue.erase( m_animQueue.begin() + 1, m_animQueue.end() );
+	else
+		m_animQueue.clear();
+	return Handle( m_sgsObject, C );
+}
+
+UIControl::Handle UIControl::skip( bool nofinish )
+{
+	if( !nofinish && m_animQueue.size() && m_animQueue[0].time > 0 )
+		_finishCurAnim();
+	
+	return Handle( m_sgsObject, C );
+}
+
+void UIControl::_advanceAnimation( float dt )
+{
+	while( dt > 0 && m_animQueue.size() )
+	{
+		Animation& A = m_animQueue[0];
+		
+		A.time += dt;
+		dt = A.time - A.end;
+		if( dt >= 0 )
+		{
+			// Finished
+			A.time = A.end;
+			_finishCurAnim();
+		}
+		else
+			_applyCurAnimState();
+	}
+}
+
+void UIControl::_applyCurAnimState()
+{
+	Animation& A = m_animQueue[0];
+	
+	float q = A.time;
+	if( A.end > 0.001f )
+		q /= A.end;
+	
+	sgs_StkIdx orig = sgs_StackSize( C );
+	if( SGS_SUCCEEDED( sgs_PushIteratorP( C, &A.currState.var ) ) )
+	{
+		while( sgs_IterAdvance( C, -1 ) > 0 )
+		{
+			sgs_StkIdx orig2 = sgs_StackSize( C );
+			
+			sgs_IterPushData( C, -1, 1, 1 ); /* name, cur.value */
+			sgs_PushIndexPI( C, &A.prevState.var, -2, 1 ); /* prev.value */
+			
+			/* if previous is string, apply current only at the end */
+			if( sgs_ItemType( C, -1 ) == SGS_VT_STRING )
+			{
+				if( A.time >= A.end )
+					sgs_Pop( C, 1 ); /* current = -1 */
+				/* otherwise, previous = -1 */
+			}
+			else
+			{
+				/* prev. value already at -1 */
+				sgs_PushItem( C, -2 );
+				sgs_PushReal( C, q );
+				sgs_PushReal( C, A.end ); /* time = A.end * q */
+				sgs_CallP( C, &A.func.var, 4, 1 );
+				/* interpolated = -1 */
+				sgs_ToReal( C, -1 );
+			}
+			
+			sgs_PushHandle( C, UIControl::CreateHandle( this ) );
+			sgs_SetIndexIII( C, -1, orig2, -2, 1 );
+			
+			sgs_SetStackSize( C, orig2 );
+		}
+	}
+	sgs_SetStackSize( C, orig );
+}
+
+void UIControl::_finishCurAnim()
+{
+	_applyCurAnimState();
+	
+	Animation& A = m_animQueue[0];
+	if( A.oncomplete.not_null() )
+	{
+		sgs_StkIdx orig = sgs_StackSize( C );
+		sgs_PushHandle( C, UIControl::CreateHandle( this ) );
+		A.oncomplete.push( C );
+		sgs_ThisCall( C, 0, 0 );
+		sgs_SetStackSize( C, orig );
+	}
+	
+	m_animQueue.erase( m_animQueue.begin() );
+}
+
+
 int UIControl::sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop )
 {
 	UIControl* ctrl = static_cast<UIControl*>(obj->data);
@@ -976,6 +1195,8 @@ int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 	ctrl->data.gcmark();
 	ctrl->_interface.gcmark();
 	ctrl->m_events.gcmark();
+	for( AnimArray::iterator it = ctrl->m_animQueue.begin(), itend = ctrl->m_animQueue.end(); it != itend; ++it )
+		it->gcmark();
 	return SGS_SUCCESS;
 }
 

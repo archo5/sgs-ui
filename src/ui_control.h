@@ -123,6 +123,7 @@ struct UIControl;
 struct UIFrame
 {
 	typedef sgsHandle< UIFrame > Handle;
+	typedef std::vector< UIControl* > CtrlPtrArray;
 	
 	SGS_OBJECT;
 	
@@ -223,6 +224,7 @@ struct UIFrame
 	int64_t m_timerAutoID;
 	IDGen m_controlIDGen;
 	UIRectArray m_scissorRects;
+	CtrlPtrArray m_animatedControls;
 	
 };
 
@@ -238,6 +240,21 @@ struct UIControl
 			return Handle( ctrl->m_sgsObject, ctrl->C );
 		return Handle();
 	}
+	
+	
+	// Animation tools
+	struct Animation
+	{
+		sgsVariable prevState;
+		sgsVariable currState;
+		float time, end;
+		sgsVariable func; /* args: v0, v1, q, tend;  ret = interpolated */
+		sgsVariable oncomplete; /* this = control */
+		
+		void gcmark(){ prevState.gcmark(); currState.gcmark(); func.gcmark(); oncomplete.gcmark(); }
+	};
+	typedef std::vector< Animation > AnimArray;
+	
 	
 	SGS_OBJECT;
 	
@@ -266,6 +283,15 @@ struct UIControl
 	SGS_METHOD bool bindEvent( sgsString name, sgsVariable callable );
 	SGS_METHOD bool unbindEvent( sgsString name, sgsVariable callable );
 	SGS_METHOD bool callEvent( sgsString name, UIEvent* e );
+	
+	SGS_METHOD UIControl::Handle animate( sgsVariable state, float length, sgsVariable func, sgsVariable oncomplete );
+	SGS_METHOD UIControl::Handle stop( bool nofinish ); /* skip + dequeue */
+	SGS_METHOD UIControl::Handle dequeue(); /* remove all except current (time>0) */
+	SGS_METHOD UIControl::Handle skip( bool nofinish ); /* remove current */
+	SGS_METHOD int queueSize(){ return m_animQueue.size(); }
+	void _advanceAnimation( float dt );
+	void _applyCurAnimState();
+	void _finishCurAnim();
 	
 	SGS_IFUNC(GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop );
 	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
@@ -346,6 +372,7 @@ struct UIControl
 	HandleArray m_children;
 	HandleArray m_sorted;
 	sgsVariable m_events;
+	AnimArray m_animQueue;
 };
 
 

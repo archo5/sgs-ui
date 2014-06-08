@@ -20,6 +20,39 @@ int UI_CreateFrame( SGS_CTX )
 }
 
 
+int UI_EasingFunction_linear( SGS_CTX )
+{
+	SGSFN( "UI_EasingFunction_linear" );
+	float v0 = sgs_GetReal( C, 0 );
+	float v1 = sgs_GetReal( C, 1 );
+	float q = sgs_GetReal( C, 2 );
+	sgs_PushReal( C, v0 * (1-q) + v1 * q );
+	return 1;
+}
+
+int UI_EasingFunction_smooth( SGS_CTX )
+{
+	SGSFN( "UI_EasingFunction_smooth" );
+	float v0 = sgs_GetReal( C, 0 );
+	float v1 = sgs_GetReal( C, 1 );
+	float q = sgs_GetReal( C, 2 );
+	q = q*q*(3 - 2*q);
+	sgs_PushReal( C, v0 * (1-q) + v1 * q );
+	return 1;
+}
+
+int UI_EasingFunction_smoother( SGS_CTX )
+{
+	SGSFN( "UI_EasingFunction_smoother" );
+	float v0 = sgs_GetReal( C, 0 );
+	float v1 = sgs_GetReal( C, 1 );
+	float q = sgs_GetReal( C, 2 );
+	q = q*q*q*(q*(q*6 - 15) + 10);
+	sgs_PushReal( C, v0 * (1-q) + v1 * q );
+	return 1;
+}
+
+
 sgs_RegIntConst g_iconsts[] =
 {
 	FN( Anchor_Top    ),
@@ -104,6 +137,9 @@ sgs_RegFuncConst g_fconsts[] =
 {
 	FN( UI_CreateEvent ),
 	FN( UI_CreateFrame ),
+	FN( UI_EasingFunction_linear ),
+	FN( UI_EasingFunction_smooth ),
+	FN( UI_EasingFunction_smoother ),
 	{NULL,NULL},
 };
 
@@ -117,6 +153,16 @@ int sgscript_main( SGS_CTX )
 	sgs_RegIntConsts( C, g_iconsts, -1 );
 	sgs_RegRealConsts( C, g_rconsts, -1 );
 	sgs_RegFuncConsts( C, g_fconsts, -1 );
+	
+	sgs_StkIdx start = sgs_StackSize( C );
+	sgs_PushString( C, "linear" );
+	sgs_PushCFunction( C, UI_EasingFunction_linear );
+	sgs_PushString( C, "smooth" );
+	sgs_PushCFunction( C, UI_EasingFunction_smooth );
+	sgs_PushString( C, "smoother" );
+	sgs_PushCFunction( C, UI_EasingFunction_smoother );
+	sgs_PushDict( C, sgs_StackSize( C ) - start );
+	sgs_StoreGlobal( C, "UI_EasingFunctions" );
 	
 	return SGS_SUCCESS;
 }
