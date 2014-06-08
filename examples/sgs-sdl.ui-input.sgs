@@ -134,6 +134,27 @@ function UIForm_ControlsByName( ctrl, name )
 }
 
 
+function UI_CreateHidden( parent, name, value )
+{
+	Hidden = parent.frame.createControl( "hidden" );
+	Hidden.name = name;
+	Hidden.data = { value = value };
+	Hidden_data = Hidden.data;
+	function Hidden_data.getValue(){ return this.value; }
+	function Hidden.callback( event )
+	{
+		if( event.type == EV_Attach )
+		{
+			UIForm_Attach( this, event );
+		}
+		else if( event.type == EV_Detach )
+		{
+			UIForm_Detach( this, event );
+		}
+	};
+	return Hidden;
+}
+
 function UI_CreateCheckbox( parent, x, y, width, height, name, value, checked )
 {
 	cb_size = 16;
@@ -284,6 +305,7 @@ function UI_CreateTextbox( parent, x, y, width, name, caption, text )
 	Textbox.y = y;
 	Textbox.width = width;
 	Textbox.name = name;
+	Textbox.cursor = UI_Cursor_Text;
 	
 	Textbox.data =
 	{
@@ -635,19 +657,57 @@ function UI_CreateTextbox( parent, x, y, width, name, caption, text )
 
 global UI_Slider = {};
 
-function UI_Slider.setNumStops( num )
+function UI_Slider.setValue( value, event )
 {
-	num = toint( num );
-	if( num == 0 || num >= 2 )
+	data = this.data;
+	prev = data.value;
+	
+	// snap the value
+	if( data.stopsize )
 	{
-		this.data.numstops = num;
-		return true;
+		value -= data.vmin;
+		value /= data.stopsize;
+		value = round( value );
+		value *= data.stopsize;
+		value += data.vmin;
 	}
-	return false;
+	
+	// clamp it
+	if( value < data.vmin ) value = data.vmin;
+	if( value > data.vmax ) value = data.vmax;
+	
+	// apply
+	data.value = value;
+	if( data.vmin >= data.vmax )
+		data.position = 0;
+	else
+		data.position = ( value - data.vmin ) / ( data.vmax - data.vmin );
+	
+	if( prev != value )
+	{
+		if( event === null )
+			event = UI_CreateEvent();
+		this.callEvent( "change", event );
+		UIForm_CtrlChanged( this, event );
+	}
 }
 
-function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical )
+function UI_Slider.setLimits( vmin, vmax, stopsize )
 {
+	stopsize ||= 0;
+	data = this.data;
+	data.vmin = vmin;
+	data.vmax = vmax;
+	data.stopsize = stopsize;
+	
+	this.setValue( data.value );
+}
+
+function UI_CreateSlider( parent, x, y, width, height, name, vmin, vmax, stopsize, vertical )
+{
+	vmin = if( vmin !== null, vmin, 0.0 );
+	vmax = if( vmax !== null, vmax, 1.0 );
+	
 	Slider = parent.frame.createControl( "slider" );
 	Slider.x = x;
 	Slider.y = y;
@@ -662,9 +722,11 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 		border = 1,
 		padding = 1,
 		
-		numstops = toint( numstops ) || 0,
-		whichstop = 0,
-		position = 0,
+		value = 0.0,
+		vmin = 0.0,
+		vmax = 0.0,
+		stopsize = 0.0,
+		position = 0.0,
 		vertical = vertical,
 		
 		mouse_on = false,
@@ -673,7 +735,10 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 		dragoff_y = 0,
 	};
 	Slider_data = Slider.data;
-	function Slider_data.getValue(){ return if( this.numstops, this.whichstop, this.position ); }
+	function Slider_data.getValue(){ return this.value; }
+	
+	Slider.setLimits( vmin, vmax, stopsize );
+	Slider.setValue( vmin );
 	
 	function Slider_data.updatePosData( Slider, dx, dy, event )
 	{
@@ -691,19 +756,7 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 			q = ( dy + this.dragoff_y - pmin ) / if( pmax > pmin + 0.0001, pmax - pmin, 0.0001 );
 		}
 		q = if( q < 0, 0, if( q > 1, 1, q ) );
-		if( this.numstops )
-		{
-			nss1 = this.numstops - 1;
-			this.whichstop = round( q * nss1 );
-			q = this.whichstop / nss1;
-		}
-		pp = this.position;
-		this.position = q;
-		if( q != pp )
-		{
-			Slider.callEvent( "change", event );
-			UIForm_CtrlChanged( Slider, event );
-		}
+		Slider.setValue( this.vmin * (1-q) + this.vmax * q );
 	}
 	function Slider_data.getMarkerPos( Slider )
 	{
@@ -806,34 +859,44 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 		SS_DrawColorRect( P1X, P1Y, P2X, P2Y, 0.85, 0.85, 0.85, 1 );
 		SS_DrawColorRect( P1X+1, P1Y+1, P2X-1, P2Y-1, 0.65, 0.65, 0.65, 1 );
 		
-		NS = data.numstops;
-		if( !data.vertical )
+		NS = if( data.stopsize, floor( ( data.vmax - data.vmin ) / data.stopsize ), 0 );
+		if( NS )
 		{
-			BPS = data.border + data.padding + data.mhs_x;
-			SRS = this.rx0 + BPS;
-			SRE = this.rx1 - BPS;
-			if( NS * 2 < SRE - SRS )
+			vdist = data.vmax - data.vmin;
+			if( vdist < 0.001 )
+				vdist = 0.001;
+			if( !data.vertical )
 			{
-				for( i = 0; i < NS; ++i )
+				BPS = data.border + data.padding + data.mhs_x;
+				SRS = this.rx0 + BPS;
+				SRE = this.rx1 - BPS;
+				scaled_stopsize = data.stopsize / vdist;
+				if( NS * 2 < SRE - SRS )
 				{
-					q = i / ( NS - 1 );
-					spf = SRS * ( 1 - q ) + SRE * q;
-					SS_DrawColorRect( spf, P1Y + 1, spf + 1, P2Y - 1, 0.9, 0.9, 0.9, 0.5 );
+					for( q = 0; q <= 1.0; q += scaled_stopsize )
+					{
+						if( q > 1 )
+							q = 1;
+						spf = SRS * ( 1 - q ) + SRE * q;
+						SS_DrawColorRect( spf, P1Y + 1, spf + 1, P2Y - 1, 0.9, 0.9, 0.9, 0.5 );
+					}
 				}
 			}
-		}
-		else
-		{
-			BPS = data.border + data.padding + data.mhs_y;
-			SRS = this.ry0 + BPS;
-			SRE = this.ry1 - BPS;
-			if( NS * 2 < SRE - SRS )
+			else
 			{
-				for( i = 0; i < NS; ++i )
+				BPS = data.border + data.padding + data.mhs_y;
+				SRS = this.ry0 + BPS;
+				SRE = this.ry1 - BPS;
+				scaled_stopsize = data.stopsize / vdist;
+				if( NS * 2 < SRE - SRS )
 				{
-					q = i / ( NS - 1 );
-					spf = SRS * ( 1 - q ) + SRE * q;
-					SS_DrawColorRect( P1X + 1, spf, P2X - 1, spf + 1, 0.9, 0.9, 0.9, 0.5 );
+					for( q = 0; q <= 1.0; q += scaled_stopsize )
+					{
+						if( q > 1 )
+							q = 1;
+						spf = SRS * ( 1 - q ) + SRE * q;
+						SS_DrawColorRect( P1X + 1, spf, P2X - 1, spf + 1, 0.9, 0.9, 0.9, 0.5 );
+					}
 				}
 			}
 		}
@@ -846,8 +909,8 @@ function UI_CreateSlider( parent, x, y, width, height, name, numstops, vertical 
 		SS_DrawColorRect( x-MX+1, y-MY+1, x+MX-1, y+MY-1, 0.3+mf, 0.5+mf, 0.7+mf, 1 );
 	}
 	
+	parent.updateTheme();
 	parent.addChild( Slider );
-	
 	return Slider;
 }
 

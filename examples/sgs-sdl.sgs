@@ -7,13 +7,16 @@ include "sgs-sdl.ui-input";
 include "sgs-sdl.ui-panels";
 include "sgs-sdl.ui-extended";
 
+include "sgs-sdl.examples";
+
 global gDBGDRAW = false;
+global ExampleID = "default";
 
 function configure()
 {
 	for( i = 0; i < sys_args.size; ++i )
 	{
-		var arg = sys_args[ i ];
+		arg = sys_args[ i ];
 		if( arg == "-profile" )
 		{
 			SS_EnableProfiler();
@@ -28,6 +31,13 @@ function configure()
 		{
 			SS_EnableProfiler(3);
 			println( "PROFILER [mode 3: MEMORY] ENABLED" );
+		}
+		else if( arg == "-ex" )
+		{
+			i++;
+			if( i >= sys_args.size )
+				return;
+			global ExampleID = sys_args[ i ];
 		}
 	}
 }
@@ -45,177 +55,19 @@ function initialize()
 	global Font = SS_CreateFont( "fonts/lato-regular.ttf", 11 );
 	
 	
-	/* MENUS */
-	sub3menu =
-	[
-		{ text = "Third Submenu", disabled = true },
-		{ disabled = true },
-		{ text = "One option", disabled = true },
-		{ text = "..or two!", func = function(){ println("TWOOOOOOOOOOO"); } },
-	];
+	global FRAME = SS_UI_CreateFrame();
+	FRAME.width = Window.bbWidth;
+	FRAME.height = Window.bbHeight;
 	
-	submenu =
-	[
-		{ text = "One option", disabled = true },
-		{ disabled = true },
-		{ text = "..or two!" },
-		{ text = "3", menu = sub3menu },
-	];
-	
-	menu1_items =
-	[
-		{ text = "Test 1", func = function(){ println("Test 1 - function"); } },
-		{ text = "Some option", checked = false },
-		{ text = "Some checked option", checked = true },
-		{ text = "Submenu?", menu = submenu },
-		{ disabled = true },
-		{ text = "Disabled", disabled = true },
-		{ text = "Exiquit", func = function(){ global sys_exit = true; } },
-	];
-	
-	
-	global FRAME = UI_CreateFrame();
-	FRAME.theme = SS_UI_Theme_Default;
-	FRAME.width = 1024;
-	FRAME.height = 576;
-	function FRAME.scissor_func( x0, y0, x1, y1 )
+	funcname = "sgs_ui_example_" $ ExampleID;
+	if( !isset( _G, funcname ) )
 	{
-		if( x0 === null )
-			SS_SetClipRect( null );
-		else
-			SS_SetClipRect( x0, y0, x1, y1 );
-	}
-	function FRAME.clipboard_func( text )
-	{
-		if( text === null )
-			return SS_GetClipboardText();
-		return SS_SetClipboardText( text ) || "";
-	}
-	function FRAME.cursor_func( cursor )
-	{
-		if( cursor === null )
-			return;
-		SS_ShowCursor( cursor !== false );
-		if( cursor === true )
-			SS_SetSystemCursor( UI_Cursor_Arrow );
-		else if( typeid( cursor ) == VT_INT )
-			SS_SetSystemCursor( cursor );
+		errprintln( "example '" $ ExampleID $ "' was not found!" );
+		global sys_exit = true;
+		return;
 	}
 	
-	global FORM = UI_CreateForm( FRAME.root );
-//	FORM.bindEvent( "change", function(){ println("form changed."); } );
-	
-	function formdump()
-	{
-		printvar( FORM.getData() );
-	}
-	
-	global STATCORE = UI_CreateStatic( FORM, 10, 10, -20, -20 );
-	STATCORE.q1x = 1;
-	STATCORE.q1y = 1;
-	mpitems =
-	[
-		{ text = "File", func = formdump },
-		{ text = "Edit", menu = submenu },
-		{ text = "Disabled", disabled = true },
-		{ text = "Help", menu = sub3menu },
-	];
-	global STAT = UI_CreateMenuPanel( STATCORE, mpitems );
-	
-	global TOPBAR = UI_CreateStatic( STAT, 0, 0, 0, 24, "", color(0.8,0.8,0.8,1) );
-	TOPBAR.q1x = 1;
-	
-	UI_CreateButton( TOPBAR, 0, 0, 24, 24, "", "icons/page.png" );
-	UI_CreateButton( TOPBAR, 24, 0, 24, 24, "", "icons/disk.png" );
-	UI_CreateButton( TOPBAR, 48, 0, 24, 24, "", "icons/disk_multiple.png" );
-	
-	global BTN = UI_CreateButton( STAT, 100, 100, 100, 30, "Action", "icons/disk.png" );
-	BTN.bindEvent( "click", function() use( menu1_items )
-	{
-		UI_BuildMenu( this.frame.root, this.rx0, this.ry1, menu1_items );
-	});
-	
-	tbKey = UI_CreateTextbox( STAT, 100, 50, 100, "key", "Key" );
-	tbKey.bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
-	tbVal = UI_CreateTextbox( STAT, 220, 50, 100, "value", "Value" );
-	tbVal.bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
-	
-	UI_CreateCheckbox( STAT, 340, 50, 24, 24, "cbox", "set" );
-	UI_CreateRadioButton( STAT, 364, 50, 24, 24, "rbtn", "A" );
-	UI_CreateRadioButton( STAT, 388, 50, 24, 24, "rbtn", "B" );
-	
-	UI_CreateVScroll( STAT, 400, 100, 16, 300, 1000, 300, 37 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
-	UI_CreateHScroll( STAT, 100, 400, 300, 16, 1000, 300, 137 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
-	
-	SCROLL = UI_CreateScrollable( STAT, 500, 100, 200, 300 );
-	text = string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] );
-	text = string_part( text, 0, 1024 );
-	UI_CreateStatic( SCROLL, 0, 0, 20, 500, text, color(0.9,0.9,0.9,1), DT_LEFT | DT_TOP ).q1x = 1;
-	
-	SELECT = UI_CreateSelectBox( STAT, 500, 50, 180, 24, "sBoX",
-		[
-			{ text = "Primary choice", value = "1" },
-			{ text = "Situation", value = "sit" },
-			{ text = "Something else", value = "other" },
-		]
-	);
-	
-	AUTOLAYOUT = UI_CreateAutoLayout( STAT, 840, 30, 100 );
-	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/page.png" );
-	BUTTON = UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/disk.png" );
-	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/disk_multiple.png" );
-	ocb = BUTTON.callback;
-	function BUTTON.callback( event ) use( ocb )
-	{
-		if( event.type == EV_MouseEnter )
-			this.width += 10;
-		else if( event.type == EV_MouseLeave )
-			this.width -= 10;
-		return this!ocb( event );
-	}
-	
-	UI_CreateSlider( STAT, 800, 100, 150, 20, "sldr1", 0, false );
-	UI_CreateSlider( STAT, 800, 140, 150, 20, "sldr2", 5, false );
-	UI_CreateSlider( STAT, 720, 40, 30, 120, "sldr3", 0, true );
-	UI_CreateSlider( STAT, 760, 40, 30, 120, "sldr4", 8, true );
-	
-	global PGRID;
-	PGRID_data =
-	{
-		boolean1 = true,
-		boolean2 = false,
-		value1 = 35,
-		"text ctl" = "Text Here !",
-		"Dump ALL" = function(){ printvar( PGRID.getData() ); },
-	};
-	PGRID_options =
-	{
-		value1 = { type = "slider", min = 0, max = 50, num_stops = 50/5+1 },
-	};
-	PGRID = UI_CreatePropertyGrid( STAT, 720, 180, 200, 300, PGRID_data, PGRID_options );
-	
-	
-	WINDOW = UI_CreateWindow( FRAME.root, 300, 300, 200, 150, "Info window", true );
-	WINDOW.minWidth = 100;
-	WINDOW.minHeight = 80;
-	
-	WINSTAT = UI_CreateStatic( WINDOW, 0, 0, 0, 32, "The Options", color(0.9,1), DT_CENTER | DT_VCENTER );
-	WINSTAT.setAnchorMode( Anchor_Hor | Anchor_Top );
-	
-	LBMENU = UI_CreateListBoxMenu( WINDOW, 0, 32, 0, -32 );
-	LBMENU.setAnchorMode( Anchor_All );
-	
-	LBMENU.addOption({ text = "Test option 1" });
-	LBMENU.addOption({ text = "Test/2", icon = "icons/book.png" });
-	
-	WINIMAGE = UI_CreateImage( WINSTAT, 0, 0, 0, 0, "icons/add.png", UI_ImageScale_None );
-	WINIMAGE.setAnchorMode( Anchor_Left | Anchor_Vert );
-	WINIMAGE.q1x = 0.2;
-	WINIMAGE.index = 10;
-	WINIMAGE2 = UI_CreateImage( WINSTAT, 0, 0, 0, 0, "icons/delete.png", UI_ImageScale_None );
-	WINIMAGE2.setAnchorMode( Anchor_Right | Anchor_Vert );
-	WINIMAGE2.q0x = 0.8;
-	WINIMAGE2.index = 10;
+	_G[ funcname ]();
 }
 
 global lasttime = ftime();
@@ -231,8 +83,8 @@ function update()
 	
 	SS_Clear( color( 0.1, 0.2, 0.4 ) );
 	
-	W = Window.width;
-	H = Window.height;
+	W = Window.bbWidth;
+	H = Window.bbHeight;
 	
 	SS_SetCameraUI( 0, W, 0, H );
 	
@@ -262,61 +114,12 @@ function on_event( e )
 {
 	if( e.type == SDL_QUIT )
 		global sys_exit = true;
-	if( e.type == SDL_MOUSEMOTION )
-	{
-		FRAME.doMouseMove( e.x, e.y );
-	}
-	if( e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP )
-	{
-		btn = -1;
-		if( e.button == 1 ) btn = 0;
-		else if( e.button == 3 ) btn = 1;
-		else if( e.button == 2 ) btn = 2;
-		FRAME.doMouseButton( btn, e.type == SDL_MOUSEBUTTONDOWN );
-	}
-	if( e.type == SDL_MOUSEWHEEL )
-	{
-		FRAME.doMouseWheel( e.x, -e.y );
-	}
-	if( e.type == SDL_KEYUP || e.type == SDL_KEYDOWN )
-	{
-		key = 0;
-		if( e.keycode == SDLK_LEFT ) key = Key_Left;
-		else if( e.keycode == SDLK_RIGHT ) key = Key_Right;
-		else if( e.keycode == SDLK_UP ) key = Key_Up;
-		else if( e.keycode == SDLK_DOWN ) key = Key_Down;
-		else if( e.keycode == SDLK_BACKSPACE ) key = Key_DelLeft;
-		else if( e.keycode == SDLK_DELETE ) key = Key_DelRight;
-		else if( e.keycode == SDLK_TAB ) key = Key_Tab;
-		else if( e.keycode == SDLK_X && e.mod & SDL_KMOD_CTRL ) key = Key_Cut;
-		else if( e.keycode == SDLK_C && e.mod & SDL_KMOD_CTRL ) key = Key_Copy;
-		else if( e.keycode == SDLK_V && e.mod & SDL_KMOD_CTRL ) key = Key_Paste;
-		else if( e.keycode == SDLK_Z && e.mod & SDL_KMOD_CTRL ) key = Key_Undo;
-		else if( e.keycode == SDLK_Y && e.mod & SDL_KMOD_CTRL ) key = Key_Redo;
-		else if( e.keycode == SDLK_A && e.mod & SDL_KMOD_CTRL ) key = Key_SelectAll;
-		else if( e.keycode == SDLK_PAGEUP ) key = Key_PageUp;
-		else if( e.keycode == SDLK_PAGEDOWN ) key = Key_PageDown;
-		if( key )
-		{
-			if( e.mod & SDL_KMOD_SHIFT ) key |= KeyMod_Shift;
-			// submit event
-			FRAME.doKeyPress( key, e.type == SDL_KEYDOWN );
-		}
-		if( e.keycode == SDLK_F3 && e.type == SDL_KEYDOWN )
-			global gDBGDRAW = !gDBGDRAW;
-	}
-	if( e.type == SDL_TEXTINPUT )
-	{
-		chrs = string_utf8_decode( e.text );
-		FRAME.doPutChar( chrs[0] );
-	}
-	if( e.type == SDL_WINDOWEVENT && e.event == SDL_WINDOWEVENT_RESIZED )
-	{
-		FRAME.width = e.data1;
-		FRAME.height = e.data2;
-	}
+	if( e.type == SDL_KEYUP && e.keycode == SDLK_F3 )
+		global gDBGDRAW = !gDBGDRAW;
 	if( e.type == SDL_VIDEODEVICELOST ) println( "Device lost!" );
 	if( e.type == SDL_VIDEODEVICERESET ) println( "Device reset!" );
+	
+	SS_UI_HandleEvent( FRAME, e );
 }
 
 function cleanup()

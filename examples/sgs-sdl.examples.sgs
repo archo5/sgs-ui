@@ -1,0 +1,188 @@
+
+//
+// DEFAULT EXAMPLE
+// - all kinds of stuff
+//
+
+function sgs_ui_example_default()
+{
+	/* MENUS */
+	sub3menu =
+	[
+		{ text = "Third Submenu", disabled = true },
+		{ disabled = true },
+		{ text = "One option", disabled = true },
+		{ text = "..or two!", func = function(){ println("TWOOOOOOOOOOO"); } },
+	];
+	
+	submenu =
+	[
+		{ text = "One option", disabled = true },
+		{ disabled = true },
+		{ text = "..or two!" },
+		{ text = "3", menu = sub3menu },
+	];
+	
+	menu1_items =
+	[
+		{ text = "Test 1", func = function(){ println("Test 1 - function"); } },
+		{ text = "Some option", checked = false },
+		{ text = "Some checked option", checked = true },
+		{ text = "Submenu?", menu = submenu },
+		{ disabled = true },
+		{ text = "Disabled", disabled = true },
+		{ text = "Exiquit", func = function(){ global sys_exit = true; } },
+	];
+	
+	global FRAME;
+	
+	global FORM = UI_CreateForm( FRAME.root );
+//	FORM.bindEvent( "change", function(){ println("form changed."); } );
+	
+	function formdump()
+	{
+		printvar( FORM.getData() );
+	}
+	
+	global STATCORE = UI_CreateStatic( FORM, 10, 10, -20, -20 );
+	STATCORE.q1x = 1;
+	STATCORE.q1y = 1;
+	mpitems =
+	[
+		{ text = "File", func = formdump },
+		{ text = "Edit", menu = submenu },
+		{ text = "Disabled", disabled = true },
+		{ text = "Help", menu = sub3menu },
+	];
+	global STAT = UI_CreateMenuPanel( STATCORE, mpitems );
+	
+	global TOPBAR = UI_CreateStatic( STAT, 0, 0, 0, 24, "", color(0.8,0.8,0.8,1) );
+	TOPBAR.q1x = 1;
+	
+	UI_CreateButton( TOPBAR, 0, 0, 24, 24, "", "icons/page.png" );
+	UI_CreateButton( TOPBAR, 24, 0, 24, 24, "", "icons/disk.png" );
+	UI_CreateButton( TOPBAR, 48, 0, 24, 24, "", "icons/disk_multiple.png" );
+	
+	global BTN = UI_CreateButton( STAT, 100, 100, 100, 30, "Action", "icons/disk.png" );
+	BTN.bindEvent( "click", function() use( menu1_items )
+	{
+		UI_BuildMenu( this.frame.root, this.rx0, this.ry1, menu1_items );
+	});
+	
+	tbKey = UI_CreateTextbox( STAT, 100, 50, 100, "key", "Key" );
+	tbKey.bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
+	tbVal = UI_CreateTextbox( STAT, 220, 50, 100, "value", "Value" );
+	tbVal.bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
+	
+	UI_CreateCheckbox( STAT, 340, 50, 24, 24, "cbox", "set" );
+	UI_CreateRadioButton( STAT, 364, 50, 24, 24, "rbtn", "A" );
+	UI_CreateRadioButton( STAT, 388, 50, 24, 24, "rbtn", "B" );
+	
+	UI_CreateVScroll( STAT, 400, 100, 16, 300, 1000, 300, 37 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
+	UI_CreateHScroll( STAT, 100, 400, 300, 16, 1000, 300, 137 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
+	
+	SCROLL = UI_CreateScrollable( STAT, 500, 100, 200, 300 );
+	text = string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] );
+	text = string_part( text, 0, 1024 );
+	UI_CreateStatic( SCROLL, 0, 0, 20, 500, text, color(0.9,0.9,0.9,1), DT_LEFT | DT_TOP ).q1x = 1;
+	
+	SELECT = UI_CreateSelectBox( STAT, 500, 50, 180, 24, "sBoX",
+		[
+			{ text = "Primary choice", value = "1" },
+			{ text = "Situation", value = "sit" },
+			{ text = "Something else", value = "other" },
+		]
+	);
+	
+	AUTOLAYOUT = UI_CreateAutoLayout( STAT, 840, 30, 100 );
+	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/page.png" );
+	BUTTON = UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/disk.png" );
+	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/disk_multiple.png" );
+	ocb = BUTTON.callback;
+	function BUTTON.callback( event ) use( ocb )
+	{
+		if( event.type == EV_MouseEnter )
+			this.width += 10;
+		else if( event.type == EV_MouseLeave )
+			this.width -= 10;
+		return this!ocb( event );
+	}
+	
+	UI_CreateSlider( STAT, 800, 100, 150, 20, "sldr1", 0, 1, 0, false );
+	UI_CreateSlider( STAT, 800, 140, 150, 20, "sldr2", 0, 5-1, 1, false );
+	UI_CreateSlider( STAT, 720, 40, 30, 120, "sldr3", 0, 1, 0, true );
+	UI_CreateSlider( STAT, 760, 40, 30, 120, "sldr4", 0, 8-1, 1, true );
+	
+	global PGRID;
+	PGRID_data =
+	{
+		boolean1 = true,
+		boolean2 = false,
+		value1 = 35,
+		"text ctl" = "Text Here !",
+		"Dump ALL" = function(){ printvar( PGRID.getData() ); },
+	};
+	PGRID_options =
+	{
+		value1 = { type = "slider", min = 0, max = 50, stopsize = 5 },
+	};
+	PGRID = UI_CreatePropertyGrid( STAT, 720, 180, 200, 300, PGRID_data, PGRID_options );
+	
+	
+	WINDOW = UI_CreateWindow( FRAME.root, 300, 300, 200, 150, "Info window", true );
+	WINDOW.minWidth = 100;
+	WINDOW.minHeight = 80;
+	
+	WINSTAT = UI_CreateStatic( WINDOW, 0, 0, 0, 32, "The Options", color(0.9,1), DT_CENTER | DT_VCENTER );
+	WINSTAT.setAnchorMode( Anchor_Hor | Anchor_Top );
+	
+	LBMENU = UI_CreateListBoxMenu( WINDOW, 0, 32, 0, -32 );
+	LBMENU.setAnchorMode( Anchor_All );
+	
+	LBMENU.addOption({ text = "Test option 1" });
+	LBMENU.addOption({ text = "Test/2", icon = "icons/book.png" });
+	
+	WINIMAGE = UI_CreateImage( WINSTAT, 0, 0, 0, 0, "icons/add.png", UI_ImageScale_None );
+	WINIMAGE.setAnchorMode( Anchor_Left | Anchor_Vert );
+	WINIMAGE.q1x = 0.2;
+	WINIMAGE.index = 10;
+	WINIMAGE2 = UI_CreateImage( WINSTAT, 0, 0, 0, 0, "icons/delete.png", UI_ImageScale_None );
+	WINIMAGE2.setAnchorMode( Anchor_Right | Anchor_Vert );
+	WINIMAGE2.q0x = 0.8;
+	WINIMAGE2.index = 10;
+}
+
+
+//
+// MENU EXAMPLE
+// - displays a fancy menu
+//
+
+function sgs_ui_example_menu()
+{
+	MAIN_MENU = UI_CreateStatic( FRAME.root, 0, 0, 0, 0 );
+	MAIN_MENU.setAnchorMode( Anchor_All );
+	
+	// Title
+	mm_title = UI_CreateStatic( MAIN_MENU, 0, 0, 0, 0, "Menu Example" );
+	mm_title.setAnchorMode( Anchor_All );
+	mm_title.q1y = 0.5;
+	
+	// Menu
+	mm_menu = UI_CreateAutoLayout( MAIN_MENU, 0, 0, 0 );
+	mm_menu.setAnchorRect( 0.4, 0.5, 0.6, 1.0 );
+	
+	btn_start = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Start" );
+	btn_start.setAnchorMode( Anchor_Hor );
+	
+	btn_info = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Info" );
+	btn_info.setAnchorMode( Anchor_Hor );
+	
+	btn_options = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Options" );
+	btn_options.setAnchorMode( Anchor_Hor );
+	
+	btn_quit = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Quit" );
+	btn_quit.setAnchorMode( Anchor_Hor );
+	btn_quit.bindEvent( "click", function(){ global sys_exit = true; } );
+}
+

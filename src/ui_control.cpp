@@ -832,6 +832,15 @@ void UIControl::setAnchorMode( int mode )
 	updateLayout();
 }
 
+void UIControl::setAnchorRect( float x0, float y0, float x1, float y1 )
+{
+	q0x = x0;
+	q0y = y0;
+	q1x = x1;
+	q1y = y1;
+	updateLayout();
+}
+
 
 bool UIControl::bindEvent( sgsString name, sgsVariable callable )
 {

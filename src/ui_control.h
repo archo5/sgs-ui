@@ -246,6 +246,7 @@ struct UIControl
 	SGS_METHOD void sortChildren();
 	SGS_METHOD void sortSiblings();
 	SGS_METHOD void setAnchorMode( int mode );
+	SGS_METHOD void setAnchorRect( float x0, float y0, float x1, float y1 );
 	
 	SGS_METHOD bool bindEvent( sgsString name, sgsVariable callable );
 	SGS_METHOD bool unbindEvent( sgsString name, sgsVariable callable );

@@ -110,10 +110,12 @@ function UI_PropertyGrid._create_slider( name, value, option )
 	this._createDefaultLabel( name, option );
 	
 	data = this.data;
-	ctrl = UI_CreateSlider( data.OpCont, 0, 0, data.value_width_min, data.value_height, name, @option.num_stops );
+	ctrl = UI_CreateSlider( data.OpCont, 0, 0, data.value_width_min, data.value_height, name, @option.min, @option.max, @option.stopsize );
+	ctrl.setValue( value );
 	ctrl.minWidth = data.value_width_min;
 	ctrl.maxWidth = data.value_width_max;
 	ctrl.q1x = data.value_width_percent;
+	return ctrl;
 }
 
 function UI_PropertyGrid._create_textbox( name, value, option )
@@ -198,6 +200,11 @@ function UI_PropertyGrid._updateData()
 function UI_PropertyGrid.getData()
 {
 	return this.data.values;
+}
+
+function UI_PropertyGrid.getValueOf( name )
+{
+	return @this.data.values[ name ];
 }
 
 function UI_CreatePropertyGrid( parent, x, y, width, height, seed, options )

@@ -158,9 +158,7 @@ function UI_CreateButton( parent, x, y, width, height, caption, icon )
 	}
 	
 	Button.updateTheme();
-	
 	parent.addChild( Button );
-	
 	return Button;
 }
 
