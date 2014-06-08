@@ -162,10 +162,16 @@ function sgs_ui_example_menu()
 {
 	MAIN_MENU = UI_CreateStatic( FRAME.root, 0, 0, 0, 0 );
 	MAIN_MENU.setAnchorMode( Anchor_All );
+	function MAIN_MENU.renderfunc()
+	{
+		SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.5, 0.5, 1, 0.2, 0.2, 0.2, 1 );
+	}
 	
 	// Title
-	mm_title = UI_CreateStatic( MAIN_MENU, 0, 0, 0, 0, "Menu Example" );
+	mm_title = UI_CreateStatic( MAIN_MENU, 0, 0, 0, 0, "Menu Example", color(0) );
 	mm_title.setAnchorMode( Anchor_All );
+	mm_title.setFont( "fonts/gauge-oblique.ttf", 48 );
+	mm_title.setTextColor( color(0.3,0.7,0.9,1) );
 	mm_title.q1y = 0.5;
 	
 	// Menu
@@ -173,16 +179,37 @@ function sgs_ui_example_menu()
 	mm_menu.setAnchorRect( 0.4, 0.5, 0.6, 1.0 );
 	
 	btn_start = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Start" );
-	btn_start.setAnchorMode( Anchor_Hor );
+	UI_CreateImage( btn_start, 0, 0, 36, 36, "icons/control_play.png" );
 	
 	btn_info = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Info" );
-	btn_info.setAnchorMode( Anchor_Hor );
+	UI_CreateImage( btn_info, 0, 0, 36, 36, "icons/information.png" );
 	
 	btn_options = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Options" );
-	btn_options.setAnchorMode( Anchor_Hor );
+	UI_CreateImage( btn_options, 0, 0, 36, 36, "icons/cog.png" );
 	
 	btn_quit = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Quit" );
-	btn_quit.setAnchorMode( Anchor_Hor );
+	UI_CreateImage( btn_quit, 0, 0, 36, 36, "icons/stop.png" );
 	btn_quit.bindEvent( "click", function(){ global sys_exit = true; } );
+	
+	function MenuButton_Render()
+	{
+		if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
+			return;
+		
+		theme = this.frame.theme;
+		button_render_contents = theme.button_render_contents;
+		
+		alpha = if( this.clicked, 0.4, if( this.mouseOn, 0.2, 0.1 ) );
+		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1-1, 0, 0, 0, alpha );
+		SS_DrawColorRect( this.rx0, this.ry1-1, this.rx1, this.ry1, 0, 0, 0, alpha+0.1 );
+		
+		this!button_render_contents();
+	}
+	foreach( ctrl : mm_menu.children() )
+	{
+		ctrl.setAnchorMode( Anchor_Hor );
+		ctrl.setFont( "fonts/armata-regular.ttf", 16 );
+		ctrl.renderfunc = MenuButton_Render;
+	}
 }
 

@@ -169,9 +169,9 @@ struct UIFrame
 	SGS_METHOD sgsHandle< UIControl > getFocusControl();
 	SGS_METHOD sgsHandle< UIControl > getControlUnderCursor();
 	SGS_METHOD sgsHandle< UIControl > getControlUnderPoint( float x, float y );
+	SGS_METHOD bool isControlUnderCursor( const sgsHandle< UIControl >& ctrl );
+	SGS_METHOD bool isControlUnderPoint( const sgsHandle< UIControl >& ctrl, float x, float y );
 	
-	SGS_PROPERTY sgsVariable render_image;
-	SGS_PROPERTY sgsVariable render_text;
 	SGS_PROPERTY sgsVariable scissor_func; /* no arguments (all NULL) -> clear, 4 arguments (int) -> set */
 	SGS_PROPERTY sgsVariable clipboard_func; /* no arguments -> get; 1 argument (string) -> set */
 	
@@ -184,6 +184,13 @@ struct UIFrame
 		- integer UI_Cursor_ constants
 	*/
 	SGS_PROPERTY sgsVariable cursor_func;
+	
+	/*	font_func
+		arguments: font name, font size
+		- null name returns the default font
+		should return object capable of being used by the theme
+	*/
+	SGS_PROPERTY sgsVariable font_func;
 	
 	/*	theme
 		dict containing data about theme
@@ -225,6 +232,13 @@ struct UIControl
 	typedef sgsHandle< UIControl > Handle;
 	typedef std::vector< Handle > HandleArray;
 	
+	static Handle CreateHandle( UIControl* ctrl )
+	{
+		if( ctrl )
+			return Handle( ctrl->m_sgsObject, ctrl->C );
+		return Handle();
+	}
+	
 	SGS_OBJECT;
 	
 	UIControl();
@@ -237,6 +251,7 @@ struct UIControl
 	SGS_METHOD void updateTheme();
 	void updateThemeRecursive();
 	void updateCursor();
+	void updateFont();
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
@@ -302,7 +317,14 @@ struct UIControl
 	SGS_PROPERTY sgsString type;
 	SGS_PROPERTY READ Handle parent;
 	SGS_PROPERTY READ UIFrame::Handle frame;
+	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateCursor ) sgsVariable cursor;
+	
+	SGS_PROPERTY sgsVariable _cachedFont;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateFont ) sgsString font;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateFont ) float fontSize;
+	SGS_METHOD void setFont( const sgsString& newFont, float newFontSize ){ font = newFont; fontSize = newFontSize; updateFont(); }
+	
 	SGS_PROPERTY sgsVariable callback;
 	SGS_PROPERTY sgsVariable renderfunc;
 	SGS_PROPERTY sgsVariable data;
@@ -316,6 +338,7 @@ struct UIControl
 	SGS_PROPERTY bool _updatingLayout : 1; /* true if updating layout and don't want to trigger further layout changes */
 	SGS_PROPERTY bool _updatingMinMaxWH : 1; /* true if updating min/max width/height and don't watn to trigger further size changes */
 	SGS_PROPERTY bool _whNoAuth : 1; /* true if width/height shouldn't set min/max width/height too */
+	SGS_PROPERTY bool _roundedCoords : 1; /* true if final coords (r[xy][01]) should be rounded */
 	SGS_PROPERTY READ bool mouseOn;
 	SGS_PROPERTY READ bool clicked;
 	SGS_PROPERTY READ bool keyboardFocus;

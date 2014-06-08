@@ -1,16 +1,12 @@
 
 global SS_UI_Theme_Default =
 {
+	// GENERAL
+	font_default_size = 11,
+	
 	// BUTTON
-	button_renderfunc = function SS_UI_Theme_Default_button_renderfunc()
+	button_render_bgr = function SS_UI_Theme_Default_button_render_bgr()
 	{
-		if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
-			return;
-		
-		data = this.data;
-		icon = @data.icon;
-		text = this.caption;
-		
 		cadd = if( this.clicked, -0.1, if( this.mouseOn, 0.1, 0.0 ) );
 		B = 0;
 		if( !this.nonclient )
@@ -19,6 +15,12 @@ global SS_UI_Theme_Default =
 			B = 1;
 		}
 		SS_DrawColorRect( this.rx0+B, this.ry0+B, this.rx1-B, this.ry1-B, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
+	},
+	button_render_contents = function SS_UI_Theme_Default_button_render_contents()
+	{
+		data = this.data;
+		icon = @data.icon;
+		text = this.caption;
 		
 		if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
 		{
@@ -26,7 +28,7 @@ global SS_UI_Theme_Default =
 			if( icon ) fullwidth += icon.width;
 			if( text )
 			{
-				textlen = Font.getTextLength( text );
+				textlen = this._cachedFont.getTextLength( text );
 				fullwidth += textlen;
 			}
 			if( icon && text ) fullwidth += 4;
@@ -42,11 +44,22 @@ global SS_UI_Theme_Default =
 			
 			if( text )
 			{
-				SS_DrawTextLine_VC( text, Font, this.rx0 + text_off, cy, color(1,1,1,1) );
+				SS_DrawTextLine_VC( text, this._cachedFont, this.rx0 + text_off, cy, color(1,1,1,1) );
 			}
 			
 			this.frame.popScissorRect();
 		}
+	},
+	button_renderfunc = function SS_UI_Theme_Default_button_renderfunc()
+	{
+		if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
+			return;
+		
+		theme = this.frame.theme;
+		button_render_bgr = theme.button_render_bgr;
+		button_render_contents = theme.button_render_contents;
+		this!button_render_bgr();
+		this!button_render_contents();
 	},
 	
 	// SCROLL
@@ -83,7 +96,7 @@ global SS_UI_Theme_Default =
 				SS_DrawFitted( data.icon_submenu, x + data.item_width - data.item_height, x + data.item_width, y, y + data.item_height );
 			
 			if( @item.text !== null )
-				SS_DrawTextLine_VC( item.text, Font, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
+				SS_DrawTextLine_VC( item.text, this._cachedFont, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
 			else if( disabled )
 				SS_Draw({ preset = "tile", position = [x+32,y+data.sep_height/2], scale = [data.item_width-36,1], color = [0.8,0.8,0.8,1] });
 			

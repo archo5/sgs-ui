@@ -1,4 +1,7 @@
 
+global UI_Static = {};
+
+function UI_Static.setTextColor( c ){ this.data.textcolor = c; }
 
 function UI_CreateStatic( parent, x, y, width, height, caption, color, textmode )
 {
@@ -14,6 +17,7 @@ function UI_CreateStatic( parent, x, y, width, height, caption, color, textmode 
 	Static.width = width;
 	Static.height = height;
 	Static.caption = caption;
+	Static._interface = UI_Static;
 	
 	function Static.renderfunc()
 	{
@@ -25,7 +29,7 @@ function UI_CreateStatic( parent, x, y, width, height, caption, color, textmode 
 		
 		if( text )
 		{
-			SS_DrawTextRect( text, Font, data.textcolor, data.textmode, this.rx0, this.rx1, this.ry0, this.ry1 );
+			SS_DrawTextRect( text, this._cachedFont, data.textcolor, data.textmode, this.rx0, this.rx1, this.ry0, this.ry1 );
 		}
 	}
 	
@@ -120,9 +124,7 @@ function UI_CreateImage( parent, x, y, width, height, src, scale, align_x, align
 	}
 	
 	Image.updateTheme();
-	
 	parent.addChild( Image );
-	
 	return Image;
 }
 

@@ -2,6 +2,7 @@
 
 #include "ui_control.h"
 
+#include <math.h>
 #include <algorithm>
 
 
@@ -9,6 +10,11 @@
 inline float lerpf( float a, float b, float s )
 {
 	return a * (1-s) + b * s;
+}
+
+inline float round( float x )
+{
+	return floor( x + 0.5 );
 }
 
 
@@ -69,6 +75,13 @@ int UIControl_CtrlProc( SGS_CTX )
 			ctrl->rx1 += lerpf( pr0x, pr1x, ctrl->q1x );
 			ctrl->ry0 += lerpf( pr0y, pr1y, ctrl->q0y );
 			ctrl->ry1 += lerpf( pr0y, pr1y, ctrl->q1y );
+			if( ctrl->_roundedCoords )
+			{
+				ctrl->rx0 = round( ctrl->rx0 );
+				ctrl->rx1 = round( ctrl->rx1 );
+				ctrl->ry0 = round( ctrl->ry0 );
+				ctrl->ry1 = round( ctrl->ry1 );
+			}
 		}
 		for( UIControl::HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
 			(*it)->updateLayout();
@@ -119,7 +132,7 @@ int UIControl_CtrlProc( SGS_CTX )
 		return 1;
 	case EV_ButtonUp:
 		ctrl->callEvent( sgsString( "mouseup", C ), event );
-		if( ctrl->clicked && ctrl->mouseOn )
+		if( ctrl->clicked && ctrl->frame.object && ctrl->frame->isControlUnderCursor( UIControl::CreateHandle( ctrl ) ) )
 			ctrl->callEvent( sgsString( "click", C ), event );
 		ctrl->clicked = false;
 		return 1;
@@ -169,6 +182,7 @@ UIControl::Handle UIFrame::createControl( sgsString type )
 	ctrl->type = type;
 	ctrl->frame = Handle( m_sgsObject, C );
 	ctrl->id = m_controlIDGen.GetID();
+	ctrl->updateFont();
 	UIControl::Handle handle = sgs_GetVar< UIControl::Handle >()( C, -1 );
 	sgs_Pop( C, 1 );
 	return handle;
@@ -517,9 +531,11 @@ void UIFrame::preRemoveControl( UIControl* ctrl )
 int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 {
 	UIFrame* frame = static_cast<UIFrame*>(obj->data);
-	frame->render_image.gcmark();
-	frame->render_text.gcmark();
+	frame->scissor_func.gcmark();
 	frame->clipboard_func.gcmark();
+	frame->cursor_func.gcmark();
+	frame->font_func.gcmark();
+	frame->theme.gcmark();
 	frame->root.gcmark();
 	return SGS_SUCCESS;
 }
@@ -546,6 +562,23 @@ sgsHandle< UIControl > UIFrame::getControlUnderPoint( float x, float y )
 	return sgsHandle< UIControl >( ctrl ? ctrl->m_sgsObject : NULL, C );
 }
 
+bool UIFrame::isControlUnderCursor( const sgsHandle< UIControl >& ctrl )
+{
+	return isControlUnderPoint( ctrl, mouseX, mouseY );
+}
+
+bool UIFrame::isControlUnderPoint( const sgsHandle< UIControl >& ctrl, float x, float y )
+{
+	UIControl* c2 = _getControlAtPosition( x, y );
+	while( c2 )
+	{
+		if( c2 == ctrl )
+			return true;
+		c2 = c2->parent;
+	}
+	return false;
+}
+
 
 UIControl::UIControl() :
 	id( UI_NO_ID ), x(0.0f), y(0.0f), width(0.0f), height(0.0f),
@@ -554,8 +587,9 @@ UIControl::UIControl() :
 	nc_top(0.0f), nc_left(0.0f), nc_right(0.0f), nc_bottom(0.0f),
 	visible(true), index(0), topmost(false), nonclient(false),
 	minWidth(0.0f), maxWidth(FLT_MAX), minHeight(0.0f), maxHeight(FLT_MAX),
+	fontSize(0.0f),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
-	_updatingLayout(false), _updatingMinMaxWH(false), _whNoAuth(false),
+	_updatingLayout(false), _updatingMinMaxWH(false), _whNoAuth(false), _roundedCoords(true),
 	mouseOn(false), clicked(false), keyboardFocus(false)
 {
 	sgs_PushCFunction( C, UIControl_CtrlProc );
@@ -605,7 +639,7 @@ void UIControl::niRender()
 	
 	if( renderfunc.not_null() )
 	{
-		int orig = sgs_StackSize( C );
+		sgs_StkIdx orig = sgs_StackSize( C );
 		sgs_PushVar( C, Handle( m_sgsObject, C ) );
 		renderfunc.push( C );
 		sgs_ThisCall( C, 0, 0 );
@@ -666,6 +700,21 @@ void UIControl::updateCursor()
 		
 		if( frame->m_hover == this )
 			frame->forceUpdateCursor( this );
+	}
+}
+
+void UIControl::updateFont()
+{
+	if( frame.object && frame->font_func.not_null() )
+	{
+		sgs_StkIdx orig = sgs_StackSize( C );
+		sgs_PushVar( C, frame );
+		font.push( C );
+		sgs_PushReal( C, fontSize );
+		frame->font_func.push( C );
+		sgs_ThisCall( C, 2, 1 );
+		_cachedFont = sgsVariable( C, -1 );
+		sgs_SetStackSize( C, orig );
 	}
 }
 
@@ -878,10 +927,14 @@ bool UIControl::unbindEvent( sgsString name, sgsVariable callable )
 
 bool UIControl::callEvent( sgsString name, UIEvent* e )
 {
+	sgs_StkIdx orig = sgs_StackSize( C );
 	// check if there's an entry for the event
 	name.push( C );
 	if( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) )
+	{
+		sgs_SetStackSize( C, orig );
 		return false;
+	}
 	// iterate the array
 	sgs_PushIterator( C, -1 );
 	while( sgs_IterAdvance( C, -1 ) > 0 )
@@ -895,6 +948,7 @@ bool UIControl::callEvent( sgsString name, UIEvent* e )
 		
 		sgs_SetStackSize( C, ssz );
 	}
+	sgs_SetStackSize( C, orig );
 	return true;
 }
 
@@ -912,8 +966,11 @@ int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 	UIControl* ctrl = static_cast<UIControl*>(obj->data);
 	for( HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
 		it->gcmark();
+	/* m_sorted = m_children */
 	ctrl->parent.gcmark();
 	ctrl->frame.gcmark();
+	ctrl->cursor.gcmark();
+	ctrl->_cachedFont.gcmark();
 	ctrl->callback.gcmark();
 	ctrl->renderfunc.gcmark();
 	ctrl->data.gcmark();
