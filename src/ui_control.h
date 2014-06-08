@@ -292,6 +292,7 @@ struct UIControl
 	void _advanceAnimation( float dt );
 	void _applyCurAnimState();
 	void _finishCurAnim();
+	void _startCurAnim();
 	
 	SGS_IFUNC(GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop );
 	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );

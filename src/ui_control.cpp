@@ -1061,6 +1061,9 @@ UIControl::Handle UIControl::animate( sgsVariable state, float length, sgsVariab
 		frame->m_animatedControls.push_back( this );
 	}
 	
+	if( m_animQueue.size() == 1 )
+		_startCurAnim();
+	
 	return Handle( m_sgsObject, C );
 }
 
@@ -1169,6 +1172,36 @@ void UIControl::_finishCurAnim()
 	}
 	
 	m_animQueue.erase( m_animQueue.begin() );
+	
+	if( m_animQueue.size() )
+		_startCurAnim();
+}
+
+void UIControl::_startCurAnim()
+{
+	Animation& A = m_animQueue[0];
+	
+	sgs_PushHandle( C, UIControl::CreateHandle( this ) );
+	sgsVariable me( C, -1 );
+	sgs_Pop( C, 1 );
+	
+	// reinitialize startup state to fit in changes
+	sgs_StkIdx orig = sgs_StackSize( C );
+	if( SGS_SUCCEEDED( sgs_PushIteratorP( C, &A.currState.var ) ) )
+	{
+		while( sgs_IterAdvance( C, -1 ) > 0 )
+		{
+			sgs_StkIdx orig2 = sgs_StackSize( C );
+			
+			sgs_IterPushData( C, -1, 1, 0 ); /* name only */
+			sgs_ToString( C, -1 );
+			if( SGS_SUCCEEDED( sgs_PushIndexPI( C, &me.var, -1, 1 ) ) )
+				sgs_StoreIndexPI( C, &A.prevState.var, -2, 0 );
+			
+			sgs_SetStackSize( C, orig2 );
+		}
+	}
+	sgs_SetStackSize( C, orig );
 }
 
 
