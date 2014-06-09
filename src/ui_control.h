@@ -104,7 +104,7 @@ typedef std::map< int64_t, UITimerData > UITimerMap;
 
 struct UIEvent
 {
-	SGS_OBJECT;
+	SGS_OBJECT_LITE;
 	
 	UIEvent();
 	
@@ -116,6 +116,44 @@ struct UIEvent
 	SGS_PROPERTY float y;
 	SGS_PROPERTY float rx;
 	SGS_PROPERTY float ry;
+};
+
+
+struct UIStyle
+{
+	SGS_OBJECT_LITE;
+	
+	SGS_PROPERTY sgsMaybe<float> x;
+	SGS_PROPERTY sgsMaybe<float> y;
+	SGS_PROPERTY sgsMaybe<float> width;
+	SGS_PROPERTY sgsMaybe<float> height;
+	SGS_PROPERTY sgsMaybe<float> q0x;
+	SGS_PROPERTY sgsMaybe<float> q0y;
+	SGS_PROPERTY sgsMaybe<float> q1x;
+	SGS_PROPERTY sgsMaybe<float> q1y;
+	SGS_PROPERTY sgsMaybe<float> nc_top;
+	SGS_PROPERTY sgsMaybe<float> nc_left;
+	SGS_PROPERTY sgsMaybe<float> nc_right;
+	SGS_PROPERTY sgsMaybe<float> nc_bottom;
+	SGS_PROPERTY sgsMaybe<bool>  visible;
+	SGS_PROPERTY sgsMaybe<int>   index;
+	SGS_PROPERTY sgsMaybe<bool>  topmost;
+	SGS_PROPERTY sgsMaybe<float> minWidth;
+	SGS_PROPERTY sgsMaybe<float> maxWidth;
+	SGS_PROPERTY sgsMaybe<float> minHeight;
+	SGS_PROPERTY sgsMaybe<float> maxHeight;
+	SGS_PROPERTY sgsMaybe<float> marginLeft;
+	SGS_PROPERTY sgsMaybe<float> marginRight;
+	SGS_PROPERTY sgsMaybe<float> marginTop;
+	SGS_PROPERTY sgsMaybe<float> marginBottom;
+	SGS_PROPERTY sgsMaybe<float> paddingLeft;
+	SGS_PROPERTY sgsMaybe<float> paddingRight;
+	SGS_PROPERTY sgsMaybe<float> paddingTop;
+	SGS_PROPERTY sgsMaybe<float> paddingBottom;
+	SGS_PROPERTY sgsVariable     cursor;
+	SGS_PROPERTY sgsString       font;
+	SGS_PROPERTY sgsMaybe<float> fontSize;
+	SGS_PROPERTY sgsVariable     renderfunc;
 };
 
 
@@ -303,14 +341,14 @@ struct UIControl
 	void _set_maxWidth( float v ){ maxWidth = v; if( !_updatingMinMaxWH && width > maxWidth ){ width = maxWidth; updateLayout(); } }
 	void _set_minHeight( float v ){ minHeight = v; if( !_updatingMinMaxWH && height < minHeight ){ height = minHeight; updateLayout(); } }
 	void _set_maxHeight( float v ){ maxHeight = v; if( !_updatingMinMaxWH && height > maxHeight ){ height = maxHeight; updateLayout(); } }
-	float _get_marginLeft(){ return x; }
-	float _get_marginRight(){ return -width - x; }
-	float _get_marginTop(){ return y; }
-	float _get_marginBottom(){ return -height - y; }
-	void _set_marginLeft( float v ){ width -= v - x; x = v; updateLayout(); }
-	void _set_marginRight( float v ){ width = -v - x; updateLayout(); }
-	void _set_marginTop( float v ){ height -= v - y; y = v; updateLayout(); }
-	void _set_marginBottom( float v ){ height = -v - y; updateLayout(); }
+	float _get_offsetLeft(){ return x; }
+	float _get_offsetRight(){ return -width - x; }
+	float _get_offsetTop(){ return y; }
+	float _get_offsetBottom(){ return -height - y; }
+	void _set_offsetLeft( float v ){ width -= v - x; x = v; updateLayout(); }
+	void _set_offsetRight( float v ){ width = -v - x; updateLayout(); }
+	void _set_offsetTop( float v ){ height -= v - y; y = v; updateLayout(); }
+	void _set_offsetBottom( float v ){ height = -v - y; updateLayout(); }
 	
 	SGS_PROPERTY READ uint32_t id;
 	SGS_PROPERTY sgsString name;
@@ -337,10 +375,10 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ WRITE _set_maxWidth ) float maxWidth;
 	SGS_PROPERTY_FUNC( READ WRITE _set_minHeight ) float minHeight;
 	SGS_PROPERTY_FUNC( READ WRITE _set_maxHeight ) float maxHeight;
-	SGS_PROPERTY_FUNC( READ _get_marginLeft WRITE _set_marginLeft ) SGS_ALIAS( float marginLeft );
-	SGS_PROPERTY_FUNC( READ _get_marginRight WRITE _set_marginRight ) SGS_ALIAS( float marginRight );
-	SGS_PROPERTY_FUNC( READ _get_marginTop WRITE _set_marginTop ) SGS_ALIAS( float marginTop );
-	SGS_PROPERTY_FUNC( READ _get_marginBottom WRITE _set_marginBottom ) SGS_ALIAS( float marginBottom );
+	SGS_PROPERTY_FUNC( READ _get_offsetLeft WRITE _set_offsetLeft ) SGS_ALIAS( float offsetLeft );
+	SGS_PROPERTY_FUNC( READ _get_offsetRight WRITE _set_offsetRight ) SGS_ALIAS( float offsetRight );
+	SGS_PROPERTY_FUNC( READ _get_offsetTop WRITE _set_offsetTop ) SGS_ALIAS( float offsetTop );
+	SGS_PROPERTY_FUNC( READ _get_offsetBottom WRITE _set_offsetBottom ) SGS_ALIAS( float offsetBottom );
 	SGS_PROPERTY sgsString type;
 	SGS_PROPERTY READ Handle parent;
 	SGS_PROPERTY READ UIFrame::Handle frame;
@@ -378,7 +416,7 @@ struct UIControl
 
 
 
-inline void UI_PushEvent( SGS_CTX, UIEvent* e ){ sgs_PushClassFrom( C, e ); }
+inline void UI_PushEvent( SGS_CTX, UIEvent* e ){ sgs_PushLiteClassFrom( C, e ); }
 
 
 #endif // __SGS_UI_CONTROL__

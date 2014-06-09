@@ -8,7 +8,7 @@
 
 int UI_CreateEvent( SGS_CTX )
 {
-	UIEvent* ev = SGS_PUSHCLASS( C, UIEvent, () );
+	UIEvent* ev = SGS_PUSHLITECLASS( C, UIEvent, () );
 	ev->type = sgs_GetInt( C, 0 );
 	return 1;
 }

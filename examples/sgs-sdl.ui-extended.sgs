@@ -352,12 +352,12 @@ function UI_CreateWindow( parent, x, y, width, height, caption, adjust )
 			if( this.dragging & 0b0010 )
 				Window.width = this.dragorig_x + cursor.x - this.dragstart_x;
 			else if( this.dragging & 0b0001 )
-				Window.marginLeft = this.dragorig_x + cursor.x - this.dragstart_x;
+				Window.offsetLeft = this.dragorig_x + cursor.x - this.dragstart_x;
 			
 			if( this.dragging & 0b1000 )
 				Window.height = this.dragorig_y + cursor.y - this.dragstart_y;
 			else if( this.dragging & 0b0100 )
-				Window.marginTop = this.dragorig_y + cursor.y - this.dragstart_y;
+				Window.offsetTop = this.dragorig_y + cursor.y - this.dragstart_y;
 		}
 	}
 	
