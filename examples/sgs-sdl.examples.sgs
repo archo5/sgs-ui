@@ -257,6 +257,23 @@ function sgs_ui_example_menu()
 	ss_btn_back.renderfunc = MenuButton_Render;
 	UI_CreateImage( ss_btn_back, 0, 0, 0, 0, "icons/resultset_previous.png" ).setAnchorRect( 0, 0, 0.3, 1 );
 	
+	ss_cont = UI_CreateScrollingAutoLayout( START_SCREEN, 0, 0, 0, 0 );
+	ss_cont.setAnchorRect( 0.05, 0.15, 0.45, 0.8 );
+	ss_cont_in = ss_cont.getContainer();
+	function AddLevel( info ) use( ss_cont_in, MenuButton_Render )
+	{
+		item = UI_CreateButton( ss_cont_in, 0, 0, 0, 48, "" );
+		item.setAnchorMode( Anchor_Hor );
+		item.renderfunc = MenuButton_Render;
+		item.data.info = info;
+		img = UI_CreateImage( item, 0, 0, 64, 48, info.image, UI_ImageScale_Crop );
+		lbl = UI_CreateStatic( item, 64, 0, 0, 48, info.name, color(0), DT_LEFT | DT_VCENTER );
+		lbl.setAnchorMode( Anchor_Hor );
+		return item;
+	}
+	AddLevel({ name = "The Picture", image = "icons/picture.png" });
+	AddLevel({ name = "The Report", image = "icons/report.png" });
+	
 	//
 	// EVENTS
 	//

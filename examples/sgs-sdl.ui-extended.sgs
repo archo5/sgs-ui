@@ -1,5 +1,41 @@
 
 
+global UI_ScrollingAutoLayout = {};
+
+function UI_ScrollingAutoLayout.getContainer()
+{
+	return this.data.OpCont;
+}
+
+function UI_CreateScrollingAutoLayout( parent, x, y, width, height )
+{
+	ScrollingAutoLayout = parent.frame.createControl( "scrollingautolayout" );
+	ScrollingAutoLayout.x = x;
+	ScrollingAutoLayout.y = y;
+	ScrollingAutoLayout.width = width;
+	ScrollingAutoLayout.height = height;
+	ScrollingAutoLayout._interface = UI_ScrollingAutoLayout;
+	ScrollingAutoLayout.data =
+	{
+		options = [],
+	};
+	
+	Scrollable = UI_CreateScrollable( ScrollingAutoLayout, 0, 0, 0, 0, "auto", false );
+	Scrollable.q1x = 1;
+	Scrollable.q1y = 1;
+	ScrollingAutoLayout.data.Scrollable = Scrollable;
+	
+	AutoLayout = UI_CreateAutoLayout( Scrollable, 0, 0, 100 );
+	AutoLayout.q1x = 1;
+	ScrollingAutoLayout.data.AutoLayout = AutoLayout;
+	ScrollingAutoLayout.data.OpCont = AutoLayout;
+	
+	parent.addChild( ScrollingAutoLayout );
+	
+	return ScrollingAutoLayout;
+}
+
+
 global UI_ListBoxMenu = {};
 
 function UI_ListBoxMenu._optionRenderFunc()
@@ -56,12 +92,6 @@ function UI_CreateListBoxMenu( parent, x, y, width, height )
 	{
 		options = [],
 	};
-	
-	border = 2;
-	ListBoxMenu.nc_top = border;
-	ListBoxMenu.nc_bottom = border;
-	ListBoxMenu.nc_left = border;
-	ListBoxMenu.nc_right = border;
 	
 	Scrollable = UI_CreateScrollable( ListBoxMenu, 0, 0, 0, 0, "auto", false );
 	Scrollable.q1x = 1;
