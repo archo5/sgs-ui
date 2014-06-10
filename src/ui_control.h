@@ -353,6 +353,20 @@ struct UIControl
 	SGS_PROPERTY READ uint32_t id;
 	SGS_PROPERTY sgsString name;
 	SGS_PROPERTY sgsString caption;
+	
+	sgsString classes;
+	SGS_METHOD sgsString getClasses(){ return classes; }
+	SGS_METHOD void setClasses( const sgsString& ss ){ classes = ss; }
+	SGS_METHOD bool addClass( const sgsString& ss ){ return addClass( ss.c_str(), ss.size() ); }
+	SGS_METHOD bool removeClass( const sgsString& ss ){ return addClass( ss.c_str(), ss.size() ); }
+	SGS_METHOD bool hasClass( const sgsString& ss ){ return hasClass( ss.c_str(), ss.size() ); }
+	void _setClasses3( const char* str1, size_t size1, const char* str2, size_t size2, const char* str3, size_t size3 );
+	bool addClass( const char* str, size_t size );
+	bool removeClass( const char* str, size_t size );
+	bool hasClass( const char* str, size_t size );
+	size_t _findClassAt( const char* str, size_t size );
+	static void _trimClass( const char** str, size_t* size );
+	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float y;
 	SGS_PROPERTY_FUNC( READ WRITE _set_width ) float width;

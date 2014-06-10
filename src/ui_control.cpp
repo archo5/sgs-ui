@@ -1234,5 +1234,85 @@ int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 }
 
 
+void UIControl::_setClasses3( const char* str1, size_t size1, const char* str2, size_t size2, const char* str3, size_t size3 )
+{
+	// assume that one of these pointers may be from the current class string
+	sgsString _c = classes;
+	// allocate a string big enough for all those substrings
+	sgs_PushStringBuf( C, NULL, size1 + size2 + size3 );
+	// copy substrings to string
+	char* out = sgs_GetStringPtr( C, -1 );
+	if( size1 ) memcpy( out, str1, size1 );
+	if( size2 ) memcpy( out + size1, str2, size2 );
+	if( size3 ) memcpy( out + size1 + size2, str3, size3 );
+	// retrieve new class string
+	classes = sgsString( -1, C );
+	// old one is automatically freed
+}
+
+bool UIControl::addClass( const char* str, size_t size )
+{
+	_trimClass( &str, &size );
+	if( !size )
+		return false;
+	if( hasClass( str, size ) )
+		return true;
+	_setClasses3( classes.c_str(), classes.size(), " ", classes.size() != 0 ? 1 : 0, str, size );
+	return true;
+}
+
+bool UIControl::removeClass( const char* str, size_t size )
+{
+	_trimClass( &str, &size );
+	if( !size )
+		return false;
+	size_t cpos = _findClassAt( str, size );
+	if( cpos > classes.size() )
+		return false;
+	if( classes.size() == size )
+		_setClasses3( NULL, 0, NULL, 0, NULL, 0 );
+	else if( cpos == 0 )
+		_setClasses3( classes.c_str() + size + 1, classes.size() - size - 1, NULL, 0, NULL, 0 );
+	else if( cpos == classes.size() - size )
+		_setClasses3( classes.c_str(), classes.size() - size - 1, NULL, 0, NULL, 0 );
+	else
+		_setClasses3( classes.c_str(), cpos, classes.c_str() + cpos + size + 1, classes.size() - cpos - size - 1, NULL, 0 );
+	return true;
+}
+
+bool UIControl::hasClass( const char* str, size_t size )
+{
+	_trimClass( &str, &size );
+	if( !size )
+		return false;
+	return _findClassAt( str, size ) < classes.size();
+}
+
+size_t UIControl::_findClassAt( const char* str, size_t size )
+{
+	size_t cpos = 0;
+	while( cpos < classes.size() - size )
+	{
+		if( memcmp( classes.c_str(), str, size ) == 0 &&
+			( cpos == 0 || classes.c_str()[ cpos - 1 ] == ' ' ) &&
+			( cpos + size >= classes.size() || classes.c_str()[ cpos + size ] == ' ' ) )
+			return cpos;
+		cpos++;
+	}
+	return classes.size();
+}
+
+void UIControl::_trimClass( const char** str, size_t* size )
+{
+	const char* s1 = *str;
+	const char* s2 = s1 + *size;
+	while( s1 < s2 && *s1 == ' ' )
+		s1++;
+	while( s1 < s2 && *(s2-1) == ' ' )
+		s2--;
+	*str = s1;
+	*size = s2 - s1;
+}
+
 
 
