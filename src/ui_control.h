@@ -106,7 +106,7 @@ struct UIEvent
 {
 	SGS_OBJECT_LITE;
 	
-	UIEvent();
+	UIEvent() : type(0), key(0), button(0), uchar(0), x(0), y(0), rx(0), ry(0){}
 	
 	SGS_PROPERTY int type;
 	SGS_PROPERTY int key;
@@ -119,7 +119,7 @@ struct UIEvent
 };
 
 
-struct UIStyle
+struct UIStyle /* style storage */
 {
 	SGS_OBJECT_LITE;
 	
@@ -155,6 +155,77 @@ struct UIStyle
 	SGS_PROPERTY sgsMaybe<float> fontSize;
 	SGS_PROPERTY sgsVariable     renderfunc;
 };
+
+struct UIStyleCache /* computed style cache */
+{
+	float x;
+	float y;
+	float width;
+	float height;
+	float q0x;
+	float q0y;
+	float q1x;
+	float q1y;
+	float nc_top;
+	float nc_left;
+	float nc_right;
+	float nc_bottom;
+	bool  visible;
+	int   index;
+	bool  topmost;
+	float minWidth;
+	float maxWidth;
+	float minHeight;
+	float maxHeight;
+	float marginLeft;
+	float marginRight;
+	float marginTop;
+	float marginBottom;
+	float paddingLeft;
+	float paddingRight;
+	float paddingTop;
+	float paddingBottom;
+	sgsVariable cursor;
+	sgsString   font;
+	float       fontSize;
+	sgsVariable renderfunc;
+};
+
+struct UIStyleSelector
+{
+	struct Fragment
+	{
+		enum Type
+		{
+			T_None = 0,
+			T_Begin, // beginning of element to match
+			T_End, // end of element to match
+			T_ReqNext, // require that the element to be matched is next (directly related) in line of parents/children (>)
+			T_MatchType, // first word matches the type (button,autolayout,..) of the control, if any is given
+			// following words, prefixed by dot, specify classes to match
+			T_MatchClassExact, // .class
+			T_MatchClassPartBegin, // .^class
+			T_MatchClassPartEnd, // .$class
+			T_MatchClassPart, // .~class
+			// following words, prefixed by hash (#), specify the exact name attribute to expect
+			T_MatchNameExact, // #name
+			T_MatchNamePartBegin, // #^name
+			T_MatchNamePartEnd, // #$name
+			T_MatchNamePart, // #~name
+		};
+		
+		Type type;
+		const char* at; // expected to be valid only within elements, end=pointer in next fragment
+	};
+	
+	typedef std::vector< Fragment > FragmentArray;
+	
+	sgsString selector;
+	FragmentArray fragments;
+};
+
+void UI_StyleMerge( UIStyle* style, UIStyle* add );
+void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style );
 
 
 struct UIControl;

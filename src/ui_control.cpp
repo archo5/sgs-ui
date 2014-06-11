@@ -18,6 +18,75 @@ inline float round( float x )
 }
 
 
+
+void UI_StyleMerge( UIStyle* style, UIStyle* add )
+{
+	if( !style->x.isset ) style->x = add->x;
+	if( !style->y.isset ) style->y = add->y;
+	if( !style->width.isset ) style->width = add->width;
+	if( !style->height.isset ) style->height = add->height;
+	if( !style->q0x.isset ) style->q0x = add->q0x;
+	if( !style->q0y.isset ) style->q0y = add->q0y;
+	if( !style->q1x.isset ) style->q1x = add->q1x;
+	if( !style->q1y.isset ) style->q1y = add->q1y;
+	if( !style->nc_top.isset ) style->nc_top = add->nc_top;
+	if( !style->nc_left.isset ) style->nc_left = add->nc_left;
+	if( !style->nc_right.isset ) style->nc_right = add->nc_right;
+	if( !style->nc_bottom.isset ) style->nc_bottom = add->nc_bottom;
+	if( !style->visible.isset ) style->visible = add->visible;
+	if( !style->index.isset ) style->index = add->index;
+	if( !style->topmost.isset ) style->topmost = add->topmost;
+	if( !style->minWidth.isset ) style->minWidth = add->minWidth;
+	if( !style->maxWidth.isset ) style->maxWidth = add->maxWidth;
+	if( !style->minHeight.isset ) style->minHeight = add->minHeight;
+	if( !style->maxHeight.isset ) style->maxHeight = add->maxHeight;
+	if( !style->marginLeft.isset ) style->marginLeft = add->marginLeft;
+	if( !style->marginRight.isset ) style->marginRight = add->marginRight;
+	if( !style->marginTop.isset ) style->marginTop = add->marginTop;
+	if( !style->marginBottom.isset ) style->marginBottom = add->marginBottom;
+	if( !style->paddingLeft.isset ) style->paddingLeft = add->paddingLeft;
+	if( !style->paddingRight.isset ) style->paddingRight = add->paddingRight;
+	if( !style->paddingTop.isset ) style->paddingTop = add->paddingTop;
+	if( !style->paddingBottom.isset ) style->paddingBottom = add->paddingBottom;
+	if( !style->cursor.not_null() ) style->cursor = add->cursor;
+	if( !style->font.c_str() ) style->font = add->font;
+	if( !style->fontSize.isset ) style->fontSize = add->fontSize;
+	if( !style->renderfunc.not_null() ) style->renderfunc = add->renderfunc;
+}
+
+void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style )
+{
+	cache->x = style->x.isset ? style->x.data : 0;
+	cache->y = style->y.isset ? style->y.data : 0;
+	cache->width = style->width.isset ? style->width.data : 0;
+	cache->height = style->height.isset ? style->height.data : 0;
+	cache->q0x = style->q0x.isset ? style->q0x.data : 0;
+	cache->q0y = style->q0y.isset ? style->q0y.data : 0;
+	cache->q1x = style->q1x.isset ? style->q1x.data : 0;
+	cache->q1y = style->q1y.isset ? style->q1y.data : 0;
+	cache->nc_top = style->nc_top.isset ? style->nc_top.data : 0;
+	cache->nc_left = style->nc_left.isset ? style->nc_left.data : 0;
+	cache->nc_right = style->nc_right.isset ? style->nc_right.data : 0;
+	cache->nc_bottom = style->nc_bottom.isset ? style->nc_bottom.data : 0;
+	cache->visible = style->visible.isset ? style->visible.data : true;
+	cache->index = style->index.isset ? style->index.data : 0;
+	cache->topmost = style->topmost.isset ? style->topmost.data : false;
+	cache->minWidth = style->minWidth.isset ? style->minWidth.data : 0;
+	cache->maxWidth = style->maxWidth.isset ? style->maxWidth.data : UI_MaxValue;
+	cache->minHeight = style->minHeight.isset ? style->minHeight.data : 0;
+	cache->maxHeight = style->maxHeight.isset ? style->maxHeight.data : UI_MaxValue;
+	cache->marginLeft = style->marginLeft.isset ? style->marginLeft.data : 0;
+	cache->marginRight = style->marginRight.isset ? style->marginRight.data : 0;
+	cache->marginTop = style->marginTop.isset ? style->marginTop.data : 0;
+	cache->marginBottom = style->marginBottom.isset ? style->marginBottom.data : 0;
+	cache->paddingLeft = style->paddingLeft.isset ? style->paddingLeft.data : 0;
+	cache->paddingRight = style->paddingRight.isset ? style->paddingRight.data : 0;
+	cache->paddingTop = style->paddingTop.isset ? style->paddingTop.data : 0;
+	cache->paddingBottom = style->paddingBottom.isset ? style->paddingBottom.data : 0;
+}
+
+
+
 int UIControl_CtrlProc( SGS_CTX )
 {
 	SGSFN( "UIControl_CtrlProc" );
@@ -152,11 +221,6 @@ int UIControl_CtrlProc( SGS_CTX )
 	return 1;
 }
 
-
-
-UIEvent::UIEvent() : type(0), key(0), button(0), uchar(0), x(0), y(0), rx(0), ry(0)
-{
-}
 
 
 UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0),
