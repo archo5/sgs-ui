@@ -19,6 +19,34 @@ inline float round( float x )
 
 
 
+SGS_MULTRET UIStyleBlock::addSelector( sgsString str )
+{
+	selectors.resize( selectors.size() + 1 );
+	UIStyleSelector* sel = &selectors[ selectors.size() - 1 ];
+	const char* serr = UI_ParseSelector( sel, str.c_str(), str.size() );
+	if( serr )
+	{
+		sgs_PushBool( C, 0 );
+		sgs_PushInt( C, serr - str.c_str() );
+		return 2;
+	}
+	sgs_PushBool( C, 1 );
+	return 1;
+}
+
+const char* UI_ParseSelector( UIStyleSelector* sel, const char* text, size_t textsize )
+{
+	// TODO
+	return text;
+}
+
+int UI_CompareSelectors( const UIStyleSelector* sel1, const UIStyleSelector* sel2 )
+{
+	int q1 = sel1->numtypes + sel1->numnext * 2 + sel1->numclasses * 3 + sel1->numnames * 4;
+	int q2 = sel2->numtypes + sel2->numnext * 2 + sel2->numclasses * 3 + sel2->numnames * 4;
+	return q1 - q2;
+}
+
 void UI_StyleMerge( UIStyle* style, UIStyle* add )
 {
 	if( !style->x.isset ) style->x = add->x;
@@ -83,6 +111,31 @@ void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style )
 	cache->paddingRight = style->paddingRight.isset ? style->paddingRight.data : 0;
 	cache->paddingTop = style->paddingTop.isset ? style->paddingTop.data : 0;
 	cache->paddingBottom = style->paddingBottom.isset ? style->paddingBottom.data : 0;
+}
+
+
+bool UI_TxMatchExact( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize )
+{
+	return stto - stfrom == (ptrdiff_t) tgtsize && memcmp( stfrom, tgt, stto - stfrom ) == 0;
+}
+
+bool UI_TxMatchPartBegin( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize )
+{
+	return stto - stfrom <= (ptrdiff_t) tgtsize && memcmp( stfrom, tgt, stto - stfrom ) == 0;
+}
+
+bool UI_TxMatchPartEnd( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize )
+{
+	return stto - stfrom <= (ptrdiff_t) tgtsize && memcmp( stfrom, tgt + tgtsize - ( stto - stfrom ), stto - stfrom ) == 0;
+}
+
+bool UI_TxMatchPart( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize )
+{
+	const char* tgtend = tgt + tgtsize - ( stto - stfrom );
+	while( tgt < tgtend )
+		if( memcmp( stfrom, tgt++, stto - stfrom ) == 0 )
+			return true;
+	return false;
 }
 
 

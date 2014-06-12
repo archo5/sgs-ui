@@ -155,6 +155,7 @@ struct UIStyle /* style storage */
 	SGS_PROPERTY sgsMaybe<float> fontSize;
 	SGS_PROPERTY sgsVariable     renderfunc;
 };
+SGS_DEFAULT_LITE_OBJECT_INTERFACE( UIStyle );
 
 struct UIStyleCache /* computed style cache */
 {
@@ -207,11 +208,11 @@ struct UIStyleSelector
 			T_MatchClassPartBegin, // .^class
 			T_MatchClassPartEnd, // .$class
 			T_MatchClassPart, // .~class
-			// following words, prefixed by hash (#), specify the exact name attribute to expect
-			T_MatchNameExact, // #name
-			T_MatchNamePartBegin, // #^name
-			T_MatchNamePartEnd, // #$name
-			T_MatchNamePart, // #~name
+			// following words, prefixed by 'at' (@), specify the exact name attribute to expect
+			T_MatchNameExact, // @name
+			T_MatchNamePartBegin, // @^name
+			T_MatchNamePartEnd, // @$name
+			T_MatchNamePart, // @~name
 		};
 		
 		Type type;
@@ -222,10 +223,45 @@ struct UIStyleSelector
 	
 	sgsString selector;
 	FragmentArray fragments;
+	int numnext;
+	int numtypes;
+	int numclasses;
+	int numnames;
+};
+typedef std::vector< UIStyleSelector > StyleSelArray;
+
+struct UIStyleBlock
+{
+	typedef sgsHandle< UIStyleBlock > Handle;
+	typedef std::vector< Handle > HandleArray;
+	
+	SGS_OBJECT;
+	
+	SGS_PROPERTY UIStyle style;
+	StyleSelArray selectors;
+	
+	SGS_METHOD SGS_MULTRET addSelector( sgsString str );
 };
 
+struct UIStyleSheet
+{
+	SGS_OBJECT;
+	
+	UIStyleBlock::HandleArray blocks;
+	
+	SGS_METHOD void addBlock( UIStyleBlock::Handle block ){ blocks.push_back( block ); }
+};
+
+
+const char* UI_ParseSelector( UIStyleSelector* sel, const char* text, size_t textsize );
+int UI_CompareSelectors( const UIStyleSelector* sel1, const UIStyleSelector* sel2 );
 void UI_StyleMerge( UIStyle* style, UIStyle* add );
 void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style );
+
+bool UI_TxMatchExact( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize );
+bool UI_TxMatchPartBegin( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize );
+bool UI_TxMatchPartEnd( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize );
+bool UI_TxMatchPart( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize );
 
 
 struct UIControl;
