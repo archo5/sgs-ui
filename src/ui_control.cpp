@@ -319,6 +319,16 @@ void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style )
 	cache->paddingRight = style->paddingRight.isset ? style->paddingRight.data : 0;
 	cache->paddingTop = style->paddingTop.isset ? style->paddingTop.data : 0;
 	cache->paddingBottom = style->paddingBottom.isset ? style->paddingBottom.data : 0;
+	if( style->cursor.not_null() )
+		cache->cursor = style->cursor;
+	else
+	{
+		cache->cursor._release();
+		sgs_InitBool( &cache->cursor.var, 1 );
+	}
+	cache->font = style->font;
+	cache->fontSize = style->fontSize.isset ? style->fontSize.data : 11;
+	cache->renderfunc = style->renderfunc;
 }
 
 
@@ -373,10 +383,10 @@ int UIControl_CtrlProc( SGS_CTX )
 			UIFrame* frame = ctrl->frame;
 			if( prt )
 			{
-				pr0x = prt->rx0 + prt->nc_left;
-				pr0y = prt->ry0 + prt->nc_top;
-				pr1x = prt->rx1 - prt->nc_right;
-				pr1y = prt->ry1 - prt->nc_bottom;
+				pr0x = prt->rx0 + prt->get_nc_left();
+				pr0y = prt->ry0 + prt->get_nc_top();
+				pr1x = prt->rx1 - prt->get_nc_right();
+				pr1y = prt->ry1 - prt->get_nc_bottom();
 				if( !ctrl->nonclient )
 				{
 					pr0x += prt->scroll_x;
@@ -399,14 +409,14 @@ int UIControl_CtrlProc( SGS_CTX )
 				pr1x = 0;
 				pr1y = 0;
 			}
-			ctrl->rx0 = ctrl->x;
-			ctrl->ry0 = ctrl->y;
-			ctrl->rx1 = ctrl->rx0 + ctrl->width;
-			ctrl->ry1 = ctrl->ry0 + ctrl->height;
-			ctrl->rx0 += lerpf( pr0x, pr1x, ctrl->q0x );
-			ctrl->rx1 += lerpf( pr0x, pr1x, ctrl->q1x );
-			ctrl->ry0 += lerpf( pr0y, pr1y, ctrl->q0y );
-			ctrl->ry1 += lerpf( pr0y, pr1y, ctrl->q1y );
+			ctrl->rx0 = ctrl->get_x();
+			ctrl->ry0 = ctrl->get_y();
+			ctrl->rx1 = ctrl->rx0 + ctrl->get_width();
+			ctrl->ry1 = ctrl->ry0 + ctrl->get_height();
+			ctrl->rx0 += lerpf( pr0x, pr1x, ctrl->get_q0x() );
+			ctrl->rx1 += lerpf( pr0x, pr1x, ctrl->get_q1x() );
+			ctrl->ry0 += lerpf( pr0y, pr1y, ctrl->get_q0y() );
+			ctrl->ry1 += lerpf( pr0y, pr1y, ctrl->get_q1y() );
 			if( ctrl->_roundedCoords )
 			{
 				ctrl->rx0 = round( ctrl->rx0 );
@@ -433,8 +443,8 @@ int UIControl_CtrlProc( SGS_CTX )
 		if( event->x >= ctrl->rx0 && event->x <= ctrl->rx1 &&
 			event->y >= ctrl->ry0 && event->y <= ctrl->ry1 )
 		{
-			if( event->x >= ctrl->rx0 + ctrl->nc_left && event->x <= ctrl->rx1 - ctrl->nc_right &&
-				event->y >= ctrl->ry0 + ctrl->nc_top && event->y <= ctrl->ry1 - ctrl->nc_bottom )
+			if( event->x >= ctrl->rx0 + ctrl->get_nc_left() && event->x <= ctrl->rx1 - ctrl->get_nc_right() &&
+				event->y >= ctrl->ry0 + ctrl->get_nc_top() && event->y <= ctrl->ry1 - ctrl->get_nc_bottom() )
 				sgs_PushInt( C, Hit_Client );
 			else
 				sgs_PushInt( C, Hit_NonClient );
@@ -493,9 +503,9 @@ UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0)
 	memset( m_clickoffsets, 0, sizeof(m_clickoffsets) );
 	
 	root = createControl( sgsString( "root", C ) );
-	root->q1x = 1;
-	root->q1y = 1;
-	root->updateLayout();
+	root->style.q1x.set( 1 );
+	root->style.q1y.set( 1 );
+	root->_remergeStyle();
 }
 
 UIFrame::~UIFrame()
@@ -543,7 +553,7 @@ UIControl* UIFrame::_getControlAtPosition( float x, float y )
 		for( UIControl::HandleArray::reverse_iterator it = ctrl->m_sorted.rbegin(), itend = ctrl->m_sorted.rend(); it != itend; ++it )
 		{
 			UIControl* nc = *it;
-			if( !nc->visible )
+			if( !nc->get_visible() )
 				continue;
 			if( nonclient < 0 || nonclient == ( nc->nonclient ? 1 : 0 ) )
 			{
@@ -845,7 +855,7 @@ void UIFrame::forceUpdateCursor( UIControl* ctrl )
 	if( cursor_func.not_null() )
 	{
 		if( ctrl )
-			ctrl->cursor.push( C );
+			ctrl->get_cursor().push( C );
 		else
 			sgs_PushNull( C );
 		if( SGS_FAILED( sgs_CallP( C, &cursor_func.var, 1, 0 ) ) )
@@ -910,17 +920,16 @@ sgsVariable UIFrame::getStyleSheets()
 
 void UIFrame::_updateStyles()
 {
+	UIFilteredStyleArray fsa;
 	std::vector< UIControl* > controls;
 	controls.push_back( root );
 	while( controls.size() )
 	{
 		UIControl* ctrl = controls[0];
 		VREMOVEAT( controls, 0 );
-		// CODE
 		
-		// -- TODO --
+		ctrl->_refilterStyles( &fsa );
 		
-		// END
 		for( size_t i = 0; i < ctrl->m_children.size(); ++i )
 			controls.push_back( ctrl->m_children[ i ] );
 	}
@@ -968,15 +977,9 @@ bool UIFrame::isControlUnderPoint( const sgsHandle< UIControl >& ctrl, float x, 
 
 
 UIControl::UIControl() :
-	id( UI_NO_ID ), x(0.0f), y(0.0f), width(0.0f), height(0.0f),
-	q0x(0.0f), q0y(0.0f), q1x(0.0f), q1y(0.0f),
-	scroll_x(0.0f), scroll_y(0.0f),
-	nc_top(0.0f), nc_left(0.0f), nc_right(0.0f), nc_bottom(0.0f),
-	visible(true), index(0), topmost(false), nonclient(false),
-	minWidth(0.0f), maxWidth(FLT_MAX), minHeight(0.0f), maxHeight(FLT_MAX),
-	fontSize(0.0f),
+	id( UI_NO_ID ), scroll_x(0.0f), scroll_y(0.0f), nonclient(false),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
-	_updatingLayout(false), _updatingMinMaxWH(false), _whNoAuth(false), _roundedCoords(true),
+	_updatingLayout(false), _roundedCoords(true),
 	mouseOn(false), clicked(false), keyboardFocus(false)
 {
 	sgs_PushCFunction( C, UIControl_CtrlProc );
@@ -986,9 +989,6 @@ UIControl::UIControl() :
 	sgs_PushDict( C, 0 );
 	m_events = sgsVariable( C, -1 );
 	sgs_Pop( C, 1 );
-	
-	sgs_InitBool( &cursor.var, 1 );
-	cursor.C = C;
 }
 
 UIControl::~UIControl()
@@ -1030,19 +1030,19 @@ void UIControl::niBubblingEvent( UIEvent* e )
 
 void UIControl::niRender()
 {
-	if( !visible )
+	if( !get_visible() )
 		return;
 	
-	if( renderfunc.not_null() )
+	if( get_renderfunc().not_null() )
 	{
 		sgs_StkIdx orig = sgs_StackSize( C );
 		sgs_PushVar( C, Handle( m_sgsObject, C ) );
-		renderfunc.push( C );
+		get_renderfunc().push( C );
 		sgs_ThisCall( C, 0, 0 );
 		sgs_SetStackSize( C, orig );
 	}
 	
-	if( frame->pushScissorRect( rx0 + nc_left, ry0 + nc_top, rx1 - nc_right, ry1 - nc_bottom ) )
+	if( frame->pushScissorRect( rx0 + get_nc_left(), ry0 + get_nc_top(), rx1 - get_nc_right(), ry1 - get_nc_bottom() ) )
 	{
 		for( HandleArray::iterator it = m_sorted.begin(), itend = m_sorted.end(); it != itend; ++it )
 		{
@@ -1105,8 +1105,8 @@ void UIControl::updateFont()
 	{
 		sgs_StkIdx orig = sgs_StackSize( C );
 		sgs_PushVar( C, frame );
-		font.push( C );
-		sgs_PushReal( C, fontSize );
+		get_font().push( C );
+		sgs_PushReal( C, get_fontSize() );
 		frame->font_func.push( C );
 		sgs_ThisCall( C, 2, 1 );
 		_cachedFont = sgsVariable( C, -1 );
@@ -1230,8 +1230,10 @@ sgsVariable UIControl::children( bool nonclient )
 
 bool UIControl_chSortCmpFunc( const UIControl::Handle& h1, const UIControl::Handle& h2 )
 {
-	if( h1->topmost != h2->topmost ) return h1->topmost < h2->topmost;
-	if( h1->index != h2->index ) return h1->index < h2->index;
+	bool h1topmost = h1->get_topmost(), h2topmost = h2->get_topmost();
+	if( h1topmost != h2topmost ) return h1topmost < h2topmost;
+	int h1index = h1->get_index(), h2index = h2->get_index();
+	if( h1index != h2index ) return h1index < h2index;
 	return false;
 }
 
@@ -1250,40 +1252,40 @@ void UIControl::setAnchorMode( int mode )
 {
 	if( mode & Anchor_Left )
 	{
-		q0x = 0;
+		style.q0x.set( 0 );
 		if( mode & Anchor_Right )
-			q1x = 1;
+			style.q1x.set( 1 );
 		else
-			q1x = 0;
+			style.q1x.set( 0 );
 	}
 	else if( mode & Anchor_Right )
 	{
-		q0x = 1;
-		q1x = 1;
+		style.q0x.set( 1 );
+		style.q1x.set( 1 );
 	}
 	if( mode & Anchor_Top )
 	{
-		q0y = 0;
+		style.q0y.set( 0 );
 		if( mode & Anchor_Bottom )
-			q1y = 1;
+			style.q1y.set( 1 );
 		else
-			q1y = 0;
+			style.q1y.set( 0 );
 	}
 	else if( mode & Anchor_Bottom )
 	{
-		q0y = 1;
-		q1y = 1;
+		style.q0y.set( 1 );
+		style.q1y.set( 1 );
 	}
-	updateLayout();
+	_remergeStyle();
 }
 
 void UIControl::setAnchorRect( float x0, float y0, float x1, float y1 )
 {
-	q0x = x0;
-	q0y = y0;
-	q1x = x1;
-	q1y = y1;
-	updateLayout();
+	style.q0x.set( x0 );
+	style.q0y.set( y0 );
+	style.q1x.set( x1 );
+	style.q1y.set( y1 );
+	_remergeStyle();
 }
 
 
@@ -1597,10 +1599,10 @@ int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 	/* m_sorted = m_children */
 	ctrl->parent.gcmark();
 	ctrl->frame.gcmark();
-	ctrl->cursor.gcmark();
 	ctrl->_cachedFont.gcmark();
+	ctrl->filteredStyle.gcmark();
+	ctrl->style.gcmark();
 	ctrl->callback.gcmark();
-	ctrl->renderfunc.gcmark();
 	ctrl->data.gcmark();
 	ctrl->_interface.gcmark();
 	ctrl->m_events.gcmark();
@@ -1716,5 +1718,78 @@ void UIControl::_trimClass( const char** str, size_t* size )
 	*size = s2 - s1;
 }
 
+
+void UIControl::_refilterStyles( UIFilteredStyleArray* styles )
+{
+	if( !frame.object )
+		return;
+	
+	styles->clear();
+	// gather all matching styles
+	StyleSheetArray& SSA = frame->m_styleSheets;
+	for( size_t i = 0; i < SSA.size(); ++i )
+	{
+		UIStyleSheet* SSH = SSA[ i ];
+		for( size_t j = 0; j < SSH->rules.size(); ++j )
+		{
+			UIStyleRule* SR = SSH->rules[ j ];
+			for( size_t k = 0; k < SR->selectors.size(); ++k )
+			{
+				if( UI_SelectorTestControl( &SR->selectors[ k ], this ) )
+				{
+					UIFilteredStyle fs = { SR, k };
+					styles->push_back( fs );
+					break;
+				}
+			}
+		}
+	}
+	
+	// sort by importance
+	
+	// save generated style
+	filteredStyle = UIStyle();
+	for( size_t i = 0; i < styles->size(); ++i )
+		UI_StyleMerge( &filteredStyle, &styles->at( i ).rule->style );
+	_remergeStyle();
+}
+
+void UIControl::_remergeStyle()
+{
+	UIStyle ns = style;
+	UI_StyleMerge( &ns, &filteredStyle );
+	UIStyleCache nsc;
+	UI_ToStyleCache( &nsc, &ns );
+	_applyStyle( nsc );
+}
+
+void UIControl::_applyStyle( const UIStyleCache& nsc )
+{
+	// diff
+#define NEQ( name ) computedStyle.name != nsc.name
+	bool updatedFont = NEQ( font ) || NEQ( fontSize );
+	bool updatedCursor = NEQ( cursor );
+	bool updatedOrder = NEQ( index ) || NEQ( topmost );
+	bool updatedBox = NEQ( x ) || NEQ( y ) || NEQ( width ) || NEQ( height )
+		|| NEQ( q0x ) || NEQ( q0y ) || NEQ( q1x ) || NEQ( q1y )
+		|| NEQ( nc_top ) || NEQ( nc_left ) || NEQ( nc_right ) || NEQ( nc_bottom )
+		|| NEQ( minWidth ) || NEQ( maxWidth ) || NEQ( minHeight ) || NEQ( maxHeight )
+		|| NEQ( marginLeft ) || NEQ( marginRight ) || NEQ( marginTop ) || NEQ( marginBottom )
+		|| NEQ( paddingLeft ) || NEQ( paddingRight ) || NEQ( paddingTop ) || NEQ( paddingBottom )
+	;
+	// TODO: event-based rendering
+//	bool updatedRenderFunc = NEQ( renderfunc );
+	bool updatedLayout = updatedFont || updatedCursor || updatedOrder || updatedBox;
+#undef NEQ
+	
+	// apply new style
+	computedStyle = nsc;
+	
+	// act on diffs
+	if( updatedFont ) updateFont();
+	if( updatedCursor ) updateCursor();
+	if( updatedOrder ) sortSiblings();
+	if( updatedLayout ) updateLayout();
+}
 
 

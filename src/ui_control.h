@@ -154,6 +154,8 @@ struct UIStyle /* style storage */
 	SGS_PROPERTY sgsString       font;
 	SGS_PROPERTY sgsMaybe<float> fontSize;
 	SGS_PROPERTY sgsVariable     renderfunc;
+	
+	void gcmark(){ cursor.gcmark(); renderfunc.gcmark(); }
 };
 SGS_DEFAULT_LITE_OBJECT_INTERFACE( UIStyle );
 
@@ -270,6 +272,13 @@ bool UI_TxMatchExact( const char* stfrom, const char* stto, const char* tgt, siz
 bool UI_TxMatchPartBegin( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize );
 bool UI_TxMatchPartEnd( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize );
 bool UI_TxMatchPart( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize );
+
+struct UIFilteredStyle
+{
+	UIStyleRule* rule;
+	size_t which_sel; // selector number
+};
+typedef std::vector< UIFilteredStyle > UIFilteredStyleArray;
 
 
 struct UIControl;
@@ -459,24 +468,13 @@ struct UIControl
 	SGS_IFUNC(GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop );
 	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
 	
-	void _set_width( float v ){ width = v; if( !_whNoAuth ){ minWidth = maxWidth = width; } updateLayout(); }
-	void _set_height( float v ){ height = v; if( !_whNoAuth ){ minHeight = maxHeight = height; } updateLayout(); }
-	void _set_minWidth( float v ){ minWidth = v; if( !_updatingMinMaxWH && width < minWidth ){ width = minWidth; updateLayout(); } }
-	void _set_maxWidth( float v ){ maxWidth = v; if( !_updatingMinMaxWH && width > maxWidth ){ width = maxWidth; updateLayout(); } }
-	void _set_minHeight( float v ){ minHeight = v; if( !_updatingMinMaxWH && height < minHeight ){ height = minHeight; updateLayout(); } }
-	void _set_maxHeight( float v ){ maxHeight = v; if( !_updatingMinMaxWH && height > maxHeight ){ height = maxHeight; updateLayout(); } }
-	float _get_offsetLeft(){ return x; }
-	float _get_offsetRight(){ return -width - x; }
-	float _get_offsetTop(){ return y; }
-	float _get_offsetBottom(){ return -height - y; }
-	void _set_offsetLeft( float v ){ width -= v - x; x = v; updateLayout(); }
-	void _set_offsetRight( float v ){ width = -v - x; updateLayout(); }
-	void _set_offsetTop( float v ){ height -= v - y; y = v; updateLayout(); }
-	void _set_offsetBottom( float v ){ height = -v - y; updateLayout(); }
-	
+	/// PRIMARY DATA
 	SGS_PROPERTY READ uint32_t id;
 	SGS_PROPERTY sgsString name;
 	SGS_PROPERTY sgsString caption;
+	SGS_PROPERTY sgsString type;
+	SGS_PROPERTY READ Handle parent;
+	SGS_PROPERTY READ UIFrame::Handle frame;
 	
 	sgsString classes;
 	SGS_METHOD sgsString getClasses(){ return classes; }
@@ -494,45 +492,106 @@ struct UIControl
 	size_t _findClassAt( const char* str, size_t size, int checksides = 1|2 );
 	static void _trimClass( const char** str, size_t* size );
 	
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float x;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float y;
-	SGS_PROPERTY_FUNC( READ WRITE _set_width ) float width;
-	SGS_PROPERTY_FUNC( READ WRITE _set_height ) float height;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q0x;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q0y;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1x;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float q1y;
+	/// STYLES
+	UIStyleCache computedStyle; // active style data (after merging rule style and local override, on applying changes)
+	UIStyle filteredStyle; // calculated from style rules
+	UIStyle style; // local override
+	void _refilterStyles( UIFilteredStyleArray* styles );
+	void _remergeStyle();
+	void _applyStyle( const UIStyleCache& nsc );
+	
+#define UIC_DEFINE_ACCESSORS( ty, nm ) \
+	ty get_##nm() const { return computedStyle.nm; } \
+	void set_##nm( ty nm ){ style.nm.set( nm ); _remergeStyle(); }
+#define UIC_DEFINE_ACCESSORS2( ty, nm ) \
+	ty get_##nm() const { return computedStyle.nm; } \
+	void set_##nm( ty nm ){ style.nm = nm; _remergeStyle(); }
+	
+	UIC_DEFINE_ACCESSORS( float, x );
+	UIC_DEFINE_ACCESSORS( float, y );
+	UIC_DEFINE_ACCESSORS( float, width );
+	UIC_DEFINE_ACCESSORS( float, height );
+	UIC_DEFINE_ACCESSORS( float, q0x );
+	UIC_DEFINE_ACCESSORS( float, q0y );
+	UIC_DEFINE_ACCESSORS( float, q1x );
+	UIC_DEFINE_ACCESSORS( float, q1y );
+	UIC_DEFINE_ACCESSORS( float, nc_top );
+	UIC_DEFINE_ACCESSORS( float, nc_left );
+	UIC_DEFINE_ACCESSORS( float, nc_right );
+	UIC_DEFINE_ACCESSORS( float, nc_bottom );
+	UIC_DEFINE_ACCESSORS( bool, visible );
+	UIC_DEFINE_ACCESSORS( int, index );
+	UIC_DEFINE_ACCESSORS( bool, topmost );
+	UIC_DEFINE_ACCESSORS( float, minWidth );
+	UIC_DEFINE_ACCESSORS( float, maxWidth );
+	UIC_DEFINE_ACCESSORS( float, minHeight );
+	UIC_DEFINE_ACCESSORS( float, maxHeight );
+	UIC_DEFINE_ACCESSORS( float, marginLeft );
+	UIC_DEFINE_ACCESSORS( float, marginRight );
+	UIC_DEFINE_ACCESSORS( float, marginTop );
+	UIC_DEFINE_ACCESSORS( float, marginBottom );
+	UIC_DEFINE_ACCESSORS( float, paddingLeft );
+	UIC_DEFINE_ACCESSORS( float, paddingRight );
+	UIC_DEFINE_ACCESSORS( float, paddingTop );
+	UIC_DEFINE_ACCESSORS( float, paddingBottom );
+	UIC_DEFINE_ACCESSORS2( sgsVariable, cursor );
+	UIC_DEFINE_ACCESSORS2( sgsString, font );
+	UIC_DEFINE_ACCESSORS( float, fontSize );
+	UIC_DEFINE_ACCESSORS2( sgsVariable, renderfunc );
+	
+	float get_offsetLeft(){ return get_x(); }
+	float get_offsetRight(){ return -get_width() - get_x(); }
+	float get_offsetTop(){ return get_y(); }
+	float get_offsetBottom(){ return -get_height() - get_y(); }
+	void set_offsetLeft( float v ){ style.width.set( get_width() - v + get_x() ); set_x( v ); }
+	void set_offsetRight( float v ){ set_width( -v - get_x() ); }
+	void set_offsetTop( float v ){ style.height.set( get_height() - v + get_y() ); set_y( v ); }
+	void set_offsetBottom( float v ){ set_height( -v - get_y() ); }
+	
+	SGS_PROPERTY_FUNC( READ get_x WRITE set_x ) SGS_ALIAS( float x );
+	SGS_PROPERTY_FUNC( READ get_y WRITE set_y ) SGS_ALIAS( float y );
+	SGS_PROPERTY_FUNC( READ get_width WRITE set_width ) SGS_ALIAS( float width );
+	SGS_PROPERTY_FUNC( READ get_height WRITE set_height ) SGS_ALIAS( float height );
+	SGS_PROPERTY_FUNC( READ get_q0x WRITE set_q0x ) SGS_ALIAS( float q0x );
+	SGS_PROPERTY_FUNC( READ get_q0y WRITE set_q0y ) SGS_ALIAS( float q0y );
+	SGS_PROPERTY_FUNC( READ get_q1x WRITE set_q1x ) SGS_ALIAS( float q1x );
+	SGS_PROPERTY_FUNC( READ get_q1y WRITE set_q1y ) SGS_ALIAS( float q1y );
+	SGS_PROPERTY_FUNC( READ get_nc_top WRITE set_nc_top ) SGS_ALIAS( float nc_top );
+	SGS_PROPERTY_FUNC( READ get_nc_left WRITE set_nc_left ) SGS_ALIAS( float nc_left );
+	SGS_PROPERTY_FUNC( READ get_nc_right WRITE set_nc_right ) SGS_ALIAS( float nc_right );
+	SGS_PROPERTY_FUNC( READ get_nc_bottom WRITE set_nc_bottom ) SGS_ALIAS( float nc_bottom );
+	SGS_PROPERTY_FUNC( READ get_visible WRITE set_visible ) SGS_ALIAS( bool visible );
+	SGS_PROPERTY_FUNC( READ get_index WRITE set_index ) SGS_ALIAS( int index );
+	SGS_PROPERTY_FUNC( READ get_topmost WRITE set_topmost ) SGS_ALIAS( bool topmost );
+	SGS_PROPERTY_FUNC( READ get_minWidth WRITE set_minWidth ) SGS_ALIAS( float minWidth );
+	SGS_PROPERTY_FUNC( READ get_maxWidth WRITE set_maxWidth ) SGS_ALIAS( float maxWidth );
+	SGS_PROPERTY_FUNC( READ get_minHeight WRITE set_minHeight ) SGS_ALIAS( float minHeight );
+	SGS_PROPERTY_FUNC( READ get_maxHeight WRITE set_maxHeight ) SGS_ALIAS( float maxHeight );
+	SGS_PROPERTY_FUNC( READ get_marginLeft WRITE set_marginLeft ) SGS_ALIAS( float marginLeft );
+	SGS_PROPERTY_FUNC( READ get_marginRight WRITE set_marginRight ) SGS_ALIAS( float marginRight );
+	SGS_PROPERTY_FUNC( READ get_marginTop WRITE set_marginTop ) SGS_ALIAS( float marginTop );
+	SGS_PROPERTY_FUNC( READ get_marginBottom WRITE set_marginBottom ) SGS_ALIAS( float marginBottom );
+	SGS_PROPERTY_FUNC( READ get_paddingLeft WRITE set_paddingLeft ) SGS_ALIAS( float paddingLeft );
+	SGS_PROPERTY_FUNC( READ get_paddingRight WRITE set_paddingRight ) SGS_ALIAS( float paddingRight );
+	SGS_PROPERTY_FUNC( READ get_paddingTop WRITE set_paddingTop ) SGS_ALIAS( float paddingTop );
+	SGS_PROPERTY_FUNC( READ get_paddingBottom WRITE set_paddingBottom ) SGS_ALIAS( float paddingBottom );
+	SGS_PROPERTY_FUNC( READ get_cursor WRITE set_cursor ) SGS_ALIAS( sgsVariable cursor );
+	SGS_PROPERTY_FUNC( READ get_font WRITE set_font ) SGS_ALIAS( sgsString font );
+	SGS_PROPERTY_FUNC( READ get_fontSize WRITE set_fontSize ) SGS_ALIAS( float fontSize );
+	SGS_PROPERTY_FUNC( READ get_renderfunc WRITE set_renderfunc ) SGS_ALIAS( sgsVariable renderfunc );
+	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_y;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_top;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_left;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_right;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float nc_bottom;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) bool visible;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) int index;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK sortSiblings ) bool topmost;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) bool nonclient;
-	SGS_PROPERTY_FUNC( READ WRITE _set_minWidth ) float minWidth;
-	SGS_PROPERTY_FUNC( READ WRITE _set_maxWidth ) float maxWidth;
-	SGS_PROPERTY_FUNC( READ WRITE _set_minHeight ) float minHeight;
-	SGS_PROPERTY_FUNC( READ WRITE _set_maxHeight ) float maxHeight;
-	SGS_PROPERTY_FUNC( READ _get_offsetLeft WRITE _set_offsetLeft ) SGS_ALIAS( float offsetLeft );
-	SGS_PROPERTY_FUNC( READ _get_offsetRight WRITE _set_offsetRight ) SGS_ALIAS( float offsetRight );
-	SGS_PROPERTY_FUNC( READ _get_offsetTop WRITE _set_offsetTop ) SGS_ALIAS( float offsetTop );
-	SGS_PROPERTY_FUNC( READ _get_offsetBottom WRITE _set_offsetBottom ) SGS_ALIAS( float offsetBottom );
-	SGS_PROPERTY sgsString type;
-	SGS_PROPERTY READ Handle parent;
-	SGS_PROPERTY READ UIFrame::Handle frame;
-	
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateCursor ) sgsVariable cursor;
+	SGS_PROPERTY_FUNC( READ get_offsetLeft WRITE set_offsetLeft ) SGS_ALIAS( float offsetLeft );
+	SGS_PROPERTY_FUNC( READ get_offsetRight WRITE set_offsetRight ) SGS_ALIAS( float offsetRight );
+	SGS_PROPERTY_FUNC( READ get_offsetTop WRITE set_offsetTop ) SGS_ALIAS( float offsetTop );
+	SGS_PROPERTY_FUNC( READ get_offsetBottom WRITE set_offsetBottom ) SGS_ALIAS( float offsetBottom );
 	
 	SGS_PROPERTY sgsVariable _cachedFont;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateFont ) sgsString font;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateFont ) float fontSize;
-	SGS_METHOD void setFont( const sgsString& newFont, float newFontSize ){ font = newFont; fontSize = newFontSize; updateFont(); }
+	SGS_METHOD void setFont( const sgsString& newFont, float newFontSize ){ style.font = newFont; set_fontSize( newFontSize ); }
 	
 	SGS_PROPERTY sgsVariable callback;
-	SGS_PROPERTY sgsVariable renderfunc;
 	SGS_PROPERTY sgsVariable data;
 	SGS_PROPERTY sgsVariable _interface;
 	
@@ -542,8 +601,6 @@ struct UIControl
 	SGS_PROPERTY READ float ry1;
 	
 	SGS_PROPERTY bool _updatingLayout : 1; /* true if updating layout and don't want to trigger further layout changes */
-	SGS_PROPERTY bool _updatingMinMaxWH : 1; /* true if updating min/max width/height and don't watn to trigger further size changes */
-	SGS_PROPERTY bool _whNoAuth : 1; /* true if width/height shouldn't set min/max width/height too */
 	SGS_PROPERTY bool _roundedCoords : 1; /* true if final coords (r[xy][01]) should be rounded */
 	SGS_PROPERTY READ bool mouseOn;
 	SGS_PROPERTY READ bool clicked;

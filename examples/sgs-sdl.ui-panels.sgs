@@ -50,10 +50,8 @@ function UI_CreateAutoLayout( parent, x, y, width, height )
 		y += mostheight_line;
 		mostwidth_total = max( mostwidth_total, x );
 		
-		AutoLayout._whNoAuth = true;
 	//	if( AutoLayout.q1x == 0 ) AutoLayout.width = mostwidth_total;
 		if( AutoLayout.q1y == 0 ) AutoLayout.height = y;
-		AutoLayout._whNoAuth = false;
 	}
 	
 	orig_callback = AutoLayout.callback;
