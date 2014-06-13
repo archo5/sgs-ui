@@ -13,6 +13,24 @@ int UI_CreateEvent( SGS_CTX )
 	return 1;
 }
 
+int UI_CreateStyle( SGS_CTX )
+{
+	SGS_PUSHLITECLASS( C, UIStyle, () );
+	return 1;
+}
+
+int UI_CreateStyleRule( SGS_CTX )
+{
+	SGS_PUSHCLASS( C, UIStyleRule, () );
+	return 1;
+}
+
+int UI_CreateStyleSheet( SGS_CTX )
+{
+	SGS_PUSHCLASS( C, UIStyleSheet, () );
+	return 1;
+}
+
 int UI_CreateFrame( SGS_CTX )
 {
 	SGS_PUSHCLASS( C, UIFrame, () );
@@ -136,6 +154,9 @@ sgs_RegRealConst g_rconsts[] =
 sgs_RegFuncConst g_fconsts[] =
 {
 	FN( UI_CreateEvent ),
+	FN( UI_CreateStyle ),
+	FN( UI_CreateStyleRule ),
+	FN( UI_CreateStyleSheet ),
 	FN( UI_CreateFrame ),
 	FN( UI_EasingFunction_linear ),
 	FN( UI_EasingFunction_smooth ),

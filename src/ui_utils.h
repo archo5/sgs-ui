@@ -20,6 +20,19 @@
 #endif
 
 
+template< class T > const T& VLASTOF( const std::vector<T>& x ){ return x[ x.size() - 1 ]; }
+template< class T > T& VLASTOF( std::vector<T>& x ){ return x[ x.size() - 1 ]; }
+template< class T> size_t VFIND( const std::vector<T>& x, const T& y )
+{
+	size_t i;
+	for( i = 0; i < x.size(); ++i )
+		if( x[i] == y )
+			break;
+	return i;
+}
+template< class T > void VREMOVEAT( std::vector<T>& x, size_t i ){ x.erase( x.begin() + i ); }
+
+
 struct IDGen
 {
 	IDGen( int32_t max_range = 0x7ffffff ) : m_maxRange( max_range )

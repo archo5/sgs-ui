@@ -285,3 +285,43 @@ function sgs_ui_example_menu()
 	ss_btn_back.bindEvent( "click", start_screen_exit );
 }
 
+
+//
+// SELECTORS EXAMPLE
+// - tests classes and selectors
+//
+
+function sgs_ui_example_selectors()
+{
+	stylesheet = UI_CreateStyleSheet();
+	stylerule = UI_CreateStyleRule();
+	style = UI_CreateStyle();
+	style.cursor = UI_Cursor_No;
+	stylerule.style = style;
+	print "Basic type selector: "; printvar( stylerule.addSelector( "button" ) );
+	print "+Class type selector: "; printvar( stylerule.addSelector( "button.red" ) );
+	print "Class type selector: "; printvar( stylerule.addSelector( ".red" ) );
+	print "Sequenced type selector: "; printvar( stylerule.addSelector( "autolayout button" ) );
+	print "Strict sequenced type selector: "; printvar( stylerule.addSelector( "autolayout > button" ) );
+	print "Complex multiselector: "; printvar( stylerule.addSelector( "button.red.^re.$ed.~e@submit@^sub@$mit@~bmi" ) );
+	stylerule.style = style;
+	stylesheet.addRule( stylerule );
+	
+	button = UI_CreateButton( FRAME.root, 100, 100, 200, 20, "Test" );
+	button.addClass( "red" );
+	button.name = "submit";
+	print "Verify that classes are set: "; printvar( button.getClasses() );
+	
+	stylerule = UI_CreateStyleRule();
+	stylerule.addSelector( "button.red.^re.$ed.~e@submit@^sub@$mit@~bmi" );
+	print "Match compatible button against complex multiselector: "; printvar( stylerule.checkMatch( button ) );
+	
+	stylerule = UI_CreateStyleRule();
+	stylerule.addSelector( "root button.red.^re.$ed.~e@submit@^sub@$mit@~bmi" );
+	print "Match compatible button against complex multiselector 2: "; printvar( stylerule.checkMatch( button ) );
+	
+	stylerule = UI_CreateStyleRule();
+	stylerule.addSelector( "root > button.red.^re.$ed.~e@submit@^sub@$mit@~bmi" );
+	print "Match compatible button against complex multiselector 3: "; printvar( stylerule.checkMatch( button ) );
+}
+

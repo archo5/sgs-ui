@@ -199,9 +199,9 @@ struct UIStyleSelector
 		enum Type
 		{
 			T_None = 0,
-			T_Begin, // beginning of element to match
-			T_End, // end of element to match
+			T_MoveOn, // all done with current control, can move on to next
 			T_ReqNext, // require that the element to be matched is next (directly related) in line of parents/children (>)
+			T_MatchAny, // doesn't matter what's there - as long as there's something
 			T_MatchType, // first word matches the type (button,autolayout,..) of the control, if any is given
 			// following words, prefixed by dot, specify classes to match
 			T_MatchClassExact, // .class
@@ -216,7 +216,8 @@ struct UIStyleSelector
 		};
 		
 		Type type;
-		const char* at; // expected to be valid only within elements, end=pointer in next fragment
+		const char* start;
+		const char* end;
 	};
 	
 	typedef std::vector< Fragment > FragmentArray;
@@ -230,9 +231,9 @@ struct UIStyleSelector
 };
 typedef std::vector< UIStyleSelector > StyleSelArray;
 
-struct UIStyleBlock
+struct UIStyleRule
 {
-	typedef sgsHandle< UIStyleBlock > Handle;
+	typedef sgsHandle< UIStyleRule > Handle;
 	typedef std::vector< Handle > HandleArray;
 	
 	SGS_OBJECT;
@@ -241,19 +242,26 @@ struct UIStyleBlock
 	StyleSelArray selectors;
 	
 	SGS_METHOD SGS_MULTRET addSelector( sgsString str );
+	SGS_METHOD bool checkMatch( sgsHandle< struct UIControl > ctrl );
 };
 
 struct UIStyleSheet
 {
+	typedef sgsHandle< UIStyleSheet > Handle;
+	
 	SGS_OBJECT;
 	
-	UIStyleBlock::HandleArray blocks;
+	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
 	
-	SGS_METHOD void addBlock( UIStyleBlock::Handle block ){ blocks.push_back( block ); }
+	UIStyleRule::HandleArray rules;
+	
+	SGS_METHOD void addRule( UIStyleRule::Handle rule ){ if( rule.object && !VFIND( rules, rule ) ) rules.push_back( rule ); }
 };
+typedef std::vector< UIStyleSheet::Handle > StyleSheetArray;
 
 
-const char* UI_ParseSelector( UIStyleSelector* sel, const char* text, size_t textsize );
+const char* UI_ParseSelector( UIStyleSelector* sel, sgsString str );
+bool UI_SelectorTestControl( const UIStyleSelector* sel, struct UIControl* ctrl );
 int UI_CompareSelectors( const UIStyleSelector* sel1, const UIStyleSelector* sel2 );
 void UI_StyleMerge( UIStyle* style, UIStyle* add );
 void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style );
@@ -307,6 +315,14 @@ struct UIFrame
 	void _applyScissorState();
 	
 	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
+	
+	// styling
+	SGS_METHOD void addStyleSheet( UIStyleSheet::Handle sheet );
+	SGS_METHOD void removeStyleSheet( UIStyleSheet::Handle sheet );
+	SGS_METHOD sgsVariable getStyleSheets();
+	SGS_METHOD UIStyleSheet::Handle getStyleSheet( size_t i ){ if( i >= m_styleSheets.size() ) return UIStyleSheet::Handle(); return m_styleSheets[ i ]; }
+	SGS_METHOD size_t getStyleSheetCount(){ return m_styleSheets.size(); }
+	void _updateStyles();
 	
 	// info retrieval
 	SGS_METHOD float getClickOffsetX( int button ){ if( button < 0 || button >= Mouse_Button_Count ) return 0; return m_clickoffsets[ button ][0]; }
@@ -370,6 +386,7 @@ struct UIFrame
 	IDGen m_controlIDGen;
 	UIRectArray m_scissorRects;
 	CtrlPtrArray m_animatedControls;
+	StyleSheetArray m_styleSheets;
 	
 };
 
@@ -465,13 +482,16 @@ struct UIControl
 	SGS_METHOD sgsString getClasses(){ return classes; }
 	SGS_METHOD void setClasses( const sgsString& ss ){ classes = ss; }
 	SGS_METHOD bool addClass( const sgsString& ss ){ return addClass( ss.c_str(), ss.size() ); }
-	SGS_METHOD bool removeClass( const sgsString& ss ){ return addClass( ss.c_str(), ss.size() ); }
+	SGS_METHOD bool removeClass( const sgsString& ss ){ return removeClass( ss.c_str(), ss.size() ); }
 	SGS_METHOD bool hasClass( const sgsString& ss ){ return hasClass( ss.c_str(), ss.size() ); }
 	void _setClasses3( const char* str1, size_t size1, const char* str2, size_t size2, const char* str3, size_t size3 );
 	bool addClass( const char* str, size_t size );
 	bool removeClass( const char* str, size_t size );
 	bool hasClass( const char* str, size_t size );
-	size_t _findClassAt( const char* str, size_t size );
+	bool hasClassPartBegin( const char* str, size_t size );
+	bool hasClassPartEnd( const char* str, size_t size );
+	bool hasClassPart( const char* str, size_t size );
+	size_t _findClassAt( const char* str, size_t size, int checksides = 1|2 );
 	static void _trimClass( const char** str, size_t* size );
 	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float x;

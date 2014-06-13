@@ -6,7 +6,6 @@
 #include <algorithm>
 
 
-
 inline float lerpf( float a, float b, float s )
 {
 	return a * (1-s) + b * s;
@@ -19,11 +18,11 @@ inline float round( float x )
 
 
 
-SGS_MULTRET UIStyleBlock::addSelector( sgsString str )
+SGS_MULTRET UIStyleRule::addSelector( sgsString str )
 {
 	selectors.resize( selectors.size() + 1 );
 	UIStyleSelector* sel = &selectors[ selectors.size() - 1 ];
-	const char* serr = UI_ParseSelector( sel, str.c_str(), str.size() );
+	const char* serr = UI_ParseSelector( sel, str );
 	if( serr )
 	{
 		sgs_PushBool( C, 0 );
@@ -34,10 +33,219 @@ SGS_MULTRET UIStyleBlock::addSelector( sgsString str )
 	return 1;
 }
 
-const char* UI_ParseSelector( UIStyleSelector* sel, const char* text, size_t textsize )
+bool UIStyleRule::checkMatch( sgsHandle< struct UIControl > ctrl )
 {
-	// TODO
-	return text;
+	for( size_t i = 0; i < selectors.size(); ++i )
+		if( UI_SelectorTestControl( &selectors[ i ], ctrl ) )
+			return true;
+	return false;
+}
+
+int UIStyleSheet::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
+{
+	UIStyleSheet* sheet = (UIStyleSheet*) obj->data;
+	for( size_t i = 0; i < sheet->rules.size(); ++i )
+		sheet->rules[ i ].gcmark();
+	return SGS_SUCCESS;
+}
+
+#define UIS_FRAG UIStyleSelector::Fragment
+static inline bool _sft_isanymove( int type ){ return type == UIS_FRAG::T_MoveOn || type == UIS_FRAG::T_ReqNext; }
+static inline bool _sct_isanyspec( int type )
+{
+	return
+	type == '.' ||
+	type == '@' ||
+	type == '>' ||
+	type == '*' ||
+	type == ' ' ||
+	type == '\n' ||
+	type == '\r' ||
+	type == '\t';
+}
+
+const char* UI_ParseSelector( UIStyleSelector* sel, sgsString str )
+{
+	sel->selector = str;
+	sel->fragments.clear();
+	sel->numnext = 0;
+	sel->numtypes = 0;
+	sel->numclasses = 0;
+	sel->numnames = 0;
+	
+	const char* text = str.c_str();
+	const char* textend = text + str.size();
+	while( text < textend )
+	{
+		char c = *text;
+		if( c == '>' )
+		{
+			if( !sel->fragments.size() )
+				return text; // error: this item cannot be first in matcher list
+			char lasttype = VLASTOF( sel->fragments ).type;
+			if( lasttype == UIS_FRAG::T_ReqNext )
+				return text; // error: this item cannot follow another item of same type
+			else if( lasttype == UIS_FRAG::T_MoveOn )
+				VLASTOF( sel->fragments ).type = UIS_FRAG::T_ReqNext;
+			else
+			{
+				UIS_FRAG F = { UIS_FRAG::T_ReqNext, NULL, NULL };
+				sel->fragments.push_back( F );
+			}
+				
+		}
+		else if( c == ' ' || c == '\n' || c == '\r' || c == '\t' )
+		{
+			if( sel->fragments.size() && !_sft_isanymove( VLASTOF( sel->fragments ).type ) )
+			{
+				UIS_FRAG F = { UIS_FRAG::T_MoveOn, NULL, NULL };
+				sel->fragments.push_back( F );
+			}
+		}
+		else if( c == '*' )
+		{
+			if( sel->fragments.size() && !_sft_isanymove( VLASTOF( sel->fragments ).type ) )
+				return text; // error: this item must be first in matcher list
+			UIS_FRAG F = { UIS_FRAG::T_MatchAny, NULL, NULL };
+			sel->fragments.push_back( F );
+		}
+		else if( c == '.' || c == '@' )
+		{
+			text++;
+			if( text >= textend ) return text; // unexpected end of string
+			
+			char spc = 0;
+			if( *text == '^' || *text == '$' || *text == '~' )
+			{
+				spc = *text++;
+				if( text >= textend ) return text; // unexpected end of string
+			}
+			
+			const char* start = text;
+			while( text < textend && !_sct_isanyspec( *text ) )
+				text++;
+			const char* end = text--;
+			if( start == end )
+				return text; // unexpected end of matcher
+			
+			UIS_FRAG::Type type;
+			switch( spc )
+			{
+			case '^': type = c == '.' ? UIS_FRAG::T_MatchClassPartBegin : UIS_FRAG::T_MatchNamePartBegin; break;
+			case '$': type = c == '.' ? UIS_FRAG::T_MatchClassPartEnd : UIS_FRAG::T_MatchNamePartEnd; break;
+			case '~': type = c == '.' ? UIS_FRAG::T_MatchClassPart : UIS_FRAG::T_MatchNamePart; break;
+			default: type = c == '.' ? UIS_FRAG::T_MatchClassExact : UIS_FRAG::T_MatchNameExact; break;
+			}
+			UIS_FRAG F = { type, start, end };
+			sel->fragments.push_back( F );
+		}
+		else // type matcher
+		{
+			const char* start = text;
+			while( text < textend && !_sct_isanyspec( *text ) )
+				text++;
+			const char* end = text--;
+			if( start == end )
+				return text; // unexpected end of matcher (should never be hit)
+			UIS_FRAG F = { UIS_FRAG::T_MatchType, start, end };
+			sel->fragments.push_back( F );
+		}
+		text++;
+	}
+	
+	return NULL;
+}
+
+bool UI_SelectorTestControl( const UIStyleSelector* sel, UIControl* ctrl )
+{
+	int curfrag = sel->fragments.size() - 1;
+	int begfrag = curfrag;
+	bool moveonfail = true;
+	while( curfrag >= 0 && ctrl )
+	{
+		const UIS_FRAG& F = sel->fragments[ curfrag ];
+		// separators
+		if( F.type == UIS_FRAG::T_MoveOn )
+		{
+			moveonfail = true;
+			begfrag = --curfrag;
+			ctrl = ctrl->parent;
+			continue;
+		}
+		else if( F.type == UIS_FRAG::T_ReqNext )
+		{
+			moveonfail = false;
+			begfrag = --curfrag;
+			ctrl = ctrl->parent;
+			continue;
+		}
+		// matching
+		else if( F.type == UIS_FRAG::T_MatchAny )
+		{
+			// always succeeds
+		}
+		// - TYPE
+		else if( F.type == UIS_FRAG::T_MatchType )
+		{
+			if( !UI_TxMatchExact( F.start, F.end, ctrl->type.c_str(), ctrl->type.size() ) )
+				goto matchfail;
+		}
+		// - CLASS
+		else if( F.type == UIS_FRAG::T_MatchClassExact )
+		{
+			if( !ctrl->hasClass( F.start, F.end - F.start ) )
+				goto matchfail;
+		}
+		else if( F.type == UIS_FRAG::T_MatchClassPartBegin )
+		{
+			if( !ctrl->hasClassPartBegin( F.start, F.end - F.start ) )
+				goto matchfail;
+		}
+		else if( F.type == UIS_FRAG::T_MatchClassPartEnd )
+		{
+			if( !ctrl->hasClassPartEnd( F.start, F.end - F.start ) )
+				goto matchfail;
+		}
+		else if( F.type == UIS_FRAG::T_MatchClassPart )
+		{
+			if( !ctrl->hasClassPart( F.start, F.end - F.start ) )
+				goto matchfail;
+		}
+		// - NAME
+		else if( F.type == UIS_FRAG::T_MatchNameExact )
+		{
+			if( !UI_TxMatchExact( F.start, F.end, ctrl->name.c_str(), ctrl->name.size() ) )
+				goto matchfail;
+		}
+		else if( F.type == UIS_FRAG::T_MatchNamePartBegin )
+		{
+			if( !UI_TxMatchPartBegin( F.start, F.end, ctrl->name.c_str(), ctrl->name.size() ) )
+				goto matchfail;
+		}
+		else if( F.type == UIS_FRAG::T_MatchNamePartEnd )
+		{
+			if( !UI_TxMatchPartEnd( F.start, F.end, ctrl->name.c_str(), ctrl->name.size() ) )
+				goto matchfail;
+		}
+		else if( F.type == UIS_FRAG::T_MatchNamePart )
+		{
+			if( !UI_TxMatchPart( F.start, F.end, ctrl->name.c_str(), ctrl->name.size() ) )
+				goto matchfail;
+		}
+		curfrag--;
+		continue;
+		
+	matchfail:
+		if( moveonfail )
+		{
+			curfrag = begfrag;
+			ctrl = ctrl->parent;
+		}
+		else
+			return false;
+	}
+	// success is when we didn't run out of controls and matched all fragments
+	return ctrl && curfrag < 0;
 }
 
 int UI_CompareSelectors( const UIStyleSelector* sel1, const UIStyleSelector* sel2 )
@@ -131,6 +339,8 @@ bool UI_TxMatchPartEnd( const char* stfrom, const char* stto, const char* tgt, s
 
 bool UI_TxMatchPart( const char* stfrom, const char* stto, const char* tgt, size_t tgtsize )
 {
+	if( stto - stfrom > (ptrdiff_t) tgtsize )
+		return false;
 	const char* tgtend = tgt + tgtsize - ( stto - stfrom );
 	while( tgt < tgtend )
 		if( memcmp( stfrom, tgt++, stto - stfrom ) == 0 )
@@ -665,8 +875,57 @@ int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 	frame->font_func.gcmark();
 	frame->theme.gcmark();
 	frame->root.gcmark();
+	for( size_t i = 0; i < frame->m_styleSheets.size(); ++i )
+		frame->m_styleSheets[ i ].gcmark();
 	return SGS_SUCCESS;
 }
+
+
+void UIFrame::addStyleSheet( UIStyleSheet::Handle sheet )
+{
+	if( !sheet.object )
+		return;
+	if( VFIND( m_styleSheets, sheet ) >= m_styleSheets.size() )
+		m_styleSheets.push_back( sheet );
+	_updateStyles();
+}
+
+void UIFrame::removeStyleSheet( UIStyleSheet::Handle sheet )
+{
+	if( !sheet.object )
+		return;
+	size_t pos = VFIND( m_styleSheets, sheet );
+	if( pos < m_styleSheets.size() )
+		VREMOVEAT( m_styleSheets, pos );
+	_updateStyles();
+}
+
+sgsVariable UIFrame::getStyleSheets()
+{
+	for( size_t i = 0; i < m_styleSheets.size(); ++i )
+		sgs_PushHandle( C, m_styleSheets[ i ] );
+	sgs_PushArray( C, m_styleSheets.size() );
+	return sgsVariable( C, -1 );
+}
+
+void UIFrame::_updateStyles()
+{
+	std::vector< UIControl* > controls;
+	controls.push_back( root );
+	while( controls.size() )
+	{
+		UIControl* ctrl = controls[0];
+		VREMOVEAT( controls, 0 );
+		// CODE
+		
+		// -- TODO --
+		
+		// END
+		for( size_t i = 0; i < ctrl->m_children.size(); ++i )
+			controls.push_back( ctrl->m_children[ i ] );
+	}
+}
+
 
 sgsHandle< UIControl > UIFrame::getHoverControl()
 {
@@ -1405,14 +1664,40 @@ bool UIControl::hasClass( const char* str, size_t size )
 	return _findClassAt( str, size ) < classes.size();
 }
 
-size_t UIControl::_findClassAt( const char* str, size_t size )
+bool UIControl::hasClassPartBegin( const char* str, size_t size )
+{
+	_trimClass( &str, &size );
+	if( !size )
+		return false;
+	return _findClassAt( str, size, 1 ) < classes.size();
+}
+
+bool UIControl::hasClassPartEnd( const char* str, size_t size )
+{
+	_trimClass( &str, &size );
+	if( !size )
+		return false;
+	return _findClassAt( str, size, 2 ) < classes.size();
+}
+
+bool UIControl::hasClassPart( const char* str, size_t size )
+{
+	_trimClass( &str, &size );
+	if( !size )
+		return false;
+	return _findClassAt( str, size, 0 ) < classes.size();
+}
+
+size_t UIControl::_findClassAt( const char* str, size_t size, int checksides )
 {
 	size_t cpos = 0;
-	while( cpos < classes.size() - size )
+	if( size > classes.size() )
+		return classes.size();
+	while( cpos <= classes.size() - size )
 	{
-		if( memcmp( classes.c_str(), str, size ) == 0 &&
-			( cpos == 0 || classes.c_str()[ cpos - 1 ] == ' ' ) &&
-			( cpos + size >= classes.size() || classes.c_str()[ cpos + size ] == ' ' ) )
+		if( memcmp( classes.c_str() + cpos, str, size ) == 0 &&
+			( !(checksides&1) || cpos == 0 || classes.c_str()[ cpos - 1 ] == ' ' ) &&
+			( !(checksides&2) || cpos + size >= classes.size() || classes.c_str()[ cpos + size ] == ' ' ) )
 			return cpos;
 		cpos++;
 	}
