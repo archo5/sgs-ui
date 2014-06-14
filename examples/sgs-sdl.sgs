@@ -102,6 +102,9 @@ function update()
 		tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";
 		SS_DrawTextLine( tx, Font, 101, 1, [0,0,0,1] );
 		SS_DrawTextLine( tx, Font, 100, 0, [0.9,0.8,0.7,1] );
+		tx = fmt_text( "memory usage: {f.2} kB", sys_stat(3) / 1024 );
+		SS_DrawTextLine( tx, Font, 101, 21, [0,0,0,1] );
+		SS_DrawTextLine( tx, Font, 100, 20, [0.9,0.8,0.7,1] );
 	}
 	
 	SS_Present();

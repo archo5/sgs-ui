@@ -96,17 +96,12 @@ function sgs_ui_example_default()
 	
 	AUTOLAYOUT = UI_CreateAutoLayout( STAT, 840, 30, 100 );
 	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/page.png" );
-	BUTTON = UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/disk.png" );
+	BUTTON = UI_CreateButton( AUTOLAYOUT, 0, 0, null, 32, "", "icons/disk.png" );
 	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/disk_multiple.png" );
-	ocb = BUTTON.callback;
-	function BUTTON.callback( event ) use( ocb )
-	{
-		if( event.type == EV_MouseEnter )
-			this.width += 10;
-		else if( event.type == EV_MouseLeave )
-			this.width -= 10;
-		return this!ocb( event );
-	}
+	BUTTON.name = "hovertest";
+	FRAME.addStyleSheet( UI_CreateStyleSheet()
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ width = 32 } }.addSelector( "@hovertest" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ width = 42 } }.addSelector( "@hovertest:hover" ) ) );
 	
 	UI_CreateSlider( STAT, 800, 100, 150, 20, "sldr1", 0, 1, 0, false );
 	UI_CreateSlider( STAT, 800, 140, 150, 20, "sldr2", 0, 5-1, 1, false );

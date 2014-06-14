@@ -111,12 +111,14 @@ struct UIEvent
 	SGS_PROPERTY int type;
 	SGS_PROPERTY int key;
 	SGS_PROPERTY int button;
-	SGS_PROPERTY int uchar;
+	SGS_PROPERTY uint32_t uchar;
 	SGS_PROPERTY float x;
 	SGS_PROPERTY float y;
 	SGS_PROPERTY float rx;
 	SGS_PROPERTY float ry;
 };
+
+inline void UI_PushEvent( SGS_CTX, UIEvent* e ){ sgs_PushLiteClassFrom( C, e ); }
 
 
 struct UIStyle /* style storage */
@@ -131,10 +133,10 @@ struct UIStyle /* style storage */
 	SGS_PROPERTY sgsMaybe<float> q0y;
 	SGS_PROPERTY sgsMaybe<float> q1x;
 	SGS_PROPERTY sgsMaybe<float> q1y;
-	SGS_PROPERTY sgsMaybe<float> nc_top;
-	SGS_PROPERTY sgsMaybe<float> nc_left;
-	SGS_PROPERTY sgsMaybe<float> nc_right;
-	SGS_PROPERTY sgsMaybe<float> nc_bottom;
+	SGS_PROPERTY sgsMaybe<float> nonClientTop;
+	SGS_PROPERTY sgsMaybe<float> nonClientLeft;
+	SGS_PROPERTY sgsMaybe<float> nonClientRight;
+	SGS_PROPERTY sgsMaybe<float> nonClientBottom;
 	SGS_PROPERTY sgsMaybe<bool>  visible;
 	SGS_PROPERTY sgsMaybe<int>   index;
 	SGS_PROPERTY sgsMaybe<bool>  topmost;
@@ -155,6 +157,29 @@ struct UIStyle /* style storage */
 	SGS_PROPERTY sgsMaybe<float> fontSize;
 	SGS_PROPERTY sgsVariable     renderfunc;
 	
+#define UIS_DEFINE_ACCESSORS_ADC( ty, nm ) \
+	ty get_##nm##H() const { return TMIN( nm##Left.isset ? nm##Left.data : 0, nm##Right.isset ? nm##Right.data : 0 ); } \
+	ty get_##nm##V() const { return TMIN( nm##Top.isset ? nm##Top.data : 0, nm##Bottom.isset ? nm##Bottom.data : 0 ); } \
+	ty get_##nm() const { return TMIN( TMIN( nm##Left.isset ? nm##Left.data : 0, nm##Right.isset ? nm##Right.data : 0 ), \
+		TMIN( nm##Top.isset ? nm##Top.data : 0, nm##Bottom.isset ? nm##Bottom.data : 0 ) ); } \
+	void set_##nm##H( ty nm ){ nm##Left.set( nm ); nm##Right.set( nm ); } \
+	void set_##nm##V( ty nm ){ nm##Top.set( nm ); nm##Bottom.set( nm ); } \
+	void set_##nm( ty nm ){ nm##Left.set( nm ); nm##Right.set( nm ); nm##Top.set( nm ); nm##Bottom.set( nm ); }
+
+	UIS_DEFINE_ACCESSORS_ADC( float, nonClient );
+	UIS_DEFINE_ACCESSORS_ADC( float, margin );
+	UIS_DEFINE_ACCESSORS_ADC( float, padding );
+	
+	SGS_PROPERTY_FUNC( READ get_nonClientH WRITE set_nonClientH ) SGS_ALIAS( float nonClientH );
+	SGS_PROPERTY_FUNC( READ get_nonClientV WRITE set_nonClientV ) SGS_ALIAS( float nonClientV );
+	SGS_PROPERTY_FUNC( READ get_nonClient WRITE set_nonClient ) SGS_ALIAS( float nonClient );
+	SGS_PROPERTY_FUNC( READ get_marginH WRITE set_marginH ) SGS_ALIAS( float marginH );
+	SGS_PROPERTY_FUNC( READ get_marginV WRITE set_marginV ) SGS_ALIAS( float marginV );
+	SGS_PROPERTY_FUNC( READ get_margin WRITE set_margin ) SGS_ALIAS( float margin );
+	SGS_PROPERTY_FUNC( READ get_paddingH WRITE set_paddingH ) SGS_ALIAS( float paddingH );
+	SGS_PROPERTY_FUNC( READ get_paddingV WRITE set_paddingV ) SGS_ALIAS( float paddingV );
+	SGS_PROPERTY_FUNC( READ get_padding WRITE set_padding ) SGS_ALIAS( float padding );
+	
 	void gcmark(){ cursor.gcmark(); renderfunc.gcmark(); }
 };
 SGS_DEFAULT_LITE_OBJECT_INTERFACE( UIStyle );
@@ -169,10 +194,10 @@ struct UIStyleCache /* computed style cache */
 	float q0y;
 	float q1x;
 	float q1y;
-	float nc_top;
-	float nc_left;
-	float nc_right;
-	float nc_bottom;
+	float nonClientTop;
+	float nonClientLeft;
+	float nonClientRight;
+	float nonClientBottom;
 	bool  visible;
 	int   index;
 	bool  topmost;
@@ -215,6 +240,12 @@ struct UIStyleSelector
 			T_MatchNamePartBegin, // @^name
 			T_MatchNamePartEnd, // @$name
 			T_MatchNamePart, // @~name
+			// following words, prefixed by colon (:), specify the state/position to expect
+			T_MatchStateHover, // :hover (cursor is on it)
+			T_MatchStateActive, // :active (clicked on it)
+			T_MatchStateFocus, // :focus (has keyboard focus)
+			T_MatchPosFirstChild, // :first-child
+			T_MatchPosLastChild, // :last-child
 		};
 		
 		Type type;
@@ -257,7 +288,7 @@ struct UIStyleSheet
 	
 	UIStyleRule::HandleArray rules;
 	
-	SGS_METHOD void addRule( UIStyleRule::Handle rule ){ if( rule.object && !VFIND( rules, rule ) ) rules.push_back( rule ); }
+	SGS_METHOD SGS_MULTRET addRule( UIStyleRule::Handle rule ){ if( rule.object && VFIND( rules, rule ) >= rules.size() ) rules.push_back( rule ); SGS_RETURN_THIS(C); }
 };
 typedef std::vector< UIStyleSheet::Handle > StyleSheetArray;
 
@@ -297,7 +328,7 @@ struct UIFrame
 	SGS_METHOD void event( UIEvent* e );
 	SGS_METHOD void render();
 	UIControl* _getControlAtPosition( float x, float y );
-	SGS_METHOD void handleMouseMove();
+	SGS_METHOD void handleMouseMove( bool optional );
 	SGS_METHOD void setFocus( UIControl* ctrl );
 	
 	// event generation shortcuts
@@ -331,7 +362,7 @@ struct UIFrame
 	SGS_METHOD sgsVariable getStyleSheets();
 	SGS_METHOD UIStyleSheet::Handle getStyleSheet( size_t i ){ if( i >= m_styleSheets.size() ) return UIStyleSheet::Handle(); return m_styleSheets[ i ]; }
 	SGS_METHOD size_t getStyleSheetCount(){ return m_styleSheets.size(); }
-	void _updateStyles();
+	void _updateStyles( UIControl* initial );
 	
 	// info retrieval
 	SGS_METHOD float getClickOffsetX( int button ){ if( button < 0 || button >= Mouse_Button_Count ) return 0; return m_clickoffsets[ button ][0]; }
@@ -369,7 +400,8 @@ struct UIFrame
 		- <type>_renderfunc - rendering function for the specified control type
 		- <type>_<other> - misc. data for the specified control type
 	*/
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateTheme ) sgsVariable theme;
+	SGS_PROPERTY READ sgsVariable theme;
+	SGS_METHOD void setTheme( sgsVariable newtheme );
 	
 	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float x;
@@ -496,16 +528,24 @@ struct UIControl
 	UIStyleCache computedStyle; // active style data (after merging rule style and local override, on applying changes)
 	UIStyle filteredStyle; // calculated from style rules
 	UIStyle style; // local override
-	void _refilterStyles( UIFilteredStyleArray* styles );
+	void _refilterStyles( UIFilteredStyleArray& styles );
 	void _remergeStyle();
 	void _applyStyle( const UIStyleCache& nsc );
 	
 #define UIC_DEFINE_ACCESSORS( ty, nm ) \
 	ty get_##nm() const { return computedStyle.nm; } \
-	void set_##nm( ty nm ){ style.nm.set( nm ); _remergeStyle(); }
+	void set_##nm( sgsMaybe<ty> nm ){ style.nm = nm; _remergeStyle(); }
 #define UIC_DEFINE_ACCESSORS2( ty, nm ) \
 	ty get_##nm() const { return computedStyle.nm; } \
 	void set_##nm( ty nm ){ style.nm = nm; _remergeStyle(); }
+	// additional directional combination accessors
+#define UIC_DEFINE_ACCESSORS_ADC( ty, nm ) \
+	ty get_##nm##H() const { return TMIN( computedStyle.nm##Left, computedStyle.nm##Right ); } \
+	ty get_##nm##V() const { return TMIN( computedStyle.nm##Top, computedStyle.nm##Bottom ); } \
+	ty get_##nm() const { return TMIN( TMIN( computedStyle.nm##Left, computedStyle.nm##Right ), TMIN( computedStyle.nm##Top, computedStyle.nm##Bottom ) ); } \
+	void set_##nm##H( sgsMaybe<ty> nm ){ style.nm##Left = nm; style.nm##Right = nm; _remergeStyle(); } \
+	void set_##nm##V( sgsMaybe<ty> nm ){ style.nm##Top = nm; style.nm##Bottom = nm; _remergeStyle(); } \
+	void set_##nm( sgsMaybe<ty> nm ){ style.nm##Left = nm; style.nm##Right = nm; style.nm##Top = nm; style.nm##Bottom = nm; _remergeStyle(); }
 	
 	UIC_DEFINE_ACCESSORS( float, x );
 	UIC_DEFINE_ACCESSORS( float, y );
@@ -515,10 +555,10 @@ struct UIControl
 	UIC_DEFINE_ACCESSORS( float, q0y );
 	UIC_DEFINE_ACCESSORS( float, q1x );
 	UIC_DEFINE_ACCESSORS( float, q1y );
-	UIC_DEFINE_ACCESSORS( float, nc_top );
-	UIC_DEFINE_ACCESSORS( float, nc_left );
-	UIC_DEFINE_ACCESSORS( float, nc_right );
-	UIC_DEFINE_ACCESSORS( float, nc_bottom );
+	UIC_DEFINE_ACCESSORS( float, nonClientTop );
+	UIC_DEFINE_ACCESSORS( float, nonClientLeft );
+	UIC_DEFINE_ACCESSORS( float, nonClientRight );
+	UIC_DEFINE_ACCESSORS( float, nonClientBottom );
 	UIC_DEFINE_ACCESSORS( bool, visible );
 	UIC_DEFINE_ACCESSORS( int, index );
 	UIC_DEFINE_ACCESSORS( bool, topmost );
@@ -539,6 +579,10 @@ struct UIControl
 	UIC_DEFINE_ACCESSORS( float, fontSize );
 	UIC_DEFINE_ACCESSORS2( sgsVariable, renderfunc );
 	
+	UIC_DEFINE_ACCESSORS_ADC( float, nonClient );
+	UIC_DEFINE_ACCESSORS_ADC( float, margin );
+	UIC_DEFINE_ACCESSORS_ADC( float, padding );
+	
 	float get_offsetLeft(){ return get_x(); }
 	float get_offsetRight(){ return -get_width() - get_x(); }
 	float get_offsetTop(){ return get_y(); }
@@ -548,37 +592,47 @@ struct UIControl
 	void set_offsetTop( float v ){ style.height.set( get_height() - v + get_y() ); set_y( v ); }
 	void set_offsetBottom( float v ){ set_height( -v - get_y() ); }
 	
-	SGS_PROPERTY_FUNC( READ get_x WRITE set_x ) SGS_ALIAS( float x );
-	SGS_PROPERTY_FUNC( READ get_y WRITE set_y ) SGS_ALIAS( float y );
-	SGS_PROPERTY_FUNC( READ get_width WRITE set_width ) SGS_ALIAS( float width );
-	SGS_PROPERTY_FUNC( READ get_height WRITE set_height ) SGS_ALIAS( float height );
-	SGS_PROPERTY_FUNC( READ get_q0x WRITE set_q0x ) SGS_ALIAS( float q0x );
-	SGS_PROPERTY_FUNC( READ get_q0y WRITE set_q0y ) SGS_ALIAS( float q0y );
-	SGS_PROPERTY_FUNC( READ get_q1x WRITE set_q1x ) SGS_ALIAS( float q1x );
-	SGS_PROPERTY_FUNC( READ get_q1y WRITE set_q1y ) SGS_ALIAS( float q1y );
-	SGS_PROPERTY_FUNC( READ get_nc_top WRITE set_nc_top ) SGS_ALIAS( float nc_top );
-	SGS_PROPERTY_FUNC( READ get_nc_left WRITE set_nc_left ) SGS_ALIAS( float nc_left );
-	SGS_PROPERTY_FUNC( READ get_nc_right WRITE set_nc_right ) SGS_ALIAS( float nc_right );
-	SGS_PROPERTY_FUNC( READ get_nc_bottom WRITE set_nc_bottom ) SGS_ALIAS( float nc_bottom );
-	SGS_PROPERTY_FUNC( READ get_visible WRITE set_visible ) SGS_ALIAS( bool visible );
-	SGS_PROPERTY_FUNC( READ get_index WRITE set_index ) SGS_ALIAS( int index );
-	SGS_PROPERTY_FUNC( READ get_topmost WRITE set_topmost ) SGS_ALIAS( bool topmost );
-	SGS_PROPERTY_FUNC( READ get_minWidth WRITE set_minWidth ) SGS_ALIAS( float minWidth );
-	SGS_PROPERTY_FUNC( READ get_maxWidth WRITE set_maxWidth ) SGS_ALIAS( float maxWidth );
-	SGS_PROPERTY_FUNC( READ get_minHeight WRITE set_minHeight ) SGS_ALIAS( float minHeight );
-	SGS_PROPERTY_FUNC( READ get_maxHeight WRITE set_maxHeight ) SGS_ALIAS( float maxHeight );
-	SGS_PROPERTY_FUNC( READ get_marginLeft WRITE set_marginLeft ) SGS_ALIAS( float marginLeft );
-	SGS_PROPERTY_FUNC( READ get_marginRight WRITE set_marginRight ) SGS_ALIAS( float marginRight );
-	SGS_PROPERTY_FUNC( READ get_marginTop WRITE set_marginTop ) SGS_ALIAS( float marginTop );
-	SGS_PROPERTY_FUNC( READ get_marginBottom WRITE set_marginBottom ) SGS_ALIAS( float marginBottom );
-	SGS_PROPERTY_FUNC( READ get_paddingLeft WRITE set_paddingLeft ) SGS_ALIAS( float paddingLeft );
-	SGS_PROPERTY_FUNC( READ get_paddingRight WRITE set_paddingRight ) SGS_ALIAS( float paddingRight );
-	SGS_PROPERTY_FUNC( READ get_paddingTop WRITE set_paddingTop ) SGS_ALIAS( float paddingTop );
-	SGS_PROPERTY_FUNC( READ get_paddingBottom WRITE set_paddingBottom ) SGS_ALIAS( float paddingBottom );
+	SGS_PROPERTY_FUNC( READ get_x WRITE set_x ) SGS_ALIAS( sgsMaybe<float> x );
+	SGS_PROPERTY_FUNC( READ get_y WRITE set_y ) SGS_ALIAS( sgsMaybe<float> y );
+	SGS_PROPERTY_FUNC( READ get_width WRITE set_width ) SGS_ALIAS( sgsMaybe<float> width );
+	SGS_PROPERTY_FUNC( READ get_height WRITE set_height ) SGS_ALIAS( sgsMaybe<float> height );
+	SGS_PROPERTY_FUNC( READ get_q0x WRITE set_q0x ) SGS_ALIAS( sgsMaybe<float> q0x );
+	SGS_PROPERTY_FUNC( READ get_q0y WRITE set_q0y ) SGS_ALIAS( sgsMaybe<float> q0y );
+	SGS_PROPERTY_FUNC( READ get_q1x WRITE set_q1x ) SGS_ALIAS( sgsMaybe<float> q1x );
+	SGS_PROPERTY_FUNC( READ get_q1y WRITE set_q1y ) SGS_ALIAS( sgsMaybe<float> q1y );
+	SGS_PROPERTY_FUNC( READ get_nonClientTop WRITE set_nonClientTop ) SGS_ALIAS( sgsMaybe<float> nonClientTop );
+	SGS_PROPERTY_FUNC( READ get_nonClientLeft WRITE set_nonClientLeft ) SGS_ALIAS( sgsMaybe<float> nonClientLeft );
+	SGS_PROPERTY_FUNC( READ get_nonClientRight WRITE set_nonClientRight ) SGS_ALIAS( sgsMaybe<float> nonClientRight );
+	SGS_PROPERTY_FUNC( READ get_nonClientBottom WRITE set_nonClientBottom ) SGS_ALIAS( sgsMaybe<float> nonClientBottom );
+	SGS_PROPERTY_FUNC( READ get_visible WRITE set_visible ) SGS_ALIAS( sgsMaybe<bool> visible );
+	SGS_PROPERTY_FUNC( READ get_index WRITE set_index ) SGS_ALIAS( sgsMaybe<int> index );
+	SGS_PROPERTY_FUNC( READ get_topmost WRITE set_topmost ) SGS_ALIAS( sgsMaybe<bool> topmost );
+	SGS_PROPERTY_FUNC( READ get_minWidth WRITE set_minWidth ) SGS_ALIAS( sgsMaybe<float> minWidth );
+	SGS_PROPERTY_FUNC( READ get_maxWidth WRITE set_maxWidth ) SGS_ALIAS( sgsMaybe<float> maxWidth );
+	SGS_PROPERTY_FUNC( READ get_minHeight WRITE set_minHeight ) SGS_ALIAS( sgsMaybe<float> minHeight );
+	SGS_PROPERTY_FUNC( READ get_maxHeight WRITE set_maxHeight ) SGS_ALIAS( sgsMaybe<float> maxHeight );
+	SGS_PROPERTY_FUNC( READ get_marginLeft WRITE set_marginLeft ) SGS_ALIAS( sgsMaybe<float> marginLeft );
+	SGS_PROPERTY_FUNC( READ get_marginRight WRITE set_marginRight ) SGS_ALIAS( sgsMaybe<float> marginRight );
+	SGS_PROPERTY_FUNC( READ get_marginTop WRITE set_marginTop ) SGS_ALIAS( sgsMaybe<float> marginTop );
+	SGS_PROPERTY_FUNC( READ get_marginBottom WRITE set_marginBottom ) SGS_ALIAS( sgsMaybe<float> marginBottom );
+	SGS_PROPERTY_FUNC( READ get_paddingLeft WRITE set_paddingLeft ) SGS_ALIAS( sgsMaybe<float> paddingLeft );
+	SGS_PROPERTY_FUNC( READ get_paddingRight WRITE set_paddingRight ) SGS_ALIAS( sgsMaybe<float> paddingRight );
+	SGS_PROPERTY_FUNC( READ get_paddingTop WRITE set_paddingTop ) SGS_ALIAS( sgsMaybe<float> paddingTop );
+	SGS_PROPERTY_FUNC( READ get_paddingBottom WRITE set_paddingBottom ) SGS_ALIAS( sgsMaybe<float> paddingBottom );
 	SGS_PROPERTY_FUNC( READ get_cursor WRITE set_cursor ) SGS_ALIAS( sgsVariable cursor );
 	SGS_PROPERTY_FUNC( READ get_font WRITE set_font ) SGS_ALIAS( sgsString font );
-	SGS_PROPERTY_FUNC( READ get_fontSize WRITE set_fontSize ) SGS_ALIAS( float fontSize );
+	SGS_PROPERTY_FUNC( READ get_fontSize WRITE set_fontSize ) SGS_ALIAS( sgsMaybe<float> fontSize );
 	SGS_PROPERTY_FUNC( READ get_renderfunc WRITE set_renderfunc ) SGS_ALIAS( sgsVariable renderfunc );
+	
+	SGS_PROPERTY_FUNC( READ get_nonClientH WRITE set_nonClientH ) SGS_ALIAS( sgsMaybe<float> nonClientH );
+	SGS_PROPERTY_FUNC( READ get_nonClientV WRITE set_nonClientV ) SGS_ALIAS( sgsMaybe<float> nonClientV );
+	SGS_PROPERTY_FUNC( READ get_nonClient WRITE set_nonClient ) SGS_ALIAS( sgsMaybe<float> nonClient );
+	SGS_PROPERTY_FUNC( READ get_marginH WRITE set_marginH ) SGS_ALIAS( sgsMaybe<float> marginH );
+	SGS_PROPERTY_FUNC( READ get_marginV WRITE set_marginV ) SGS_ALIAS( sgsMaybe<float> marginV );
+	SGS_PROPERTY_FUNC( READ get_margin WRITE set_margin ) SGS_ALIAS( sgsMaybe<float> margin );
+	SGS_PROPERTY_FUNC( READ get_paddingH WRITE set_paddingH ) SGS_ALIAS( sgsMaybe<float> paddingH );
+	SGS_PROPERTY_FUNC( READ get_paddingV WRITE set_paddingV ) SGS_ALIAS( sgsMaybe<float> paddingV );
+	SGS_PROPERTY_FUNC( READ get_padding WRITE set_padding ) SGS_ALIAS( sgsMaybe<float> padding );
 	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_y;
@@ -595,15 +649,26 @@ struct UIControl
 	SGS_PROPERTY sgsVariable data;
 	SGS_PROPERTY sgsVariable _interface;
 	
+	// full rect
 	SGS_PROPERTY READ float rx0;
 	SGS_PROPERTY READ float rx1;
 	SGS_PROPERTY READ float ry0;
 	SGS_PROPERTY READ float ry1;
+	// client rect
+	SGS_PROPERTY READ float cx0;
+	SGS_PROPERTY READ float cx1;
+	SGS_PROPERTY READ float cy0;
+	SGS_PROPERTY READ float cy1;
+	// padded rect
+	SGS_PROPERTY READ float px0;
+	SGS_PROPERTY READ float px1;
+	SGS_PROPERTY READ float py0;
+	SGS_PROPERTY READ float py1;
 	
 	SGS_PROPERTY bool _updatingLayout : 1; /* true if updating layout and don't want to trigger further layout changes */
 	SGS_PROPERTY bool _roundedCoords : 1; /* true if final coords (r[xy][01]) should be rounded */
 	SGS_PROPERTY READ bool mouseOn;
-	SGS_PROPERTY READ bool clicked;
+	SGS_PROPERTY READ int clicked;
 	SGS_PROPERTY READ bool keyboardFocus;
 	
 	HandleArray m_children;
@@ -612,9 +677,6 @@ struct UIControl
 	AnimArray m_animQueue;
 };
 
-
-
-inline void UI_PushEvent( SGS_CTX, UIEvent* e ){ sgs_PushLiteClassFrom( C, e ); }
 
 
 #endif // __SGS_UI_CONTROL__

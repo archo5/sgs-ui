@@ -25,15 +25,24 @@ SGS_MULTRET UIStyleRule::addSelector( sgsString str )
 	const char* serr = UI_ParseSelector( sel, str );
 	if( serr )
 	{
+		sel = NULL;
+		selectors.resize( selectors.size() - 1 );
 		sgs_PushBool( C, 0 );
 		sgs_PushInt( C, serr - str.c_str() );
 		return 2;
 	}
-	sgs_PushBool( C, 1 );
-	return 1;
+	
+	size_t selpos = selectors.size() - 1;
+	while( selpos > 0 && UI_CompareSelectors( &selectors[ selpos - 1 ], &selectors[ selpos ] ) < 0 )
+	{
+		VQSWAP( selectors, selpos - 1, selpos );
+		selpos--;
+	}
+	
+	SGS_RETURN_THIS(C);
 }
 
-bool UIStyleRule::checkMatch( sgsHandle< struct UIControl > ctrl )
+bool UIStyleRule::checkMatch( sgsHandle< UIControl > ctrl )
 {
 	for( size_t i = 0; i < selectors.size(); ++i )
 		if( UI_SelectorTestControl( &selectors[ i ], ctrl ) )
@@ -58,6 +67,7 @@ static inline bool _sct_isanyspec( int type )
 	type == '@' ||
 	type == '>' ||
 	type == '*' ||
+	type == ':' ||
 	type == ' ' ||
 	type == '\n' ||
 	type == '\r' ||
@@ -92,7 +102,7 @@ const char* UI_ParseSelector( UIStyleSelector* sel, sgsString str )
 				UIS_FRAG F = { UIS_FRAG::T_ReqNext, NULL, NULL };
 				sel->fragments.push_back( F );
 			}
-				
+			sel->numnext++;
 		}
 		else if( c == ' ' || c == '\n' || c == '\r' || c == '\t' )
 		{
@@ -108,6 +118,7 @@ const char* UI_ParseSelector( UIStyleSelector* sel, sgsString str )
 				return text; // error: this item must be first in matcher list
 			UIS_FRAG F = { UIS_FRAG::T_MatchAny, NULL, NULL };
 			sel->fragments.push_back( F );
+			sel->numtypes++;
 		}
 		else if( c == '.' || c == '@' )
 		{
@@ -138,6 +149,34 @@ const char* UI_ParseSelector( UIStyleSelector* sel, sgsString str )
 			}
 			UIS_FRAG F = { type, start, end };
 			sel->fragments.push_back( F );
+			if( c == '.' )
+				sel->numclasses++;
+			else
+				sel->numnames++;
+		}
+		else if( c == ':' ) // state matcher
+		{
+			text++;
+			if( text >= textend ) return text; // unexpected end of string
+			
+			const char* start = text;
+			while( text < textend && !_sct_isanyspec( *text ) )
+				text++;
+			const char* end = text--;
+			if( start == end )
+				return text; // unexpected end of matcher
+			
+			UIS_FRAG::Type type;
+			if( UI_TxMatchExact( start, end, "hover", 5 ) ) type = UIS_FRAG::T_MatchStateHover;
+			else if( UI_TxMatchExact( start, end, "active", 6 ) ) type = UIS_FRAG::T_MatchStateActive;
+			else if( UI_TxMatchExact( start, end, "focus", 5 ) ) type = UIS_FRAG::T_MatchStateFocus;
+			else if( UI_TxMatchExact( start, end, "first-child", 11 ) ) type = UIS_FRAG::T_MatchPosFirstChild;
+			else if( UI_TxMatchExact( start, end, "last-child", 10 ) ) type = UIS_FRAG::T_MatchPosLastChild;
+			else return start; // wrong matcher type
+			
+			UIS_FRAG F = { type, start, end };
+			sel->fragments.push_back( F );
+			sel->numclasses++; // technically it's not really a class but in terms of styling should behave like one
 		}
 		else // type matcher
 		{
@@ -149,6 +188,7 @@ const char* UI_ParseSelector( UIStyleSelector* sel, sgsString str )
 				return text; // unexpected end of matcher (should never be hit)
 			UIS_FRAG F = { UIS_FRAG::T_MatchType, start, end };
 			sel->fragments.push_back( F );
+			sel->numtypes++;
 		}
 		text++;
 	}
@@ -232,6 +272,31 @@ bool UI_SelectorTestControl( const UIStyleSelector* sel, UIControl* ctrl )
 			if( !UI_TxMatchPart( F.start, F.end, ctrl->name.c_str(), ctrl->name.size() ) )
 				goto matchfail;
 		}
+		else if( F.type == UIS_FRAG::T_MatchStateHover )
+		{
+			if( !ctrl->mouseOn )
+				goto matchfail;
+		}
+		else if( F.type == UIS_FRAG::T_MatchStateActive )
+		{
+			if( !ctrl->clicked )
+				goto matchfail;
+		}
+		else if( F.type == UIS_FRAG::T_MatchStateFocus )
+		{
+			if( !ctrl->keyboardFocus )
+				goto matchfail;
+		}
+		else if( F.type == UIS_FRAG::T_MatchPosFirstChild )
+		{
+			if( !ctrl->parent.object || ctrl->parent->m_children[0] != ctrl )
+				goto matchfail;
+		}
+		else if( F.type == UIS_FRAG::T_MatchPosLastChild )
+		{
+			if( !ctrl->parent.object || VLASTOF( ctrl->parent->m_children ) != ctrl )
+				goto matchfail;
+		}
 		curfrag--;
 		continue;
 		
@@ -265,10 +330,10 @@ void UI_StyleMerge( UIStyle* style, UIStyle* add )
 	if( !style->q0y.isset ) style->q0y = add->q0y;
 	if( !style->q1x.isset ) style->q1x = add->q1x;
 	if( !style->q1y.isset ) style->q1y = add->q1y;
-	if( !style->nc_top.isset ) style->nc_top = add->nc_top;
-	if( !style->nc_left.isset ) style->nc_left = add->nc_left;
-	if( !style->nc_right.isset ) style->nc_right = add->nc_right;
-	if( !style->nc_bottom.isset ) style->nc_bottom = add->nc_bottom;
+	if( !style->nonClientTop.isset ) style->nonClientTop = add->nonClientTop;
+	if( !style->nonClientLeft.isset ) style->nonClientLeft = add->nonClientLeft;
+	if( !style->nonClientRight.isset ) style->nonClientRight = add->nonClientRight;
+	if( !style->nonClientBottom.isset ) style->nonClientBottom = add->nonClientBottom;
 	if( !style->visible.isset ) style->visible = add->visible;
 	if( !style->index.isset ) style->index = add->index;
 	if( !style->topmost.isset ) style->topmost = add->topmost;
@@ -300,10 +365,10 @@ void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style )
 	cache->q0y = style->q0y.isset ? style->q0y.data : 0;
 	cache->q1x = style->q1x.isset ? style->q1x.data : 0;
 	cache->q1y = style->q1y.isset ? style->q1y.data : 0;
-	cache->nc_top = style->nc_top.isset ? style->nc_top.data : 0;
-	cache->nc_left = style->nc_left.isset ? style->nc_left.data : 0;
-	cache->nc_right = style->nc_right.isset ? style->nc_right.data : 0;
-	cache->nc_bottom = style->nc_bottom.isset ? style->nc_bottom.data : 0;
+	cache->nonClientTop = style->nonClientTop.isset ? style->nonClientTop.data : 0;
+	cache->nonClientLeft = style->nonClientLeft.isset ? style->nonClientLeft.data : 0;
+	cache->nonClientRight = style->nonClientRight.isset ? style->nonClientRight.data : 0;
+	cache->nonClientBottom = style->nonClientBottom.isset ? style->nonClientBottom.data : 0;
 	cache->visible = style->visible.isset ? style->visible.data : true;
 	cache->index = style->index.isset ? style->index.data : 0;
 	cache->topmost = style->topmost.isset ? style->topmost.data : false;
@@ -383,10 +448,10 @@ int UIControl_CtrlProc( SGS_CTX )
 			UIFrame* frame = ctrl->frame;
 			if( prt )
 			{
-				pr0x = prt->rx0 + prt->get_nc_left();
-				pr0y = prt->ry0 + prt->get_nc_top();
-				pr1x = prt->rx1 - prt->get_nc_right();
-				pr1y = prt->ry1 - prt->get_nc_bottom();
+				pr0x = prt->rx0 + prt->get_nonClientLeft();
+				pr0y = prt->ry0 + prt->get_nonClientTop();
+				pr1x = prt->rx1 - prt->get_nonClientRight();
+				pr1y = prt->ry1 - prt->get_nonClientBottom();
 				if( !ctrl->nonclient )
 				{
 					pr0x += prt->scroll_x;
@@ -424,6 +489,28 @@ int UIControl_CtrlProc( SGS_CTX )
 				ctrl->ry0 = round( ctrl->ry0 );
 				ctrl->ry1 = round( ctrl->ry1 );
 			}
+			ctrl->cx0 = ctrl->rx0 + ctrl->get_nonClientLeft();
+			ctrl->cx1 = ctrl->rx1 - ctrl->get_nonClientRight();
+			ctrl->cy0 = ctrl->ry0 + ctrl->get_nonClientTop();
+			ctrl->cy1 = ctrl->ry1 - ctrl->get_nonClientBottom();
+			if( ctrl->_roundedCoords )
+			{
+				ctrl->cx0 = round( ctrl->cx0 );
+				ctrl->cx1 = round( ctrl->cx1 );
+				ctrl->cy0 = round( ctrl->cy0 );
+				ctrl->cy1 = round( ctrl->cy1 );
+			}
+			ctrl->px0 = ctrl->cx0 + ctrl->get_paddingLeft();
+			ctrl->px1 = ctrl->cx1 - ctrl->get_paddingRight();
+			ctrl->py0 = ctrl->cy0 + ctrl->get_paddingTop();
+			ctrl->py1 = ctrl->cy1 - ctrl->get_paddingBottom();
+			if( ctrl->_roundedCoords )
+			{
+				ctrl->px0 = round( ctrl->px0 );
+				ctrl->px1 = round( ctrl->px1 );
+				ctrl->py0 = round( ctrl->py0 );
+				ctrl->py1 = round( ctrl->py1 );
+			}
 		}
 		for( UIControl::HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
 			(*it)->updateLayout();
@@ -443,8 +530,8 @@ int UIControl_CtrlProc( SGS_CTX )
 		if( event->x >= ctrl->rx0 && event->x <= ctrl->rx1 &&
 			event->y >= ctrl->ry0 && event->y <= ctrl->ry1 )
 		{
-			if( event->x >= ctrl->rx0 + ctrl->get_nc_left() && event->x <= ctrl->rx1 - ctrl->get_nc_right() &&
-				event->y >= ctrl->ry0 + ctrl->get_nc_top() && event->y <= ctrl->ry1 - ctrl->get_nc_bottom() )
+			if( event->x >= ctrl->rx0 + ctrl->get_nonClientLeft() && event->x <= ctrl->rx1 - ctrl->get_nonClientRight() &&
+				event->y >= ctrl->ry0 + ctrl->get_nonClientTop() && event->y <= ctrl->ry1 - ctrl->get_nonClientBottom() )
 				sgs_PushInt( C, Hit_Client );
 			else
 				sgs_PushInt( C, Hit_NonClient );
@@ -462,12 +549,15 @@ int UIControl_CtrlProc( SGS_CTX )
 		
 	case EV_MouseEnter:
 		ctrl->mouseOn = true;
+		{ UIFilteredStyleArray fsa; ctrl->_refilterStyles( fsa ); }
 		return 1;
 	case EV_MouseLeave:
 		ctrl->mouseOn = false;
+		{ UIFilteredStyleArray fsa; ctrl->_refilterStyles( fsa ); }
 		return 1;
 	case EV_ButtonDown:
-		ctrl->clicked = ctrl->mouseOn;
+		ctrl->clicked += ctrl->mouseOn;
+		{ UIFilteredStyleArray fsa; ctrl->_refilterStyles( fsa ); }
 		ctrl->callEvent( sgsString( "mousedown", C ), event );
 		if( ctrl->frame.object )
 			ctrl->frame->setFocus( ctrl );
@@ -476,7 +566,10 @@ int UIControl_CtrlProc( SGS_CTX )
 		ctrl->callEvent( sgsString( "mouseup", C ), event );
 		if( ctrl->clicked && ctrl->frame.object && ctrl->frame->isControlUnderCursor( UIControl::CreateHandle( ctrl ) ) )
 			ctrl->callEvent( sgsString( "click", C ), event );
-		ctrl->clicked = false;
+		ctrl->clicked--;
+		{ UIFilteredStyleArray fsa; ctrl->_refilterStyles( fsa ); }
+		if( ctrl->clicked < 0 )
+			ctrl->clicked = 0;
 		return 1;
 		
 	case EV_FocusEnter:
@@ -520,6 +613,8 @@ UIControl::Handle UIFrame::createControl( sgsString type )
 	ctrl->frame = Handle( m_sgsObject, C );
 	ctrl->id = m_controlIDGen.GetID();
 	ctrl->updateFont();
+	UIFilteredStyleArray fsa;
+	ctrl->_refilterStyles( fsa );
 	UIControl::Handle handle = sgs_GetVar< UIControl::Handle >()( C, -1 );
 	sgs_Pop( C, 1 );
 	return handle;
@@ -571,11 +666,14 @@ UIControl* UIFrame::_getControlAtPosition( float x, float y )
 	return atpos;
 }
 
-void UIFrame::handleMouseMove()
+void UIFrame::handleMouseMove( bool optional )
 {
-	for( int i = 0; i < Mouse_Button_Count; ++i )
-		if( m_clicktargets[ i ] )
-			return;
+	if( optional )
+	{
+		for( int i = 0; i < Mouse_Button_Count; ++i )
+			if( m_clicktargets[ i ] )
+				return;
+	}
 	
 	// find new mouse-over item
 	UIControl* prevhover = m_hover;
@@ -621,7 +719,7 @@ void UIFrame::doMouseMove( float x, float y )
 	mouseX = x;
 	mouseY = y;
 	
-	handleMouseMove();
+	handleMouseMove( true );
 	
 	if( m_hover )
 	{
@@ -839,6 +937,42 @@ void UIFrame::_applyScissorState()
 	sgs_SetStackSize( C, ssz );
 }
 
+
+static UIStyleSheet::Handle _theme_getstylesheet( SGS_CTX, sgsVariable theme )
+{
+	if( theme.not_null() )
+	{
+		sgs_String32 str32;
+		sgs_Variable key, val;
+		sgs_InitString32( &key, &str32, "stylesheet" );
+		
+		if( SGS_SUCCEEDED( sgs_GetIndexPPP( C, &theme.var, &key, &val, 0 ) ) )
+		{
+			sgs_CheckString32( &str32 );
+			if( val.type == SGS_VT_OBJECT )
+				return UIStyleSheet::Handle( val.data.O, C );
+		}
+		sgs_CheckString32( &str32 );
+	}
+	
+	return UIStyleSheet::Handle();
+}
+
+void UIFrame::setTheme( sgsVariable newtheme )
+{
+	UIStyleSheet::Handle ssh = _theme_getstylesheet( C, theme );
+	if( ssh.object )
+		removeStyleSheet( ssh );
+		
+	theme = newtheme;
+	
+	ssh = _theme_getstylesheet( C, newtheme );
+	if( ssh.object )
+		addStyleSheet( ssh );
+	
+	updateTheme();
+}
+
 void UIFrame::updateLayout()
 {
 	root->updateLayout();
@@ -897,7 +1031,7 @@ void UIFrame::addStyleSheet( UIStyleSheet::Handle sheet )
 		return;
 	if( VFIND( m_styleSheets, sheet ) >= m_styleSheets.size() )
 		m_styleSheets.push_back( sheet );
-	_updateStyles();
+	_updateStyles( root );
 }
 
 void UIFrame::removeStyleSheet( UIStyleSheet::Handle sheet )
@@ -907,7 +1041,7 @@ void UIFrame::removeStyleSheet( UIStyleSheet::Handle sheet )
 	size_t pos = VFIND( m_styleSheets, sheet );
 	if( pos < m_styleSheets.size() )
 		VREMOVEAT( m_styleSheets, pos );
-	_updateStyles();
+	_updateStyles( root );
 }
 
 sgsVariable UIFrame::getStyleSheets()
@@ -918,17 +1052,17 @@ sgsVariable UIFrame::getStyleSheets()
 	return sgsVariable( C, -1 );
 }
 
-void UIFrame::_updateStyles()
+void UIFrame::_updateStyles( UIControl* initial )
 {
 	UIFilteredStyleArray fsa;
 	std::vector< UIControl* > controls;
-	controls.push_back( root );
+	controls.push_back( initial );
 	while( controls.size() )
 	{
 		UIControl* ctrl = controls[0];
 		VREMOVEAT( controls, 0 );
 		
-		ctrl->_refilterStyles( &fsa );
+		ctrl->_refilterStyles( fsa );
 		
 		for( size_t i = 0; i < ctrl->m_children.size(); ++i )
 			controls.push_back( ctrl->m_children[ i ] );
@@ -980,7 +1114,7 @@ UIControl::UIControl() :
 	id( UI_NO_ID ), scroll_x(0.0f), scroll_y(0.0f), nonclient(false),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
 	_updatingLayout(false), _roundedCoords(true),
-	mouseOn(false), clicked(false), keyboardFocus(false)
+	mouseOn(false), clicked(0), keyboardFocus(false)
 {
 	sgs_PushCFunction( C, UIControl_CtrlProc );
 	callback = sgsVariable( C, -1 );
@@ -1042,7 +1176,7 @@ void UIControl::niRender()
 		sgs_SetStackSize( C, orig );
 	}
 	
-	if( frame->pushScissorRect( rx0 + get_nc_left(), ry0 + get_nc_top(), rx1 - get_nc_right(), ry1 - get_nc_bottom() ) )
+	if( frame->pushScissorRect( rx0 + get_nonClientLeft(), ry0 + get_nonClientTop(), rx1 - get_nonClientRight(), ry1 - get_nonClientBottom() ) )
 	{
 		for( HandleArray::iterator it = m_sorted.begin(), itend = m_sorted.end(); it != itend; ++it )
 		{
@@ -1188,7 +1322,7 @@ bool UIControl::removeChild( UIControl::Handle ch )
 	ch->parent = Handle();
 	if( ch->frame.object && ch->frame->m_hover == (UIControl*) ch )
 	{
-		ch->frame->handleMouseMove();
+		ch->frame->handleMouseMove( false );
 		ch->frame->preRemoveControl( ch );
 	}
 	sortChildren();
@@ -1636,6 +1770,7 @@ bool UIControl::addClass( const char* str, size_t size )
 	if( hasClass( str, size ) )
 		return true;
 	_setClasses3( classes.c_str(), classes.size(), " ", classes.size() != 0 ? 1 : 0, str, size );
+	frame->_updateStyles( this );
 	return true;
 }
 
@@ -1655,6 +1790,7 @@ bool UIControl::removeClass( const char* str, size_t size )
 		_setClasses3( classes.c_str(), classes.size() - size - 1, NULL, 0, NULL, 0 );
 	else
 		_setClasses3( classes.c_str(), cpos, classes.c_str() + cpos + size + 1, classes.size() - cpos - size - 1, NULL, 0 );
+	frame->_updateStyles( this );
 	return true;
 }
 
@@ -1719,12 +1855,12 @@ void UIControl::_trimClass( const char** str, size_t* size )
 }
 
 
-void UIControl::_refilterStyles( UIFilteredStyleArray* styles )
+void UIControl::_refilterStyles( UIFilteredStyleArray& styles )
 {
 	if( !frame.object )
 		return;
 	
-	styles->clear();
+	styles.clear();
 	// gather all matching styles
 	StyleSheetArray& SSA = frame->m_styleSheets;
 	for( size_t i = 0; i < SSA.size(); ++i )
@@ -1738,19 +1874,29 @@ void UIControl::_refilterStyles( UIFilteredStyleArray* styles )
 				if( UI_SelectorTestControl( &SR->selectors[ k ], this ) )
 				{
 					UIFilteredStyle fs = { SR, k };
-					styles->push_back( fs );
+					styles.push_back( fs );
+					
+					// insertion-sort by importance
+					size_t fspos = styles.size() - 1;
+					while( fspos > 0 && UI_CompareSelectors(
+						&styles[ fspos - 1 ].rule->selectors[ styles[ fspos - 1 ].which_sel ],
+						&styles[ fspos ].rule->selectors[ styles[ fspos ].which_sel ] ) < 0 )
+					{
+						VSWAP( styles, fspos - 1, fspos );
+						fspos--;
+					}
+					
 					break;
 				}
 			}
 		}
 	}
 	
-	// sort by importance
-	
 	// save generated style
 	filteredStyle = UIStyle();
-	for( size_t i = 0; i < styles->size(); ++i )
-		UI_StyleMerge( &filteredStyle, &styles->at( i ).rule->style );
+	for( size_t i = 0; i < styles.size(); ++i )
+		UI_StyleMerge( &filteredStyle, &styles[ i ].rule->style );
+	
 	_remergeStyle();
 }
 
@@ -1772,7 +1918,7 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	bool updatedOrder = NEQ( index ) || NEQ( topmost );
 	bool updatedBox = NEQ( x ) || NEQ( y ) || NEQ( width ) || NEQ( height )
 		|| NEQ( q0x ) || NEQ( q0y ) || NEQ( q1x ) || NEQ( q1y )
-		|| NEQ( nc_top ) || NEQ( nc_left ) || NEQ( nc_right ) || NEQ( nc_bottom )
+		|| NEQ( nonClientTop ) || NEQ( nonClientLeft ) || NEQ( nonClientRight ) || NEQ( nonClientBottom )
 		|| NEQ( minWidth ) || NEQ( maxWidth ) || NEQ( minHeight ) || NEQ( maxHeight )
 		|| NEQ( marginLeft ) || NEQ( marginRight ) || NEQ( marginTop ) || NEQ( marginBottom )
 		|| NEQ( paddingLeft ) || NEQ( paddingRight ) || NEQ( paddingTop ) || NEQ( paddingBottom )

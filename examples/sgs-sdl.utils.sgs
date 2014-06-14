@@ -65,7 +65,7 @@ function first_non_null( a, b ){ return if( a === null, b, a ); }
 function SS_UI_CreateFrame()
 {
 	SS_Frame = UI_CreateFrame();
-	SS_Frame.theme = SS_UI_Theme_Default;
+	SS_Frame.setTheme( SS_UI_Theme_Default );
 	function SS_Frame.scissor_func( x0, y0, x1, y1 )
 	{
 		if( x0 === null )
@@ -92,7 +92,6 @@ function SS_UI_CreateFrame()
 	function SS_Frame.font_func( font, size )
 	{
 		if( font === null ) font = "fonts/lato-regular.ttf";
-		if( size <= 0 ) size = @this.theme.font_default_size;
 		if( size <= 0 ) size = 12;
 		
 		return SS_CreateFont( font, size );

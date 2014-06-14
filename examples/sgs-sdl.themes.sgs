@@ -1,8 +1,131 @@
 
 global SS_UI_Theme_Default =
 {
-	// GENERAL
-	font_default_size = 11,
+	stylesheet = UI_CreateStyleSheet()
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ fontSize = 11 } }.addSelector( "*" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]
+		{
+			renderfunc = function SS_UI_Theme_Default_button_renderfunc()
+			{
+				if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
+					return;
+				theme = this.frame.theme;
+				button_render_bgr = theme.button_render_bgr;
+				button_render_contents = theme.button_render_contents;
+				this!button_render_bgr();
+				this!button_render_contents();
+			}
+		} }.addSelector( "button" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]
+		{
+			renderfunc = function SS_UI_Theme_Default_checkbox_renderfunc()
+			{
+				data = this.data;
+				
+				theme = this.frame.theme;
+				p1 = theme.checkbox_border;
+				p2 = theme.checkbox_padding + p1;
+				
+				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.6, 0.8, 1 );
+				
+				if( this.clicked )
+					SS_DrawColorRect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.8, 0.8, 0.8, 1 );
+				else
+					SS_DrawColorRect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.9, 0.9, 0.9, 1 );
+				
+				if( data.checked )
+					SS_DrawColorRect( this.rx0 + p2, this.ry0 + p2, this.rx1 - p2, this.ry1 - p2, 0.1, 0.2, 0.4, 1 );
+			}
+		} }.addSelector( "checkbox" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]
+		{
+			renderfunc = function SS_UI_Theme_Default_radiobtn_renderfunc()
+			{
+				data = this.data;
+				
+				theme = this.frame.theme;
+				p1 = theme.radiobtn_border;
+				p2 = theme.radiobtn_padding + p1;
+				
+				cx = ( this.rx0 + this.rx1 ) / 2;
+				cy = ( this.ry0 + this.ry1 ) / 2;
+				radius = round( min( this.rx1 - this.rx0, this.ry1 - this.ry0 ) / 2 );
+				
+				draw_color_circle( cx, cy, radius, null, 0.5, 0.6, 0.8, 1 );
+				
+				if( this.clicked )
+					draw_color_circle( cx, cy, radius - p1, null, 0.8, 0.8, 0.8, 1 );
+				else
+					draw_color_circle( cx, cy, radius - p1, null, 0.9, 0.9, 0.9, 1 );
+				
+				if( data.checked )
+					draw_color_circle( cx, cy, radius - p2, null, 0.1, 0.2, 0.4, 1 );
+			}
+		} }.addSelector( "radiobutton" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]
+		{
+			padding = 1,
+			renderfunc = function SS_UI_Theme_Default_scroll_renderfunc()
+			{
+				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.8, 0.8, 0.8, 1 );
+				SS_DrawColorRect( this.px0, this.py0, this.px1, this.py1, 0.7, 0.7, 0.7, 1 );
+			}
+		} }.addSelector( "scrollbar" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]
+		{
+			renderfunc = function SS_UI_Theme_Default_menu_renderfunc()
+			{
+				data = this.data;
+				
+				pad = data.menu_padding;
+				
+				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.8, 0.8, 0.8, 1 );
+				SS_DrawColorRect( this.rx0+pad, this.ry0+pad, this.rx1-pad, this.ry1-pad, 0.9, 0.9, 0.9, 1 );
+				
+				SS_DrawColorRect( this.rx0+32, this.ry0+2+pad, this.rx0+33, this.ry1-2-pad, 0.8, 0.8, 0.8, 1 );
+				
+				x = this.rx0 + pad;
+				y = this.ry0 + pad;
+				foreach( id, item : data.items )
+				{
+					disabled = @item.disabled;
+					checked = @item.checked;
+					
+					if( id === data.selected )
+						SS_Draw({ preset = "tile", position = [x,y], scale = [data.item_width,data.item_height], color = if(disabled,[0.7,0.7,0.7,0.5],[0.4,0.6,0.8,0.8]) });
+					
+					if( isset( item, "menu" ) )
+						SS_DrawFitted( data.icon_submenu, x + data.item_width - data.item_height, x + data.item_width, y, y + data.item_height );
+					
+					if( @item.text !== null )
+						SS_DrawTextLine_VC( item.text, this._cachedFont, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
+					else if( disabled )
+						SS_Draw({ preset = "tile", position = [x+32,y+data.sep_height/2], scale = [data.item_width-36,1], color = [0.8,0.8,0.8,1] });
+					
+					if( disabled && @item.text === null )
+						y += data.sep_height;
+					else
+					{
+						if( checked !== null )
+						{
+							// checkbox
+							cbx0 = x + 4;
+							cby0 = y + 4;
+							cbsz = min( 24, data.item_height - 8 );
+							cbx1 = cbx0 + cbsz;
+							cby1 = cby0 + cbsz;
+							SS_DrawColorRect( cbx0, cby0, cbx1, cby1, 0.5, 0.6, 0.7, 1 );
+							SS_DrawColorRect( cbx0+1, cby0+1, cbx1-1, cby1-1, 0.9, 0.9, 0.9, 1 );
+							if( checked )
+								SS_DrawColorRect( cbx0+3, cby0+3, cbx1-3, cby1-3, 0.1, 0.2, 0.4, 1 );
+						}
+						y += data.item_height;
+					}
+					y += data.item_spacing;
+				}
+			}
+		} }.addSelector( "menu" ) )
+	,
 	
 	// BUTTON
 	button_render_bgr = function SS_UI_Theme_Default_button_render_bgr()
@@ -50,24 +173,8 @@ global SS_UI_Theme_Default =
 			this.frame.popScissorRect();
 		}
 	},
-	button_renderfunc = function SS_UI_Theme_Default_button_renderfunc()
-	{
-		if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
-			return;
-		
-		theme = this.frame.theme;
-		button_render_bgr = theme.button_render_bgr;
-		button_render_contents = theme.button_render_contents;
-		this!button_render_bgr();
-		this!button_render_contents();
-	},
 	
 	// SCROLL
-	scroll_renderfunc = function SS_UI_Theme_Default_scroll_renderfunc()
-	{
-		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.8, 0.8, 0.8, 1 );
-		SS_DrawColorRect( this.rx0 + 1, this.ry0 + 1, this.rx1 - 1, this.ry1 - 1, 0.7, 0.7, 0.7, 1 );
-	},
 	scroll_button_size = 0,
 	
 	// MENU
@@ -129,50 +236,10 @@ global SS_UI_Theme_Default =
 	menu_padding = 4,
 	
 	// CHECKBOX
-	checkbox_renderfunc = function SS_UI_Theme_Default_checkbox_renderfunc()
-	{
-		data = this.data;
-		
-		theme = this.frame.theme;
-		p1 = theme.checkbox_border;
-		p2 = theme.checkbox_padding + p1;
-		
-		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.6, 0.8, 1 );
-		
-		if( this.clicked )
-			SS_DrawColorRect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.8, 0.8, 0.8, 1 );
-		else
-			SS_DrawColorRect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.9, 0.9, 0.9, 1 );
-		
-		if( data.checked )
-			SS_DrawColorRect( this.rx0 + p2, this.ry0 + p2, this.rx1 - p2, this.ry1 - p2, 0.1, 0.2, 0.4, 1 );
-	},
 	checkbox_border = 1,
 	checkbox_padding = 2,
 	
 	// RADIOBTN
-	radiobtn_renderfunc = function SS_UI_Theme_Default_radiobtn_renderfunc()
-	{
-		data = this.data;
-		
-		theme = this.frame.theme;
-		p1 = theme.radiobtn_border;
-		p2 = theme.radiobtn_padding + p1;
-		
-		cx = ( this.rx0 + this.rx1 ) / 2;
-		cy = ( this.ry0 + this.ry1 ) / 2;
-		radius = round( min( this.rx1 - this.rx0, this.ry1 - this.ry0 ) / 2 );
-		
-		draw_color_circle( cx, cy, radius, null, 0.5, 0.6, 0.8, 1 );
-		
-		if( this.clicked )
-			draw_color_circle( cx, cy, radius - p1, null, 0.8, 0.8, 0.8, 1 );
-		else
-			draw_color_circle( cx, cy, radius - p1, null, 0.9, 0.9, 0.9, 1 );
-		
-		if( data.checked )
-			draw_color_circle( cx, cy, radius - p2, null, 0.1, 0.2, 0.4, 1 );
-	},
 	radiobtn_border = 1,
 	radiobtn_padding = 2,
 };

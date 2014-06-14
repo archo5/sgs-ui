@@ -133,10 +133,10 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 		scrH.visible = showH;
 		scrV.data.space = ih;
 		scrH.data.space = iw;
-		Scrollable.nc_top = pad;
-		Scrollable.nc_left = pad;
-		Scrollable.nc_right = pad + if( showV, this.scroll_size, 0 );
-		Scrollable.nc_bottom = pad + if( showH, this.scroll_size, 0 );
+		Scrollable.nonClientTop = pad;
+		Scrollable.nonClientLeft = pad;
+		Scrollable.nonClientRight = pad + if( showV, this.scroll_size, 0 );
+		Scrollable.nonClientBottom = pad + if( showH, this.scroll_size, 0 );
 	}
 	
 	scrV.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_y = -this.data.position; } );
@@ -168,7 +168,7 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 	{
 		data = this.data;
 		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.6, 0.6, 0.6, 1 );
-		SS_DrawColorRect( this.rx0 + this.nc_left, this.ry0 + this.nc_top, this.rx1 - this.nc_right, this.ry1 - this.nc_bottom, 0.8, 0.8, 0.8, 1 );
+		SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, 0.8, 0.8, 0.8, 1 );
 	}
 	
 	parent.addChild( Scrollable );
@@ -228,7 +228,7 @@ function UI_CreateMenuPanel( parent, items )
 			item.y = y + MenuPanel.ry0;
 			x += item.width;
 		}
-		MenuPanel.nc_top = y + this.item_height;
+		MenuPanel.nonClientTop = y + this.item_height;
 	}
 	
 	function mpdata.removeOpen()
@@ -300,10 +300,7 @@ function UI_CreateMenuPanel( parent, items )
 					else if( isset( item, "func" ) )
 						item.func();
 					
-					if( !isset( item, "menu" ) )
-						data.removeRecursive( data.menu_open );
-					else
-						data.selected = sel; // restore
+					data.selected = sel; // restore
 				}
 			}
 		}
@@ -315,7 +312,7 @@ function UI_CreateMenuPanel( parent, items )
 		data = this.data;
 		iht = data.item_height;
 		
-		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry0 + this.nc_top, 0.9, 0.9, 0.9, 1 );
+		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.cy0, 0.9, 0.9, 0.9, 1 );
 		
 		foreach( i, item : data.items )
 		{

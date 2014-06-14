@@ -19,6 +19,8 @@
 #  define MIN(a,b) ((a)<(b)?(a):(b))
 #endif
 
+template< class T > T TMAX( const T& a, const T& b ){ return a > b ? a : b; }
+template< class T > T TMIN( const T& a, const T& b ){ return a < b ? a : b; }
 
 template< class T > const T& VLASTOF( const std::vector<T>& x ){ return x[ x.size() - 1 ]; }
 template< class T > T& VLASTOF( std::vector<T>& x ){ return x[ x.size() - 1 ]; }
@@ -31,6 +33,19 @@ template< class T> size_t VFIND( const std::vector<T>& x, const T& y )
 	return i;
 }
 template< class T > void VREMOVEAT( std::vector<T>& x, size_t i ){ x.erase( x.begin() + i ); }
+template< class T > void VSWAP( std::vector<T>& v, size_t i1, size_t i2 )
+{
+	T x = v[i1];
+	v[i1] = v[i2];
+	v[i2] = x;
+}
+template< class T > void VQSWAP( std::vector<T>& v, size_t i1, size_t i2 )
+{
+	char buf[ sizeof(T) ];
+	memcpy( buf, &v[i1], sizeof(T) );
+	memcpy( &v[i1], &v[i2], sizeof(T) );
+	memcpy( &v[i2], buf, sizeof(T) );
+}
 
 
 struct IDGen
