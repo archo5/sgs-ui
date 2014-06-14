@@ -129,20 +129,20 @@ function sgs_ui_example_default()
 	WINDOW.minHeight = 80;
 	
 	WINSTAT = UI_CreateStatic( WINDOW, 0, 0, 0, 32, "The Options", color(0.9,1), DT_CENTER | DT_VCENTER );
-	WINSTAT.setAnchorMode( Anchor_Hor | Anchor_Top );
+	WINSTAT.setAnchorMode( UI_Anchor_Hor | UI_Anchor_Top );
 	
 	LBMENU = UI_CreateListBoxMenu( WINDOW, 0, 32, 0, -32 );
-	LBMENU.setAnchorMode( Anchor_All );
+	LBMENU.setAnchorMode( UI_Anchor_All );
 	
 	LBMENU.addOption({ text = "Test option 1" });
 	LBMENU.addOption({ text = "Test/2", icon = "icons/book.png" });
 	
 	WINIMAGE = UI_CreateImage( WINSTAT, 0, 0, 0, 0, "icons/add.png", UI_ImageScale_None );
-	WINIMAGE.setAnchorMode( Anchor_Left | Anchor_Vert );
+	WINIMAGE.setAnchorMode( UI_Anchor_Left | UI_Anchor_Vert );
 	WINIMAGE.q1x = 0.2;
 	WINIMAGE.index = 10;
 	WINIMAGE2 = UI_CreateImage( WINSTAT, 0, 0, 0, 0, "icons/delete.png", UI_ImageScale_None );
-	WINIMAGE2.setAnchorMode( Anchor_Right | Anchor_Vert );
+	WINIMAGE2.setAnchorMode( UI_Anchor_Right | UI_Anchor_Vert );
 	WINIMAGE2.q0x = 0.8;
 	WINIMAGE2.index = 10;
 }
@@ -173,11 +173,18 @@ function sgs_ui_example_menu()
 		this!button_render_contents();
 	}
 	
+	FRAME.addStyleSheet( UI_CreateStyleSheet()
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ renderfunc = MenuButton_Render } }.addSelector( "*button" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ font = "fonts/armata-regular.ttf", fontSize = 16 } }.addSelector( "**" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 } }.addSelector( "*scrollingautolayout button static" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ q0x = 0.4, q0y = 0.5, q1x = 0.6, q1y = 1.0 } }.addSelector( ".main-menu" ) )
+	);
+	
 	//
 	// MAIN MENU
 	//
 	MAIN_MENU = UI_CreateStatic( FRAME.root, 0, 0, 0, 0 );
-	MAIN_MENU.setAnchorMode( Anchor_All );
+	MAIN_MENU.setAnchorMode( UI_Anchor_All );
 	function MAIN_MENU.renderfunc()
 	{
 		SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.5, 0.5, 1, 0.2, 0.2, 0.2, 1 );
@@ -185,44 +192,42 @@ function sgs_ui_example_menu()
 	
 	// Title
 	mm_title = UI_CreateStatic( MAIN_MENU, 0, 0, 0, 0, "Example Menu", color(0) );
-	mm_title.setAnchorMode( Anchor_All );
+	mm_title.setAnchorMode( UI_Anchor_All );
 	mm_title.setFont( "fonts/gauge-oblique.ttf", 48 );
-	mm_title.setTextColor( color(0.3,0.7,0.9,1) );
+	mm_title.textColor = UIColor(0.3,0.7,0.9,1);
 	mm_title.q1y = 0.5;
 	
 	// Menu
 	mm_menu = UI_CreateAutoLayout( MAIN_MENU, 0, 0, 0 );
-	mm_menu.setAnchorRect( 0.4, 0.5, 0.6, 1.0 );
+	mm_menu.addClass( "main-menu" );
 	
 	// Menu animations
 	function main_menu_shrink() use( mm_title, mm_menu )
 	{
-		mm_title.animate({ q1y = 0.2 }, 0.5 );
+		mm_title.animate({ q1y = 0.2, textColor = UIColor( 0.3, 0.7, 0.9, 0.5 ) }, 0.5 );
 		mm_menu.animate({ q0x = 0.05, q1x = 0.2 }, 0.5 );
 	}
 	function main_menu_grow() use( mm_title, mm_menu )
 	{
-		mm_title.animate({ q1y = 0.5 }, 0.5 );
+		mm_title.animate({ q1y = 0.5, textColor = UIColor( 0.3, 0.7, 0.9, 1 ) }, 0.5 );
 		mm_menu.animate({ q0x = 0.4, q1x = 0.6 }, 0.5 );
 	}
 	
 	mm_btn_start = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Start" );
-	UI_CreateImage( mm_btn_start, 0, 0, 36, 0, "icons/control_play.png" ).setAnchorMode( Anchor_Vert );
+	UI_CreateImage( mm_btn_start, 0, 0, 36, 0, "icons/control_play.png" ).setAnchorMode( UI_Anchor_Vert );
 	
 	mm_btn_info = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Info" );
-	UI_CreateImage( mm_btn_info, 0, 0, 36, 0, "icons/information.png" ).setAnchorMode( Anchor_Vert );
+	UI_CreateImage( mm_btn_info, 0, 0, 36, 0, "icons/information.png" ).setAnchorMode( UI_Anchor_Vert );
 	
 	mm_btn_options = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Options" );
-	UI_CreateImage( mm_btn_options, 0, 0, 36, 0, "icons/cog.png" ).setAnchorMode( Anchor_Vert );
+	UI_CreateImage( mm_btn_options, 0, 0, 36, 0, "icons/cog.png" ).setAnchorMode( UI_Anchor_Vert );
 	
 	mm_btn_quit = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Quit" );
-	UI_CreateImage( mm_btn_quit, 0, 0, 36, 0, "icons/stop.png" ).setAnchorMode( Anchor_Vert );
+	UI_CreateImage( mm_btn_quit, 0, 0, 36, 0, "icons/stop.png" ).setAnchorMode( UI_Anchor_Vert );
 	
 	foreach( ctrl : mm_menu.children() )
 	{
-		ctrl.setAnchorMode( Anchor_Hor );
-		ctrl.setFont( "fonts/armata-regular.ttf", 16 );
-		ctrl.renderfunc = MenuButton_Render;
+		ctrl.setAnchorMode( UI_Anchor_Hor );
 	}
 	
 	//
@@ -243,41 +248,65 @@ function sgs_ui_example_menu()
 	
 	ss_stat_title = UI_CreateStatic( START_SCREEN, 0, 0, 0, 0, "Level selection", color(0.3,0.02,0.01,0.5) );
 	ss_stat_title.setAnchorRect( 0, 0, 1, 0.1 );
-	ss_stat_title.setTextColor( color( 0.9, 1 ) );
-	ss_stat_title.setFont( "fonts/armata-regular.ttf", 16 );
+	ss_stat_title.textColor = UIColor( 0.9, 1 );
 	
 	ss_btn_back = UI_CreateButton( START_SCREEN, 0, 0, 0, 0, "Back" );
 	ss_btn_back.setAnchorRect( 0.05, 0.85, 0.2, 0.95 );
-	ss_btn_back.setFont( "fonts/armata-regular.ttf", 16 );
-	ss_btn_back.renderfunc = MenuButton_Render;
 	UI_CreateImage( ss_btn_back, 0, 0, 0, 0, "icons/resultset_previous.png" ).setAnchorRect( 0, 0, 0.3, 1 );
 	
 	ss_cont = UI_CreateScrollingAutoLayout( START_SCREEN, 0, 0, 0, 0 );
 	ss_cont.setAnchorRect( 0.05, 0.15, 0.45, 0.8 );
 	ss_cont_in = ss_cont.getContainer();
-	function AddLevel( info ) use( ss_cont_in, MenuButton_Render )
+	function AddLevel( info ) use( ss_cont_in )
 	{
 		item = UI_CreateButton( ss_cont_in, 0, 0, 0, 48, "" );
-		item.setAnchorMode( Anchor_Hor );
-		item.renderfunc = MenuButton_Render;
+		item.setAnchorMode( UI_Anchor_Hor );
 		item.data.info = info;
+		lbl = UI_CreateStatic( item, 0, 0, 0, 48, info.name, color(0), DT_LEFT | DT_VCENTER );
+		lbl.setAnchorMode( UI_Anchor_Hor );
 		img = UI_CreateImage( item, 0, 0, 64, 48, info.image, UI_ImageScale_Crop );
-		lbl = UI_CreateStatic( item, 64, 0, 0, 48, info.name, color(0), DT_LEFT | DT_VCENTER );
-		lbl.setAnchorMode( Anchor_Hor );
 		return item;
 	}
 	AddLevel({ name = "The Picture", image = "icons/picture.png" });
 	AddLevel({ name = "The Report", image = "icons/report.png" });
 	
 	//
+	// INFO SCREEN
+	//
+	INFO_SCREEN = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "", color(0,0.2) );
+	INFO_SCREEN.setAnchorRect( 1.22, 0.22, 1.98, 0.98 );
+	function info_screen_enter() use( INFO_SCREEN, mm_btn_info )
+	{
+		INFO_SCREEN.animate({ q0x = 0.22, q1x = 0.98 }, 0.5 );
+		mm_btn_info.animate({ height = 64 }, 0.5 );
+	}
+	function info_screen_exit() use( INFO_SCREEN, mm_btn_info )
+	{
+		INFO_SCREEN.animate({ q0x = 1.22, q1x = 1.98 }, 0.5 );
+		mm_btn_info.animate({ height = 36 }, 0.5 );
+	}
+	
+	is_btn_back = UI_CreateButton( INFO_SCREEN, 0, 0, 0, 0, "Back" );
+	is_btn_back.setAnchorRect( 0.05, 0.85, 0.2, 0.95 );
+	UI_CreateImage( is_btn_back, 0, 0, 0, 0, "icons/resultset_previous.png" ).setAnchorRect( 0, 0, 0.3, 1 );
+	
+	//
 	// EVENTS
 	//
 	mm_btn_start.bindEvent( "click", main_menu_shrink );
 	mm_btn_start.bindEvent( "click", start_screen_enter );
+	mm_btn_start.bindEvent( "click", info_screen_exit );
+	mm_btn_info.bindEvent( "click", main_menu_shrink );
+	mm_btn_info.bindEvent( "click", start_screen_exit );
+	mm_btn_info.bindEvent( "click", info_screen_enter );
 	mm_btn_quit.bindEvent( "click", function(){ global sys_exit = true; } );
 	
 	ss_btn_back.bindEvent( "click", main_menu_grow );
 	ss_btn_back.bindEvent( "click", start_screen_exit );
+	ss_btn_back.bindEvent( "click", info_screen_exit );
+	is_btn_back.bindEvent( "click", main_menu_grow );
+	is_btn_back.bindEvent( "click", start_screen_exit );
+	is_btn_back.bindEvent( "click", info_screen_exit );
 }
 
 

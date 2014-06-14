@@ -62,6 +62,8 @@ function first_non_null( a, b ){ return if( a === null, b, a ); }
 
 
 
+function SS_UI_ConvertColor( cc ){ return color( cc.r, cc.g, cc.b, cc.a ); }
+
 function SS_UI_CreateFrame()
 {
 	SS_Frame = UI_CreateFrame();

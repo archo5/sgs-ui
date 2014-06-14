@@ -13,13 +13,13 @@
 
 #define UI_NO_ID 0xffffffff
 
-#define Anchor_Top    0x01
-#define Anchor_Bottom 0x02
-#define Anchor_Left   0x04
-#define Anchor_Right  0x08
-#define Anchor_Hor   (Anchor_Left | Anchor_Right)
-#define Anchor_Vert  (Anchor_Top | Anchor_Bottom)
-#define Anchor_All   (Anchor_Hor | Anchor_Vert)
+#define UI_Anchor_Top    0x01
+#define UI_Anchor_Bottom 0x02
+#define UI_Anchor_Left   0x04
+#define UI_Anchor_Right  0x08
+#define UI_Anchor_Hor   (UI_Anchor_Left | UI_Anchor_Right)
+#define UI_Anchor_Vert  (UI_Anchor_Top | UI_Anchor_Bottom)
+#define UI_Anchor_All   (UI_Anchor_Hor | UI_Anchor_Vert)
 
 #define EV_Paint      1
 #define EV_Layout     2
@@ -102,6 +102,77 @@ struct UITimerData
 typedef std::map< int64_t, UITimerData > UITimerMap;
 
 
+struct UIColor
+{
+	SGS_OBJECT_LITE;
+	
+	UIColor() : r(1), g(1), b(1), a(1){}
+	UIColor( float _r, float _g, float _b, float _a ) : r(_r), g(_g), b(_b), a(_a){}
+	
+	SGS_PROPERTY float r;
+	SGS_PROPERTY float g;
+	SGS_PROPERTY float b;
+	SGS_PROPERTY float a;
+	
+	int _get_size(){ return 4; }
+	SGS_PROPERTY_FUNC( READ _get_size ) SGS_ALIAS( int size );
+	
+	operator bool (){ return true; }
+	UIColor operator + ( const UIColor& o ) const { return UIColor( r + o.r, g + o.g, b + o.b, a + o.a ); }
+	UIColor operator - ( const UIColor& o ) const { return UIColor( r - o.r, g - o.g, b - o.b, a - o.a ); }
+	UIColor operator * ( const UIColor& o ) const { return UIColor( r * o.r, g * o.g, b * o.b, a * o.a ); }
+	UIColor scale( float q ) const { return UIColor( r * q, g * q, b * q, a * q ); }
+	
+	SGS_IFUNC(GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop );
+	SGS_IFUNC(EXPR) int sgs_expr( SGS_CTX, sgs_VarObj* obj, sgs_Variable* A, sgs_Variable* B, int isprop );
+};
+static inline bool _readcolorvar_i( SGS_CTX, sgs_StkIdx item, int idx, float* out )
+{
+	sgs_Variable key;
+	sgs_InitInt( &key, idx );
+	if( SGS_SUCCEEDED( sgs_PushIndexIP( C, item, &key, 0 ) ) )
+	{
+		*out = sgs_GetReal( C, -1 );
+		sgs_Pop( C, 1 );
+		return true;
+	}
+	return false;
+}
+static inline bool _readcolorvar_p( SGS_CTX, sgs_Variable* var, int idx, float* out )
+{
+	sgs_Variable key;
+	sgs_InitInt( &key, idx );
+	if( SGS_SUCCEEDED( sgs_PushIndexPP( C, var, &key, 0 ) ) )
+	{
+		*out = sgs_GetReal( C, -1 );
+		sgs_Pop( C, 1 );
+		return true;
+	}
+	return false;
+}
+template<> inline void sgs_PushVar<UIColor>( SGS_CTX, const UIColor& v ){ sgs_PushLiteClassFrom( C, &v ); }
+template<> struct sgs_GetVar<UIColor> { UIColor operator () ( SGS_CTX, sgs_StkIdx item ){
+	if( sgs_IsObject( C, item, UIColor::_sgs_interface ) )
+		return *(UIColor*)sgs_GetObjectData( C, item );
+	UIColor oc( 1, 1, 1, 1 );
+	if( !_readcolorvar_i( C, item, 0, &oc.r ) ) ; // 0 colors read successfully
+	else if( !_readcolorvar_i( C, item, 1, &oc.g ) ){ oc.a = oc.b = oc.g = oc.r; } // 1
+	else if( !_readcolorvar_i( C, item, 2, &oc.b ) ){ oc.a = oc.g; oc.b = oc.g = oc.r; } // 2
+	else _readcolorvar_i( C, item, 3, &oc.a ); // 3 / 4
+	return oc;
+}};
+template<> struct sgs_GetVarP<UIColor> { UIColor operator () ( SGS_CTX, sgs_Variable* val ){
+	if( sgs_IsObjectP( val, UIColor::_sgs_interface ) )
+		return *(UIColor*)sgs_GetObjectDataP( val );
+	UIColor oc( 1, 1, 1, 1 );
+	if( !_readcolorvar_p( C, val, 0, &oc.r ) ) ; // 0 colors read successfully
+	else if( !_readcolorvar_p( C, val, 1, &oc.g ) ){ oc.a = oc.b = oc.g = oc.r; } // 1
+	else if( !_readcolorvar_p( C, val, 2, &oc.b ) ){ oc.a = oc.g; oc.b = oc.g = oc.r; } // 2
+	else _readcolorvar_p( C, val, 3, &oc.a ); // 3 / 4
+	return oc;
+}};
+
+
 struct UIEvent
 {
 	SGS_OBJECT_LITE;
@@ -152,6 +223,8 @@ struct UIStyle /* style storage */
 	SGS_PROPERTY sgsMaybe<float> paddingRight;
 	SGS_PROPERTY sgsMaybe<float> paddingTop;
 	SGS_PROPERTY sgsMaybe<float> paddingBottom;
+	SGS_PROPERTY sgsMaybe<UIColor> backgroundColor;
+	SGS_PROPERTY sgsMaybe<UIColor> textColor;
 	SGS_PROPERTY sgsVariable     cursor;
 	SGS_PROPERTY sgsString       font;
 	SGS_PROPERTY sgsMaybe<float> fontSize;
@@ -213,6 +286,8 @@ struct UIStyleCache /* computed style cache */
 	float paddingRight;
 	float paddingTop;
 	float paddingBottom;
+	UIColor backgroundColor;
+	UIColor textColor;
 	sgsVariable cursor;
 	sgsString   font;
 	float       fontSize;
@@ -574,6 +649,8 @@ struct UIControl
 	UIC_DEFINE_ACCESSORS( float, paddingRight );
 	UIC_DEFINE_ACCESSORS( float, paddingTop );
 	UIC_DEFINE_ACCESSORS( float, paddingBottom );
+	UIC_DEFINE_ACCESSORS( UIColor, backgroundColor );
+	UIC_DEFINE_ACCESSORS( UIColor, textColor );
 	UIC_DEFINE_ACCESSORS2( sgsVariable, cursor );
 	UIC_DEFINE_ACCESSORS2( sgsString, font );
 	UIC_DEFINE_ACCESSORS( float, fontSize );
@@ -619,6 +696,8 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ get_paddingRight WRITE set_paddingRight ) SGS_ALIAS( sgsMaybe<float> paddingRight );
 	SGS_PROPERTY_FUNC( READ get_paddingTop WRITE set_paddingTop ) SGS_ALIAS( sgsMaybe<float> paddingTop );
 	SGS_PROPERTY_FUNC( READ get_paddingBottom WRITE set_paddingBottom ) SGS_ALIAS( sgsMaybe<float> paddingBottom );
+	SGS_PROPERTY_FUNC( READ get_backgroundColor WRITE set_backgroundColor ) SGS_ALIAS( sgsMaybe<UIColor> backgroundColor );
+	SGS_PROPERTY_FUNC( READ get_textColor WRITE set_textColor ) SGS_ALIAS( sgsMaybe<UIColor> textColor );
 	SGS_PROPERTY_FUNC( READ get_cursor WRITE set_cursor ) SGS_ALIAS( sgsVariable cursor );
 	SGS_PROPERTY_FUNC( READ get_font WRITE set_font ) SGS_ALIAS( sgsString font );
 	SGS_PROPERTY_FUNC( READ get_fontSize WRITE set_fontSize ) SGS_ALIAS( sgsMaybe<float> fontSize );

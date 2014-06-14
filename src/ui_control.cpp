@@ -17,6 +17,37 @@ inline float round( float x )
 }
 
 
+int UIColor::sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop )
+{
+	UIColor* COL = (UIColor*) obj->data;
+	if( key->type == SGS_VT_INT )
+	{
+		int idx = sgs_GetIntP( C, key );
+		if( idx == 0 ) SGS_RETURN_REAL( COL->r );
+		if( idx == 1 ) SGS_RETURN_REAL( COL->g );
+		if( idx == 2 ) SGS_RETURN_REAL( COL->b );
+		if( idx == 3 ) SGS_RETURN_REAL( COL->a );
+		return sgs_Msg( C, SGS_WARNING, "index out of bounds" );
+	}
+	return UIColor::_sgs_getindex( C, obj, key, isprop );
+}
+
+int UIColor::sgs_expr( SGS_CTX, sgs_VarObj* obj, sgs_Variable* A, sgs_Variable* B, int type )
+{
+	if( type != SGS_EOP_ADD && type != SGS_EOP_SUB && type != SGS_EOP_MUL )
+		return SGS_ENOTSUP;
+	UIColor CA, CB;
+	sgs_Real rA, rB;
+	if( !( ( sgs_IsObjectP( A, _sgs_interface ) && ( CA = *(UIColor*) sgs_GetObjectDataP( A ) ) )
+		|| ( sgs_ParseRealP( C, A, &rA ) && ( CA = UIColor( rA, rA, rA, rA ) ) ) ) ) return SGS_EINVAL;
+	if( !( ( sgs_IsObjectP( B, _sgs_interface ) && ( CB = *(UIColor*) sgs_GetObjectDataP( B ) ) )
+		|| ( sgs_ParseRealP( C, B, &rB ) && ( CB = UIColor( rB, rB, rB, rB ) ) ) ) ) return SGS_EINVAL;
+	if( type == SGS_EOP_ADD ) sgs_PushVar( C, CA + CB );
+	if( type == SGS_EOP_SUB ) sgs_PushVar( C, CA - CB );
+	if( type == SGS_EOP_MUL ) sgs_PushVar( C, CA * CB );
+	return SGS_SUCCESS;
+}
+
 
 SGS_MULTRET UIStyleRule::addSelector( sgsString str )
 {
@@ -114,8 +145,6 @@ const char* UI_ParseSelector( UIStyleSelector* sel, sgsString str )
 		}
 		else if( c == '*' )
 		{
-			if( sel->fragments.size() && !_sft_isanymove( VLASTOF( sel->fragments ).type ) )
-				return text; // error: this item must be first in matcher list
 			UIS_FRAG F = { UIS_FRAG::T_MatchAny, NULL, NULL };
 			sel->fragments.push_back( F );
 			sel->numtypes++;
@@ -200,7 +229,7 @@ bool UI_SelectorTestControl( const UIStyleSelector* sel, UIControl* ctrl )
 {
 	int curfrag = sel->fragments.size() - 1;
 	int begfrag = curfrag;
-	bool moveonfail = true;
+	bool moveonfail = false;
 	while( curfrag >= 0 && ctrl )
 	{
 		const UIS_FRAG& F = sel->fragments[ curfrag ];
@@ -349,6 +378,8 @@ void UI_StyleMerge( UIStyle* style, UIStyle* add )
 	if( !style->paddingRight.isset ) style->paddingRight = add->paddingRight;
 	if( !style->paddingTop.isset ) style->paddingTop = add->paddingTop;
 	if( !style->paddingBottom.isset ) style->paddingBottom = add->paddingBottom;
+	if( !style->backgroundColor.isset ) style->backgroundColor = add->backgroundColor;
+	if( !style->textColor.isset ) style->textColor = add->textColor;
 	if( !style->cursor.not_null() ) style->cursor = add->cursor;
 	if( !style->font.c_str() ) style->font = add->font;
 	if( !style->fontSize.isset ) style->fontSize = add->fontSize;
@@ -384,6 +415,8 @@ void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style )
 	cache->paddingRight = style->paddingRight.isset ? style->paddingRight.data : 0;
 	cache->paddingTop = style->paddingTop.isset ? style->paddingTop.data : 0;
 	cache->paddingBottom = style->paddingBottom.isset ? style->paddingBottom.data : 0;
+	cache->backgroundColor = style->backgroundColor.isset ? style->backgroundColor.data : UIColor();
+	cache->textColor = style->textColor.isset ? style->textColor.data : UIColor(0,0,0,1);
 	if( style->cursor.not_null() )
 		cache->cursor = style->cursor;
 	else
@@ -522,7 +555,7 @@ int UIControl_CtrlProc( SGS_CTX )
 	case EV_Detach:
 	case EV_AddChild:
 	case EV_RemChild:
-		ctrl->updateLayout();
+		{ UIFilteredStyleArray fsa; ctrl->_refilterStyles( fsa ); }
 		sgs_PushInt( C, 1 );
 		return 1;
 		
@@ -1384,28 +1417,28 @@ void UIControl::sortSiblings()
 
 void UIControl::setAnchorMode( int mode )
 {
-	if( mode & Anchor_Left )
+	if( mode & UI_Anchor_Left )
 	{
 		style.q0x.set( 0 );
-		if( mode & Anchor_Right )
+		if( mode & UI_Anchor_Right )
 			style.q1x.set( 1 );
 		else
 			style.q1x.set( 0 );
 	}
-	else if( mode & Anchor_Right )
+	else if( mode & UI_Anchor_Right )
 	{
 		style.q0x.set( 1 );
 		style.q1x.set( 1 );
 	}
-	if( mode & Anchor_Top )
+	if( mode & UI_Anchor_Top )
 	{
 		style.q0y.set( 0 );
-		if( mode & Anchor_Bottom )
+		if( mode & UI_Anchor_Bottom )
 			style.q1y.set( 1 );
 		else
 			style.q1y.set( 0 );
 	}
-	else if( mode & Anchor_Bottom )
+	else if( mode & UI_Anchor_Bottom )
 	{
 		style.q0y.set( 1 );
 		style.q1y.set( 1 );
@@ -1643,7 +1676,8 @@ void UIControl::_applyCurAnimState()
 			sgs_PushIndexPI( C, &A.prevState.var, -2, 1 ); /* prev.value */
 			
 			/* if previous is string, apply current only at the end */
-			if( sgs_ItemType( C, -1 ) == SGS_VT_STRING )
+			int ty = sgs_ItemType( C, -1 );
+			if( ty == SGS_VT_STRING || ty == SGS_VT_NULL )
 			{
 				if( A.time >= A.end )
 					sgs_Pop( C, 1 ); /* current = -1 */
@@ -1657,7 +1691,6 @@ void UIControl::_applyCurAnimState()
 				sgs_PushReal( C, A.end ); /* time = A.end * q */
 				sgs_CallP( C, &A.func.var, 4, 1 );
 				/* interpolated = -1 */
-				sgs_ToReal( C, -1 );
 			}
 			
 			sgs_PushHandle( C, UIControl::CreateHandle( this ) );

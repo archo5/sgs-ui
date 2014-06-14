@@ -6,6 +6,20 @@
 
 
 
+int UI_CreateColor( SGS_CTX )
+{
+	float r, g, b, a = 1;
+	SGSFN( "UIColor" );
+	sgs_StkIdx ssz = sgs_StackSize( C );
+	if( !sgs_LoadArgs( C, "f|fff.", &r, &g, &b, &a ) )
+		return 0;
+	if( ssz == 1 ){ a = b = g = r; }
+	else if( ssz == 2 ){ a = g; b = g = r; }
+	
+	sgs_PushVar( C, UIColor( r, g, b, a ) );
+	return 1;
+}
+
 int UI_CreateEvent( SGS_CTX )
 {
 	UIEvent* ev = SGS_PUSHLITECLASS( C, UIEvent, () );
@@ -38,48 +52,56 @@ int UI_CreateFrame( SGS_CTX )
 }
 
 
+static int _UI_EasingFunction_Core( SGS_CTX, float q )
+{
+	if( sgs_IsObject( C, 0, UIColor::_sgs_interface ) || sgs_IsObject( C, 1, UIColor::_sgs_interface ) )
+	{
+		UIColor A = sgs_GetVar<UIColor>()( C, 0 );
+		UIColor B = sgs_GetVar<UIColor>()( C, 1 );
+		sgs_PushVar( C, A.scale( 1-q ) + B.scale( q ) );
+	}
+	else
+	{
+		float v0 = sgs_GetReal( C, 0 );
+		float v1 = sgs_GetReal( C, 1 );
+		sgs_PushReal( C, v0 * (1-q) + v1 * q );
+	}
+	return 1;
+}
+
 int UI_EasingFunction_linear( SGS_CTX )
 {
 	SGSFN( "UI_EasingFunction_linear" );
-	float v0 = sgs_GetReal( C, 0 );
-	float v1 = sgs_GetReal( C, 1 );
 	float q = sgs_GetReal( C, 2 );
-	sgs_PushReal( C, v0 * (1-q) + v1 * q );
-	return 1;
+	return _UI_EasingFunction_Core( C, q );
 }
 
 int UI_EasingFunction_smooth( SGS_CTX )
 {
 	SGSFN( "UI_EasingFunction_smooth" );
-	float v0 = sgs_GetReal( C, 0 );
-	float v1 = sgs_GetReal( C, 1 );
 	float q = sgs_GetReal( C, 2 );
 	q = q*q*(3 - 2*q);
-	sgs_PushReal( C, v0 * (1-q) + v1 * q );
-	return 1;
+	return _UI_EasingFunction_Core( C, q );
 }
 
 int UI_EasingFunction_smoother( SGS_CTX )
 {
 	SGSFN( "UI_EasingFunction_smoother" );
-	float v0 = sgs_GetReal( C, 0 );
-	float v1 = sgs_GetReal( C, 1 );
 	float q = sgs_GetReal( C, 2 );
 	q = q*q*q*(q*(q*6 - 15) + 10);
-	sgs_PushReal( C, v0 * (1-q) + v1 * q );
-	return 1;
+	return _UI_EasingFunction_Core( C, q );
 }
 
 
 sgs_RegIntConst g_iconsts[] =
 {
-	FN( Anchor_Top    ),
-	FN( Anchor_Bottom ),
-	FN( Anchor_Left   ),
-	FN( Anchor_Right  ),
-	FN( Anchor_Hor    ),
-	FN( Anchor_Vert   ),
-	FN( Anchor_All    ),
+	FN( UI_Anchor_Top    ),
+	FN( UI_Anchor_Bottom ),
+	FN( UI_Anchor_Left   ),
+	FN( UI_Anchor_Right  ),
+	FN( UI_Anchor_Hor    ),
+	FN( UI_Anchor_Vert   ),
+	FN( UI_Anchor_All    ),
 	
 	FN( EV_Paint      ),
 	FN( EV_Layout     ),
@@ -153,6 +175,7 @@ sgs_RegRealConst g_rconsts[] =
 
 sgs_RegFuncConst g_fconsts[] =
 {
+	{ "UIColor", UI_CreateColor },
 	FN( UI_CreateEvent ),
 	FN( UI_CreateStyle ),
 	FN( UI_CreateStyleRule ),

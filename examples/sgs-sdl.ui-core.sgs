@@ -29,7 +29,7 @@ function UI_CreateStatic( parent, x, y, width, height, caption, color, textmode 
 		
 		if( text )
 		{
-			SS_DrawTextRect( text, this._cachedFont, data.textcolor, data.textmode, this.rx0, this.rx1, this.ry0, this.ry1 );
+			SS_DrawTextRect( text, this._cachedFont, SS_UI_ConvertColor( this.textColor ), data.textmode, this.px0, this.px1, this.py0, this.py1 );
 		}
 	}
 	
