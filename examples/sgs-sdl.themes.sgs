@@ -1,10 +1,11 @@
 
 global SS_UI_Theme_Default =
 {
-	stylesheet = UI_CreateStyleSheet()
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ fontSize = 11 } }.addSelector( "" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ textColor = UIColor( 0.1, 1 ), backgroundColor = UIColor( 0.5, 1 ) } }.addSelector( "static" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]
+	stylesheet = UI_BuildStyleSheet
+	({
+		"" = { fontSize = 11 },
+		"static" = { textColor = UIColor( 0.1, 1 ), backgroundColor = UIColor( 0.5, 1 ) },
+		"button" =
 		{
 			renderfunc = function SS_UI_Theme_Default_button_renderfunc()
 			{
@@ -16,8 +17,8 @@ global SS_UI_Theme_Default =
 				this!button_render_bgr();
 				this!button_render_contents();
 			}
-		} }.addSelector( "button" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]
+		},
+		"checkbox" =
 		{
 			renderfunc = function SS_UI_Theme_Default_checkbox_renderfunc()
 			{
@@ -37,8 +38,8 @@ global SS_UI_Theme_Default =
 				if( data.checked )
 					SS_DrawColorRect( this.rx0 + p2, this.ry0 + p2, this.rx1 - p2, this.ry1 - p2, 0.1, 0.2, 0.4, 1 );
 			}
-		} }.addSelector( "checkbox" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]
+		},
+		"radiobutton" =
 		{
 			renderfunc = function SS_UI_Theme_Default_radiobtn_renderfunc()
 			{
@@ -62,8 +63,8 @@ global SS_UI_Theme_Default =
 				if( data.checked )
 					draw_color_circle( cx, cy, radius - p2, null, 0.1, 0.2, 0.4, 1 );
 			}
-		} }.addSelector( "radiobutton" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]
+		},
+		"scrollbar" =
 		{
 			padding = 1,
 			renderfunc = function SS_UI_Theme_Default_scroll_renderfunc()
@@ -71,8 +72,8 @@ global SS_UI_Theme_Default =
 				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.8, 0.8, 0.8, 1 );
 				SS_DrawColorRect( this.px0, this.py0, this.px1, this.py1, 0.7, 0.7, 0.7, 1 );
 			}
-		} }.addSelector( "scrollbar" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]
+		},
+		"menu" =
 		{
 			renderfunc = function SS_UI_Theme_Default_menu_renderfunc()
 			{
@@ -125,8 +126,8 @@ global SS_UI_Theme_Default =
 					y += data.item_spacing;
 				}
 			}
-		} }.addSelector( "menu" ) )
-	,
+		},
+	}),
 	
 	// BUTTON
 	button_render_bgr = function SS_UI_Theme_Default_button_render_bgr()

@@ -45,6 +45,16 @@ int UI_CreateStyleSheet( SGS_CTX )
 	return 1;
 }
 
+int UI_BuildStyleSheet( SGS_CTX )
+{
+	SGSFN( "UI_BuildStyleSheet" );
+	if( !sgs_LoadArgs( C, "?v" ) )
+		return 0;
+	UIStyleSheet* ssh = SGS_PUSHCLASS( C, UIStyleSheet, () );
+	ssh->build( sgsVariable( C, 0 ) );
+	return 1;
+}
+
 int UI_CreateFrame( SGS_CTX )
 {
 	SGS_PUSHCLASS( C, UIFrame, () );
@@ -180,6 +190,7 @@ sgs_RegFuncConst g_fconsts[] =
 	FN( UI_CreateStyle ),
 	FN( UI_CreateStyleRule ),
 	FN( UI_CreateStyleSheet ),
+	FN( UI_BuildStyleSheet ),
 	FN( UI_CreateFrame ),
 	FN( UI_EasingFunction_linear ),
 	FN( UI_EasingFunction_smooth ),

@@ -98,18 +98,28 @@ void UIStyle::set_anchorMode( int mode )
 }
 
 
-SGS_MULTRET UIStyleRule::addSelector( sgsString str )
+void UIStyleRule::_trimSelector( const char** str, size_t* size )
 {
+	const char* s1 = *str;
+	const char* s2 = s1 + *size;
+	while( s1 < s2 && ( *s1 == ' ' || *s1 == '\t' || *s1 == '\n' || *s1 == '\r' ) )
+		s1++;
+	while( s1 < s2 && ( *(s2-1) == ' ' || *(s2-1) == '\t' || *(s2-1) == '\n' || *(s2-1) == '\r' ) )
+		s2--;
+	*str = s1;
+	*size = s2 - s1;
+}
+
+const char* UIStyleRule::_addSelector( sgsString sgsstr, const char* str, size_t size )
+{
+	_trimSelector( &str, &size );
 	selectors.resize( selectors.size() + 1 );
 	UIStyleSelector* sel = &selectors[ selectors.size() - 1 ];
-	const char* serr = UI_ParseSelector( sel, str );
+	const char* serr = UI_ParseSelector( sel, sgsstr, str, size );
 	if( serr )
 	{
-		sel = NULL;
 		selectors.resize( selectors.size() - 1 );
-		sgs_PushBool( C, 0 );
-		sgs_PushInt( C, serr - str.c_str() );
-		return 2;
+		return serr;
 	}
 	
 	size_t selpos = selectors.size() - 1;
@@ -118,8 +128,48 @@ SGS_MULTRET UIStyleRule::addSelector( sgsString str )
 		VQSWAP( selectors, selpos - 1, selpos );
 		selpos--;
 	}
-	
-	SGS_RETURN_THIS(C);
+	return NULL;
+}
+
+const char* UIStyleRule::_addSelectors( sgsString sgsstr )
+{
+	const char* pp = sgsstr.c_str();
+	const char* ppend = pp + sgsstr.size();
+	const char* ppcur = pp;
+	while( pp <= ppend )
+	{
+		if( pp == ppend || *pp == ',' )
+		{
+			const char* serr = _addSelector( sgsstr, ppcur, pp - ppcur );
+			if( serr )
+				return serr;
+			ppcur = ++pp;
+			continue;
+		}
+		pp++;
+	}
+	return NULL;
+}
+
+SGS_MULTRET UIStyleRule::_handleSGS( const char* serr, const char* base )
+{
+	if( serr )
+	{
+		sgs_PushBool( C, 0 );
+		sgs_PushInt( C, serr - base );
+		return 2;
+	}
+	SGS_RETURN_THIS( C );
+}
+
+SGS_MULTRET UIStyleRule::addSelector( sgsString sgsstr )
+{
+	return _handleSGS( _addSelector( sgsstr, sgsstr.c_str(), sgsstr.size() ), sgsstr.c_str() );
+}
+
+SGS_MULTRET UIStyleRule::addSelectors( sgsString sgsstr )
+{
+	return _handleSGS( _addSelectors( sgsstr ), sgsstr.c_str() );
 }
 
 bool UIStyleRule::checkMatch( sgsHandle< UIControl > ctrl )
@@ -138,6 +188,91 @@ int UIStyleSheet::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 	return SGS_SUCCESS;
 }
 
+SGS_MULTRET UIStyleSheet::addRule( UIStyleRule::Handle rule )
+{
+	if( rule.object && VFIND( rules, rule ) >= rules.size() )
+		rules.push_back( rule );
+	SGS_RETURN_THIS(C);
+}
+
+void UIStyleSheet::build( sgsVariable var )
+{
+	// key = selectors, value = iterable{ key/value => UIStyle }
+	sgs_StkIdx orig = sgs_StackSize( C );
+	if( SGS_FAILED( sgs_PushIteratorP( C, &var.var ) ) )
+		goto iter_fail;
+	while( sgs_IterAdvance( C, -1 ) > 0 )
+	{
+		sgs_StkIdx orig2 = sgs_StackSize( C );
+		UIStyleRule* rule = SGS_PUSHCLASS( C, UIStyleRule, () );
+		
+		if( SGS_FAILED( sgs_IterPushData( C, -2, 1, 1 ) ) )
+			goto iter_fail;
+		if( !sgs_ToString( C, -2 ) )
+			goto key_fail;
+		
+		// try to add selector
+		const char* errpos = rule->_addSelectors( sgsString( orig2 + 1, C ) );
+		if( errpos )
+		{
+			sgs_Msg( C, SGS_WARNING, "failed to parse selectors: '%.*s' (position %d)",
+				sgs_GetStringSize( C, orig2 + 1 ), sgs_GetStringPtr( C, orig2 + 1 ),
+				(int) ( errpos - sgs_GetStringPtr( C, orig2 + 1 ) ) );
+			goto end;
+		}
+		
+		// iterate style data
+		if( SGS_FAILED( sgs_PushIterator( C, -1 ) ) )
+			goto iter2_fail;
+		while( sgs_IterAdvance( C, -1 ) > 0 )
+		{
+			sgs_StkIdx orig3 = sgs_StackSize( C );
+			
+			if( SGS_FAILED( sgs_IterPushData( C, -1, 1, 1 ) ) )
+				goto iter2_fail;
+			if( !sgs_ToString( C, -2 ) )
+				goto key_fail;
+			
+			// set style value
+			sgsVariable key( C, -2 );
+			sgsVariable val( C, -1 );
+			sgs_VarObj fakeobj; // HACK
+			fakeobj.data = &rule->style;
+			int ret = UIStyle::_sgs_interface->setindex( C, &fakeobj, &key.var, &val.var, 0 );
+			if( ret == SGS_ENOTFND )
+			{
+				sgs_Msg( C, SGS_WARNING, "property not found: '%.*s'", sgs_GetStringSize( C, orig3 ), sgs_GetStringPtr( C, orig3 ) );
+				goto end;
+			}
+			if( SGS_FAILED( ret ) )
+				goto int_fail;
+			
+			sgs_SetStackSize( C, orig3 );
+		}
+		
+		UIStyleRule::Handle rulehandle = UIStyleRule::Handle( rule->m_sgsObject, C );
+		if( rulehandle.object && VFIND( rules, rulehandle ) >= rules.size() )
+			rules.push_back( rulehandle );
+		
+		sgs_SetStackSize( C, orig2 );
+	}
+end:
+	sgs_SetStackSize( C, orig );
+	return;
+iter_fail:
+	sgs_Msg( C, SGS_WARNING, "passed variable is not iterable" );
+	goto end;
+iter2_fail:
+	sgs_Msg( C, SGS_WARNING, "passed variable's style data is not iterable" );
+	goto end;
+key_fail:
+	sgs_Msg( C, SGS_WARNING, "key cannot be converted to a string" );
+	goto end;
+int_fail:
+	sgs_Msg( C, SGS_WARNING, "internal UIStyle interface error" );
+	goto end;
+}
+
 #define UIS_FRAG UIStyleSelector::Fragment
 static inline bool _sft_isanymove( int type ){ return type == UIS_FRAG::T_MoveOn || type == UIS_FRAG::T_ReqNext; }
 static inline bool _sct_isanyspec( int type )
@@ -154,17 +289,17 @@ static inline bool _sct_isanyspec( int type )
 	type == '\t';
 }
 
-const char* UI_ParseSelector( UIStyleSelector* sel, sgsString str )
+const char* UI_ParseSelector( UIStyleSelector* sel, sgsString sgsstr, const char* str, size_t size )
 {
-	sel->selector = str;
+	sel->selector = sgsstr;
 	sel->fragments.clear();
 	sel->numnext = 0;
 	sel->numtypes = 0;
 	sel->numclasses = 0;
 	sel->numnames = 0;
 	
-	const char* text = str.c_str();
-	const char* textend = text + str.size();
+	const char* text = str;
+	const char* textend = text + size;
 	while( text < textend )
 	{
 		char c = *text;

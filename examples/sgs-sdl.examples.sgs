@@ -175,19 +175,19 @@ function sgs_ui_example_menu()
 		this!button_render_contents();
 	}
 	
-	FRAME.addStyleSheet( UI_CreateStyleSheet()
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ renderfunc = MenuButton_Render } }.addSelector( "*button" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ font = "fonts/armata-regular.ttf", fontSize = 16 } }.addSelector( "**" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 } }.addSelector( "*scrollingautolayout button static" ) )
+	FRAME.addStyleSheet(UI_BuildStyleSheet({
+		"*button" = { renderfunc = MenuButton_Render },
+		"**" = { font = "fonts/armata-regular.ttf", fontSize = 16 },
+		"*scrollingautolayout button static" = { font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 },
 		// main menu
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ q0x = 0.4, q0y = 0.5, q1x = 0.6, q1y = 1.0, overflow = true } }.addSelector( ".main-menu" ) )
+		".main-menu" = { q0x = 0.4, q0y = 0.5, q1x = 0.6, q1y = 1.0, overflow = true },
 		// question window
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ backgroundColor = UIColor(0.5,0.5), anchorMode = UI_Anchor_All } }.addSelector( ".qwindowbgr" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ backgroundColor = UIColor(0,0.5), q0x = 0.3, q0y = 0.3, q1x = 0.7, q1y = 0.7 } }.addSelector( ".qwindow" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ backgroundColor = UIColor(0.3,0.02,0.01,0.5), textColor = UIColor(0.9,1), q0x = 0, q0y = 0, q1x = 1, q1y = 0.3 } }.addSelector( ".qwindow .title" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ q0x = 0.1, q0y = 0.6, q1x = 0.4, q1y = 0.9 } }.addSelector( ".qwindow .btn-yes" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ q0x = 0.6, q0y = 0.6, q1x = 0.9, q1y = 0.9 } }.addSelector( ".qwindow .btn-no" ) )
-	);
+		".qwindowbgr" = { backgroundColor = UIColor(0.5,0.5), anchorMode = UI_Anchor_All },
+		".qwindow" = { backgroundColor = UIColor(0,0.5), q0x = 0.3, q0y = 0.3, q1x = 0.7, q1y = 0.7 },
+		".qwindow .title" = { backgroundColor = UIColor(0.3,0.02,0.01,0.5), textColor = UIColor(0.9,1), q0x = 0, q0y = 0, q1x = 1, q1y = 0.3 },
+		".qwindow .btn-yes" = { q0x = 0.1, q0y = 0.6, q1x = 0.4, q1y = 0.9 },
+		".qwindow .btn-no" = { q0x = 0.6, q0y = 0.6, q1x = 0.9, q1y = 0.9 },
+	}));
 	UI_EasingFunctions.smooth_fast_start = function( a, b, t ){ return UI_EasingFunctions.smooth( a, b, sqrt( t ) ); };
 	
 	//

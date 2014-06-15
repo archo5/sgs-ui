@@ -355,7 +355,12 @@ struct UIStyleRule
 	SGS_PROPERTY UIStyle style;
 	StyleSelArray selectors;
 	
-	SGS_METHOD SGS_MULTRET addSelector( sgsString str );
+	void _trimSelector( const char** str, size_t* size );
+	const char* _addSelector( sgsString sgsstr, const char* str, size_t size );
+	const char* _addSelectors( sgsString sgsstr );
+	SGS_MULTRET _handleSGS( const char* serr, const char* base );
+	SGS_METHOD SGS_MULTRET addSelector( sgsString sgsstr );
+	SGS_METHOD SGS_MULTRET addSelectors( sgsString sgsstr );
 	SGS_METHOD bool checkMatch( sgsHandle< struct UIControl > ctrl );
 };
 
@@ -369,12 +374,16 @@ struct UIStyleSheet
 	
 	UIStyleRule::HandleArray rules;
 	
-	SGS_METHOD SGS_MULTRET addRule( UIStyleRule::Handle rule ){ if( rule.object && VFIND( rules, rule ) >= rules.size() ) rules.push_back( rule ); SGS_RETURN_THIS(C); }
+	int _get_ruleCount(){ return rules.size(); }
+	SGS_PROPERTY_FUNC( READ _get_ruleCount ) SGS_ALIAS( int ruleCount );
+	
+	SGS_METHOD SGS_MULTRET addRule( UIStyleRule::Handle rule );
+	SGS_METHOD void build( sgsVariable var );
 };
 typedef std::vector< UIStyleSheet::Handle > StyleSheetArray;
 
 
-const char* UI_ParseSelector( UIStyleSelector* sel, sgsString str );
+const char* UI_ParseSelector( UIStyleSelector* sel, sgsString sgsstr, const char* str, size_t size );
 bool UI_SelectorTestControl( const UIStyleSelector* sel, struct UIControl* ctrl );
 int UI_CompareSelectors( const UIStyleSelector* sel1, const UIStyleSelector* sel2 );
 void UI_StyleMerge( UIStyle* style, UIStyle* add );
