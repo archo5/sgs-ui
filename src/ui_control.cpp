@@ -49,6 +49,55 @@ int UIColor::sgs_expr( SGS_CTX, sgs_VarObj* obj, sgs_Variable* A, sgs_Variable* 
 }
 
 
+int UIStyle::get_anchorMode()
+{
+	int out = 0;
+	if( q0x.isset && q0x.data == 0 )
+	{
+		if( q1x.isset && q1x.data == 0 ) out |= UI_Anchor_Left;
+		else if( q1x.isset && q1x.data == 1 ) out |= UI_Anchor_Hor;
+	}
+	else if( q0x.isset && q0x.data == 1 && q1x.isset && q1x.data == 1 ) out |= UI_Anchor_Right;
+	if( q0y.isset && q0y.data == 0 )
+	{
+		if( q1y.isset && q1y.data == 0 ) out |= UI_Anchor_Top;
+		else if( q1y.isset && q1y.data == 1 ) out |= UI_Anchor_Vert;
+	}
+	else if( q0y.isset && q0y.data == 1 && q1y.isset && q1y.data == 1 ) out |= UI_Anchor_Bottom;
+	return out;
+}
+
+void UIStyle::set_anchorMode( int mode )
+{
+	if( mode & UI_Anchor_Left )
+	{
+		q0x.set( 0 );
+		if( mode & UI_Anchor_Right )
+			q1x.set( 1 );
+		else
+			q1x.set( 0 );
+	}
+	else if( mode & UI_Anchor_Right )
+	{
+		q0x.set( 1 );
+		q1x.set( 1 );
+	}
+	if( mode & UI_Anchor_Top )
+	{
+		q0y.set( 0 );
+		if( mode & UI_Anchor_Bottom )
+			q1y.set( 1 );
+		else
+			q1y.set( 0 );
+	}
+	else if( mode & UI_Anchor_Bottom )
+	{
+		q0y.set( 1 );
+		q1y.set( 1 );
+	}
+}
+
+
 SGS_MULTRET UIStyleRule::addSelector( sgsString str )
 {
 	selectors.resize( selectors.size() + 1 );
@@ -379,6 +428,7 @@ void UI_StyleMerge( UIStyle* style, UIStyle* add )
 	if( !style->paddingTop.isset ) style->paddingTop = add->paddingTop;
 	if( !style->paddingBottom.isset ) style->paddingBottom = add->paddingBottom;
 	if( !style->backgroundColor.isset ) style->backgroundColor = add->backgroundColor;
+	if( !style->overflow.isset ) style->overflow = add->overflow;
 	if( !style->textColor.isset ) style->textColor = add->textColor;
 	if( !style->cursor.not_null() ) style->cursor = add->cursor;
 	if( !style->font.c_str() ) style->font = add->font;
@@ -415,6 +465,7 @@ void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style )
 	cache->paddingRight = style->paddingRight.isset ? style->paddingRight.data : 0;
 	cache->paddingTop = style->paddingTop.isset ? style->paddingTop.data : 0;
 	cache->paddingBottom = style->paddingBottom.isset ? style->paddingBottom.data : 0;
+	cache->overflow = style->overflow.isset ? style->overflow.data : false;
 	cache->backgroundColor = style->backgroundColor.isset ? style->backgroundColor.data : UIColor();
 	cache->textColor = style->textColor.isset ? style->textColor.data : UIColor(0,0,0,1);
 	if( style->cursor.not_null() )
@@ -556,6 +607,7 @@ int UIControl_CtrlProc( SGS_CTX )
 	case EV_AddChild:
 	case EV_RemChild:
 		{ UIFilteredStyleArray fsa; ctrl->_refilterStyles( fsa ); }
+		ctrl->updateLayout();
 		sgs_PushInt( C, 1 );
 		return 1;
 		
@@ -719,6 +771,11 @@ void UIFrame::handleMouseMove( bool optional )
 		mev.y = mouseY;
 		if( prevhover ){ mev.type = EV_MouseLeave; prevhover->niBubblingEvent( &mev ); }
 		if( m_hover ){ mev.type = EV_MouseEnter; m_hover->niBubblingEvent( &mev ); }
+		
+		// for cursor stability
+		for( int i = 0; i < Mouse_Button_Count; ++i )
+			if( m_clicktargets[ i ] )
+				return;
 		forceUpdateCursor( m_hover );
 	}
 }
@@ -1209,14 +1266,16 @@ void UIControl::niRender()
 		sgs_SetStackSize( C, orig );
 	}
 	
-	if( frame->pushScissorRect( rx0 + get_nonClientLeft(), ry0 + get_nonClientTop(), rx1 - get_nonClientRight(), ry1 - get_nonClientBottom() ) )
+	bool overflow = get_overflow();
+	if( overflow || frame->pushScissorRect( rx0 + get_nonClientLeft(), ry0 + get_nonClientTop(), rx1 - get_nonClientRight(), ry1 - get_nonClientBottom() ) )
 	{
 		for( HandleArray::iterator it = m_sorted.begin(), itend = m_sorted.end(); it != itend; ++it )
 		{
 			if( !(*it)->nonclient )
 				(*it)->niRender();
 		}
-		frame->popScissorRect();
+		if( !overflow )
+			frame->popScissorRect();
 	}
 	
 	for( HandleArray::iterator it = m_sorted.begin(), itend = m_sorted.end(); it != itend; ++it )

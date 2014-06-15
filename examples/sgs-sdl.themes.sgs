@@ -2,7 +2,8 @@
 global SS_UI_Theme_Default =
 {
 	stylesheet = UI_CreateStyleSheet()
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ fontSize = 11 } }.addSelector( "*" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ fontSize = 11 } }.addSelector( "" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ textColor = UIColor( 0.1, 1 ), backgroundColor = UIColor( 0.5, 1 ) } }.addSelector( "static" ) )
 		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]
 		{
 			renderfunc = function SS_UI_Theme_Default_button_renderfunc()

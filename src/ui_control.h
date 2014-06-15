@@ -223,6 +223,7 @@ struct UIStyle /* style storage */
 	SGS_PROPERTY sgsMaybe<float> paddingRight;
 	SGS_PROPERTY sgsMaybe<float> paddingTop;
 	SGS_PROPERTY sgsMaybe<float> paddingBottom;
+	SGS_PROPERTY sgsMaybe<bool>  overflow;
 	SGS_PROPERTY sgsMaybe<UIColor> backgroundColor;
 	SGS_PROPERTY sgsMaybe<UIColor> textColor;
 	SGS_PROPERTY sgsVariable     cursor;
@@ -243,6 +244,9 @@ struct UIStyle /* style storage */
 	UIS_DEFINE_ACCESSORS_ADC( float, margin );
 	UIS_DEFINE_ACCESSORS_ADC( float, padding );
 	
+	int get_anchorMode();
+	void set_anchorMode( int mode );
+	
 	SGS_PROPERTY_FUNC( READ get_nonClientH WRITE set_nonClientH ) SGS_ALIAS( float nonClientH );
 	SGS_PROPERTY_FUNC( READ get_nonClientV WRITE set_nonClientV ) SGS_ALIAS( float nonClientV );
 	SGS_PROPERTY_FUNC( READ get_nonClient WRITE set_nonClient ) SGS_ALIAS( float nonClient );
@@ -252,6 +256,7 @@ struct UIStyle /* style storage */
 	SGS_PROPERTY_FUNC( READ get_paddingH WRITE set_paddingH ) SGS_ALIAS( float paddingH );
 	SGS_PROPERTY_FUNC( READ get_paddingV WRITE set_paddingV ) SGS_ALIAS( float paddingV );
 	SGS_PROPERTY_FUNC( READ get_padding WRITE set_padding ) SGS_ALIAS( float padding );
+	SGS_PROPERTY_FUNC( READ get_anchorMode WRITE set_anchorMode ) SGS_ALIAS( int anchorMode );
 	
 	void gcmark(){ cursor.gcmark(); renderfunc.gcmark(); }
 };
@@ -286,6 +291,7 @@ struct UIStyleCache /* computed style cache */
 	float paddingRight;
 	float paddingTop;
 	float paddingBottom;
+	bool  overflow;
 	UIColor backgroundColor;
 	UIColor textColor;
 	sgsVariable cursor;
@@ -649,6 +655,7 @@ struct UIControl
 	UIC_DEFINE_ACCESSORS( float, paddingRight );
 	UIC_DEFINE_ACCESSORS( float, paddingTop );
 	UIC_DEFINE_ACCESSORS( float, paddingBottom );
+	UIC_DEFINE_ACCESSORS( bool, overflow );
 	UIC_DEFINE_ACCESSORS( UIColor, backgroundColor );
 	UIC_DEFINE_ACCESSORS( UIColor, textColor );
 	UIC_DEFINE_ACCESSORS2( sgsVariable, cursor );
@@ -696,6 +703,7 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ get_paddingRight WRITE set_paddingRight ) SGS_ALIAS( sgsMaybe<float> paddingRight );
 	SGS_PROPERTY_FUNC( READ get_paddingTop WRITE set_paddingTop ) SGS_ALIAS( sgsMaybe<float> paddingTop );
 	SGS_PROPERTY_FUNC( READ get_paddingBottom WRITE set_paddingBottom ) SGS_ALIAS( sgsMaybe<float> paddingBottom );
+	SGS_PROPERTY_FUNC( READ get_overflow WRITE set_overflow ) SGS_ALIAS( sgsMaybe<bool> overflow );
 	SGS_PROPERTY_FUNC( READ get_backgroundColor WRITE set_backgroundColor ) SGS_ALIAS( sgsMaybe<UIColor> backgroundColor );
 	SGS_PROPERTY_FUNC( READ get_textColor WRITE set_textColor ) SGS_ALIAS( sgsMaybe<UIColor> textColor );
 	SGS_PROPERTY_FUNC( READ get_cursor WRITE set_cursor ) SGS_ALIAS( sgsVariable cursor );

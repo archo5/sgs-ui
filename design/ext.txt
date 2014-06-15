@@ -1,0 +1,121 @@
+
+UI COLOR STORAGE & INTERFACE
+
+some way to store color just enough for interop without xgmath
+- doesn't have to be very fast, just something color can be retrieved from and passed to, quickly converted
+
+sgsColor
+{
+	// array of 4 floating point values
+	float r,g,b,a;
+	
+	// INPUT:
+	sgsVariable, standard array interface (size, indices[0-3])
+	integer values are assumed to be 0-255 => 0.0-1.0
+	floating point (real) values are used as-is
+	// OUTPUT:
+	written by wrapper for internal use (whatever it is)
+	- exposes standard array interface
+	- exposes properties: r,g,b,a
+	
+	// GENERATION:
+	UIColor( float {1,4} )
+};
+
+
+it is extremely regrettable that scripting engines are not yet fully equipped to handle POD type structures without lots of useless allocations and reference counting crap
+however, only a limited number of types can be "almost static" (in-variable storage)
+
+
+
+RICH TEXT RENDERING
+
+it is required to render HTML-like text in a much simpler manner
+generally it goes like this:
+
+{
+	type: body
+	contents:
+	[
+		{ type: text, text: "Here's some text that is " }
+		{ type: text, class: "bold", text: "rendered bolder" }
+		{ type: text, text: " than other bits " }
+		{ type: text, style: { backgroundColor: UIColor(0.6,0.1,0.0,1), textColor: UIColor(0.9,1) }, text: "or even highlighted" }
+		{ type: text, text: " with different colors." }
+		{ type: nextp }
+		{ type: floatleft, ref: <name of embedded and attached UI control> }
+		{
+			type: block
+			contents:
+			[
+				{ type: text, class: "header1", text: "This is in a different block!" }
+			]
+		}
+	]
+}
+
+it appears that there are common properties to be extracted
+- type (int/enum)
+ // - contents SPLIT TO:
+- text (for text nodes)
+- contents (for child node array)
+- class (string)
+- style (UIStyle link)
+- ref (name reference)
+
+
+== rich text inline / block flow:
+
+IDEA #1:
+- dynamic augmentation with line breaks before final position generation -
+
+before:
+<float>
+<inline>
+<inline higher>
+<inline>
+
+after:
+<float>
+<inline <LB> ...>
+<inline higher>
+<inline <LB> ...>
+------------------------------------
+########## ...... .... ..... .....
+#        # ... ||||| ||||| .. .....
+#        # ...... ......
+##########
+------------------------------------
+how do we get to it?
+- iterate each character as if it were a separate element
+- if possible to join character to previous element (character/word), do so
+-- might be necessary to move that word to a new line
+-- moving things around has the capacity to change layout of following items, AS WELL AS ITEMS ALREADY ON THE LINE
+--- ..so if the word is moved, line layout is redone with what already is there
+-- each style change also breaks things up
+algorithmically, this makes a lot of sense
+the problem is data.
+recreating a boatload of stuff on each layout change will be too slow.
+> external (another array) hints?
+> internal (same array) hints?
+> total conversion to a compact binary/multi-struct representation?
+*** once we have line beginnings and ends, it should be possible to attach some more data about the layout of those lines ***
+in other words, use separate line data array?
+struct UIRTLine
+{
+	UIRTNode* start;
+	int startChar;
+	UIRTNode* end;
+	int endChar;
+	// maximum bounds
+	float x0, x1, y0, y1, y1_withMargin;
+	int alignment; // L/C/R/J
+	int firstInfl; // marks the line from which to start looking for foundations (previous lines, extended float-block lines)
+};
+retrofitting floats and blocks in there?
+start = end = float node
+char - irrelevant
+mark floatness somewhere
+
+essentially the data is a dynamic, reusable UIRTLine array
+

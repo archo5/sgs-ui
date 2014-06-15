@@ -114,7 +114,8 @@ global UI_PropertyGrid = {};
 function UI_PropertyGrid._create_label( text )
 {
 	data = this.data;
-	ctrl = UI_CreateStatic( data.OpCont, 0, 0, data.label_width_min, data.label_height, text, color(0,0.1), DT_LEFT | DT_VCENTER );
+	ctrl = UI_CreateStatic( data.OpCont, 0, 0, data.label_width_min, data.label_height, text, DT_LEFT | DT_VCENTER );
+	ctrl.backgroundColor = UIColor( 0, 0.1 );
 	ctrl.minWidth = data.label_width_min;
 	ctrl.maxWidth = data.label_width_max;
 	ctrl.q1x = data.label_width_percent;

@@ -1,15 +1,11 @@
 
 global UI_Static = {};
 
-function UI_Static.setTextColor( c ){ this.data.textcolor = c; }
-
-function UI_CreateStatic( parent, x, y, width, height, caption, color, textmode )
+function UI_CreateStatic( parent, x, y, width, height, caption, textmode )
 {
 	Static = parent.frame.createControl( "static" );
 	Static.data =
 	{
-		color = color || _G.color(0.5,0.5,0.5,1),
-		textcolor = _G.color(0.1,0.1,0.1,1),
 		textmode = textmode || DT_CENTER | DT_VCENTER,
 	};
 	Static.x = x;
@@ -24,7 +20,7 @@ function UI_CreateStatic( parent, x, y, width, height, caption, color, textmode 
 		data = this.data;
 		text = this.caption;
 		
-		c = data.color;
+		c = this.backgroundColor;
 		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, c.r, c.g, c.b, c.a );
 		
 		if( text )

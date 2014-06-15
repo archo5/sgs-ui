@@ -56,7 +56,8 @@ function sgs_ui_example_default()
 	];
 	global STAT = UI_CreateMenuPanel( STATCORE, mpitems );
 	
-	global TOPBAR = UI_CreateStatic( STAT, 0, 0, 0, 24, "", color(0.8,0.8,0.8,1) );
+	global TOPBAR = UI_CreateStatic( STAT, 0, 0, 0, 24, "" );
+	TOPBAR.backgroundColor = UIColor( 0.8, 1 );
 	TOPBAR.q1x = 1;
 	
 	UI_CreateButton( TOPBAR, 0, 0, 24, 24, "", "icons/page.png" );
@@ -84,7 +85,7 @@ function sgs_ui_example_default()
 	SCROLL = UI_CreateScrollable( STAT, 500, 100, 200, 300 );
 	text = string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] );
 	text = string_part( text, 0, 1024 );
-	UI_CreateStatic( SCROLL, 0, 0, 20, 500, text, color(0.9,0.9,0.9,1), DT_LEFT | DT_TOP ).q1x = 1;
+	UI_CreateStatic( SCROLL, 0, 0, 20, 500, text, DT_LEFT | DT_TOP )[]{ q1x = 1, backgroundColor = UIColor( 0.9, 1 ) };
 	
 	SELECT = UI_CreateSelectBox( STAT, 500, 50, 180, 24, "sBoX",
 		[
@@ -128,7 +129,8 @@ function sgs_ui_example_default()
 	WINDOW.minWidth = 100;
 	WINDOW.minHeight = 80;
 	
-	WINSTAT = UI_CreateStatic( WINDOW, 0, 0, 0, 32, "The Options", color(0.9,1), DT_CENTER | DT_VCENTER );
+	WINSTAT = UI_CreateStatic( WINDOW, 0, 0, 0, 32, "The Options", DT_CENTER | DT_VCENTER );
+	WINSTAT.backgroundColor = UIColor( 0.9, 1 );
 	WINSTAT.setAnchorMode( UI_Anchor_Hor | UI_Anchor_Top );
 	
 	LBMENU = UI_CreateListBoxMenu( WINDOW, 0, 32, 0, -32 );
@@ -177,8 +179,55 @@ function sgs_ui_example_menu()
 		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ renderfunc = MenuButton_Render } }.addSelector( "*button" ) )
 		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ font = "fonts/armata-regular.ttf", fontSize = 16 } }.addSelector( "**" ) )
 		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 } }.addSelector( "*scrollingautolayout button static" ) )
-		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ q0x = 0.4, q0y = 0.5, q1x = 0.6, q1y = 1.0 } }.addSelector( ".main-menu" ) )
+		// main menu
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ q0x = 0.4, q0y = 0.5, q1x = 0.6, q1y = 1.0, overflow = true } }.addSelector( ".main-menu" ) )
+		// question window
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ backgroundColor = UIColor(0.5,0.5), anchorMode = UI_Anchor_All } }.addSelector( ".qwindowbgr" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ backgroundColor = UIColor(0,0.5), q0x = 0.3, q0y = 0.3, q1x = 0.7, q1y = 0.7 } }.addSelector( ".qwindow" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ backgroundColor = UIColor(0.3,0.02,0.01,0.5), textColor = UIColor(0.9,1), q0x = 0, q0y = 0, q1x = 1, q1y = 0.3 } }.addSelector( ".qwindow .title" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ q0x = 0.1, q0y = 0.6, q1x = 0.4, q1y = 0.9 } }.addSelector( ".qwindow .btn-yes" ) )
+		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ q0x = 0.6, q0y = 0.6, q1x = 0.9, q1y = 0.9 } }.addSelector( ".qwindow .btn-no" ) )
 	);
+	UI_EasingFunctions.smooth_fast_start = function( a, b, t ){ return UI_EasingFunctions.smooth( a, b, sqrt( t ) ); };
+	
+	//
+	// COMMON CONTROLS
+	//
+	function CreateYesNoQuestionWindow( question, callback )
+	{
+		bgr = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "" );
+		bgr.addClass( "qwindowbgr" );
+		
+		window = UI_CreateStatic( bgr, 0, 0, 0, 0, "" );
+		window.addClass( "qwindow" );
+		
+		title = UI_CreateStatic( window, 0, 0, 0, 0, question );
+		title.addClass( "title" );
+		
+		btn_yes = UI_CreateButton( window, 0, 0, 0, 0, "Yes" );
+		btn_yes.addClass( "btn-yes" );
+		btn_yes.bindEvent( "click", function() use( callback, bgr ){ callback( 1 ); bgr.parent.removeChild( bgr ); } );
+		
+		btn_no = UI_CreateButton( window, 0, 0, 0, 0, "No" );
+		btn_no.addClass( "btn-no" );
+		btn_no.bindEvent( "click", function() use( callback, bgr ){ callback( 0 ); bgr.parent.removeChild( bgr ); } );
+		
+		// background fade in
+		tgtbgcol = bgr.backgroundColor;
+		bgr.backgroundColor = UIColor(0);
+		bgr.animate( { backgroundColor = tgtbgcol }, 0.4 );
+		// window: zoom in --> title: slide in from top
+		tgtq0x = window.q0x; tgtq0y = window.q0y; tgtq1x = window.q1x; tgtq1y = window.q1y;
+		window[]{ q0x = 0.5, q1x = 0.5, q0y = 0.5, q1y = 0.5 };
+		titleq0y = title.q0y;
+		titleq1y = title.q1y;
+		diff = titleq1y - titleq0y;
+		title[]{ q0y = titleq0y - diff, q1y = titleq1y - diff };
+		window.animate( { q0x = tgtq0x, q0y = tgtq0y, q1x = tgtq1x, q1y = tgtq1y }, 0.2, null, function() use( title, titleq0y, titleq1y )
+		{
+			title.animate( { q0y = titleq0y, q1y = titleq1y }, 0.2 );
+		});
+	}
 	
 	//
 	// MAIN MENU
@@ -191,7 +240,8 @@ function sgs_ui_example_menu()
 	}
 	
 	// Title
-	mm_title = UI_CreateStatic( MAIN_MENU, 0, 0, 0, 0, "Example Menu", color(0) );
+	mm_title = UI_CreateStatic( MAIN_MENU, 0, 0, 0, 0, "Example Menu" );
+	mm_title.backgroundColor = UIColor( 0 );
 	mm_title.setAnchorMode( UI_Anchor_All );
 	mm_title.setFont( "fonts/gauge-oblique.ttf", 48 );
 	mm_title.textColor = UIColor(0.3,0.7,0.9,1);
@@ -213,16 +263,16 @@ function sgs_ui_example_menu()
 		mm_menu.animate({ q0x = 0.4, q1x = 0.6 }, 0.5 );
 	}
 	
-	mm_btn_start = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Start" );
+	mm_btn_start = UI_CreateButton( mm_menu, 0, 0, null, 36, "Start" );
 	UI_CreateImage( mm_btn_start, 0, 0, 36, 0, "icons/control_play.png" ).setAnchorMode( UI_Anchor_Vert );
 	
-	mm_btn_info = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Info" );
+	mm_btn_info = UI_CreateButton( mm_menu, 0, 0, null, 36, "Info" );
 	UI_CreateImage( mm_btn_info, 0, 0, 36, 0, "icons/information.png" ).setAnchorMode( UI_Anchor_Vert );
 	
-	mm_btn_options = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Options" );
+	mm_btn_options = UI_CreateButton( mm_menu, 0, 0, null, 36, "Options" );
 	UI_CreateImage( mm_btn_options, 0, 0, 36, 0, "icons/cog.png" ).setAnchorMode( UI_Anchor_Vert );
 	
-	mm_btn_quit = UI_CreateButton( mm_menu, 0, 0, 0, 36, "Quit" );
+	mm_btn_quit = UI_CreateButton( mm_menu, 0, 0, null, 36, "Quit" );
 	UI_CreateImage( mm_btn_quit, 0, 0, 36, 0, "icons/stop.png" ).setAnchorMode( UI_Anchor_Vert );
 	
 	foreach( ctrl : mm_menu.children() )
@@ -233,21 +283,23 @@ function sgs_ui_example_menu()
 	//
 	// START SCREEN
 	//
-	START_SCREEN = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "", color(0,0.2) );
+	START_SCREEN = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "" );
+	START_SCREEN.backgroundColor = UIColor( 0, 0.2 );
 	START_SCREEN.setAnchorRect( 1.22, 0.22, 1.98, 0.98 );
 	function start_screen_enter() use( START_SCREEN, mm_btn_start )
 	{
 		START_SCREEN.animate({ q0x = 0.22, q1x = 0.98 }, 0.5 );
-		mm_btn_start.animate({ height = 64 }, 0.5 );
+		mm_btn_start.animate({ height = 64, q1x = 1.1 }, 0.5, "smooth_fast_start" );
 	}
 	function start_screen_exit() use( START_SCREEN, mm_btn_start )
 	{
 		START_SCREEN.animate({ q0x = 1.22, q1x = 1.98 }, 0.5 );
-		mm_btn_start.animate({ height = 36 }, 0.5 );
+		mm_btn_start.animate({ height = 36, q1x = 1 }, 0.5, "smooth_fast_start" );
 	}
 	
-	ss_stat_title = UI_CreateStatic( START_SCREEN, 0, 0, 0, 0, "Level selection", color(0.3,0.02,0.01,0.5) );
+	ss_stat_title = UI_CreateStatic( START_SCREEN, 0, 0, 0, 0, "Level selection" );
 	ss_stat_title.setAnchorRect( 0, 0, 1, 0.1 );
+	ss_stat_title.backgroundColor = UIColor( 0.3, 0.02, 0.01, 0.5 );
 	ss_stat_title.textColor = UIColor( 0.9, 1 );
 	
 	ss_btn_back = UI_CreateButton( START_SCREEN, 0, 0, 0, 0, "Back" );
@@ -262,8 +314,9 @@ function sgs_ui_example_menu()
 		item = UI_CreateButton( ss_cont_in, 0, 0, 0, 48, "" );
 		item.setAnchorMode( UI_Anchor_Hor );
 		item.data.info = info;
-		lbl = UI_CreateStatic( item, 0, 0, 0, 48, info.name, color(0), DT_LEFT | DT_VCENTER );
+		lbl = UI_CreateStatic( item, 0, 0, 0, 48, info.name, DT_LEFT | DT_VCENTER );
 		lbl.setAnchorMode( UI_Anchor_Hor );
+		lbl.backgroundColor = UIColor( 0 );
 		img = UI_CreateImage( item, 0, 0, 64, 48, info.image, UI_ImageScale_Crop );
 		return item;
 	}
@@ -273,18 +326,24 @@ function sgs_ui_example_menu()
 	//
 	// INFO SCREEN
 	//
-	INFO_SCREEN = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "", color(0,0.2) );
+	INFO_SCREEN = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "" );
+	INFO_SCREEN.backgroundColor = UIColor( 0, 0.2 );
 	INFO_SCREEN.setAnchorRect( 1.22, 0.22, 1.98, 0.98 );
 	function info_screen_enter() use( INFO_SCREEN, mm_btn_info )
 	{
 		INFO_SCREEN.animate({ q0x = 0.22, q1x = 0.98 }, 0.5 );
-		mm_btn_info.animate({ height = 64 }, 0.5 );
+		mm_btn_info.animate({ height = 64, q1x = 1.1 }, 0.5, "smooth_fast_start" );
 	}
 	function info_screen_exit() use( INFO_SCREEN, mm_btn_info )
 	{
 		INFO_SCREEN.animate({ q0x = 1.22, q1x = 1.98 }, 0.5 );
-		mm_btn_info.animate({ height = 36 }, 0.5 );
+		mm_btn_info.animate({ height = 36, q1x = 1 }, 0.5, "smooth_fast_start" );
 	}
+	
+	is_stat_title = UI_CreateStatic( INFO_SCREEN, 0, 0, 0, 0, "Info // TODO: HTML-like content here" );
+	is_stat_title.setAnchorRect( 0, 0, 1, 0.1 );
+	is_stat_title.backgroundColor = UIColor( 0.3, 0.02, 0.01, 0.5 );
+	is_stat_title.textColor = UIColor( 0.9, 1 );
 	
 	is_btn_back = UI_CreateButton( INFO_SCREEN, 0, 0, 0, 0, "Back" );
 	is_btn_back.setAnchorRect( 0.05, 0.85, 0.2, 0.95 );
@@ -299,7 +358,15 @@ function sgs_ui_example_menu()
 	mm_btn_info.bindEvent( "click", main_menu_shrink );
 	mm_btn_info.bindEvent( "click", start_screen_exit );
 	mm_btn_info.bindEvent( "click", info_screen_enter );
-	mm_btn_quit.bindEvent( "click", function(){ global sys_exit = true; } );
+	mm_btn_quit.bindEvent( "click", function() use( CreateYesNoQuestionWindow ){
+		CreateYesNoQuestionWindow( "Do you really want to quit?",
+			function( result )
+			{
+				if( result )
+					global sys_exit = true;
+			}
+		);
+	} );
 	
 	ss_btn_back.bindEvent( "click", main_menu_grow );
 	ss_btn_back.bindEvent( "click", start_screen_exit );
