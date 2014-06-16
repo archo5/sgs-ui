@@ -180,6 +180,8 @@ function sgs_ui_example_menu()
 		"**" = { font = "fonts/armata-regular.ttf", fontSize = 16 },
 		"*scrollingautolayout button static" = { font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 },
 		// main menu
+		".main-menu-frame" = { anchorMode = UI_Anchor_All, renderfunc = function MAIN_MENU_Renderfunc(){ SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.5, 0.5, 1, 0.2, 0.2, 0.2, 1 ); } },
+		".main-menu-frame .title" = { backgroundColor = UIColor( 0 ), anchorMode = UI_Anchor_All, font = "fonts/gauge-oblique.ttf", fontSize = 48, textColor = UIColor(0.3,0.7,0.9,1), q1y = 0.5 },
 		".main-menu" = { q0x = 0.4, q0y = 0.5, q1x = 0.6, q1y = 1.0, overflow = true },
 		// question window
 		".qwindowbgr" = { backgroundColor = UIColor(0.5,0.5), anchorMode = UI_Anchor_All },
@@ -187,6 +189,10 @@ function sgs_ui_example_menu()
 		".qwindow .title" = { backgroundColor = UIColor(0.3,0.02,0.01,0.5), textColor = UIColor(0.9,1), q0x = 0, q0y = 0, q1x = 1, q1y = 0.3 },
 		".qwindow .btn-yes" = { q0x = 0.1, q0y = 0.6, q1x = 0.4, q1y = 0.9 },
 		".qwindow .btn-no" = { q0x = 0.6, q0y = 0.6, q1x = 0.9, q1y = 0.9 },
+		// screen
+		".screen-panel" = { backgroundColor = UIColor( 0, 0.2 ), q0x = 1.22, q0y = 0.22, q1x = 1.98, q1y = 0.98 },
+		".screen-panel .title" = { q0x = 0, q0y = 0, q1x = 1, q1y = 0.1, backgroundColor = UIColor( 0.3, 0.02, 0.01, 0.5 ), textColor = UIColor( 0.9, 1 ) },
+		".screen-panel .btn-back" = { q0x = 0.05, q0y = 0.85, q1x = 0.2, q1y = 0.95 },
 	}));
 	UI_EasingFunctions.smooth_fast_start = function( a, b, t ){ return UI_EasingFunctions.smooth( a, b, sqrt( t ) ); };
 	
@@ -233,19 +239,11 @@ function sgs_ui_example_menu()
 	// MAIN MENU
 	//
 	MAIN_MENU = UI_CreateStatic( FRAME.root, 0, 0, 0, 0 );
-	MAIN_MENU.setAnchorMode( UI_Anchor_All );
-	function MAIN_MENU.renderfunc()
-	{
-		SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.5, 0.5, 1, 0.2, 0.2, 0.2, 1 );
-	}
+	MAIN_MENU.addClass( "main-menu-frame" );
 	
 	// Title
 	mm_title = UI_CreateStatic( MAIN_MENU, 0, 0, 0, 0, "Example Menu" );
-	mm_title.backgroundColor = UIColor( 0 );
-	mm_title.setAnchorMode( UI_Anchor_All );
-	mm_title.setFont( "fonts/gauge-oblique.ttf", 48 );
-	mm_title.textColor = UIColor(0.3,0.7,0.9,1);
-	mm_title.q1y = 0.5;
+	mm_title.addClass( "title" );
 	
 	// Menu
 	mm_menu = UI_CreateAutoLayout( MAIN_MENU, 0, 0, 0 );
@@ -280,12 +278,28 @@ function sgs_ui_example_menu()
 		ctrl.setAnchorMode( UI_Anchor_Hor );
 	}
 	
+	// PREVIEW OF COMING ATTRACTIONS
+//	UI_Build
+	([
+		{ type = "static", class = "main-menu-frame", children =
+		[
+			{ type = "static", class = "title", caption = "Example Menu" },
+			{ type = "autolayout", class = "main-menu", children =
+			[
+				{ type = "imagebutton", name = "start", caption = "Start", icon = "icons/control_play.png", class = "act-close-info act-close-options act-open-start act-menu-shrink" },
+				{ type = "imagebutton", name = "info", caption = "Info", icon = "icons/information.png", class = "act-close-start act-close-options act-open-info act-menu-shrink" },
+				{ type = "imagebutton", name = "options", caption = "Options", icon = "icons/cog.png", class = "act-close-start act-close-info act-open-options act-menu-shrink" },
+				{ type = "imagebutton", name = "quit", caption = "Quit", icon = "icons/stop.png", class = "act-ask-quit" },
+			]},
+		]},
+	]);
+//	FRAME.registerAction( "act-menu-shrink", "click", main_menu_shrink );
+	
 	//
 	// START SCREEN
 	//
 	START_SCREEN = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "" );
-	START_SCREEN.backgroundColor = UIColor( 0, 0.2 );
-	START_SCREEN.setAnchorRect( 1.22, 0.22, 1.98, 0.98 );
+	START_SCREEN.addClass( "screen-panel" );
 	function start_screen_enter() use( START_SCREEN, mm_btn_start )
 	{
 		START_SCREEN.animate({ q0x = 0.22, q1x = 0.98 }, 0.5 );
@@ -298,12 +312,10 @@ function sgs_ui_example_menu()
 	}
 	
 	ss_stat_title = UI_CreateStatic( START_SCREEN, 0, 0, 0, 0, "Level selection" );
-	ss_stat_title.setAnchorRect( 0, 0, 1, 0.1 );
-	ss_stat_title.backgroundColor = UIColor( 0.3, 0.02, 0.01, 0.5 );
-	ss_stat_title.textColor = UIColor( 0.9, 1 );
+	ss_stat_title.addClass( "title" );
 	
 	ss_btn_back = UI_CreateButton( START_SCREEN, 0, 0, 0, 0, "Back" );
-	ss_btn_back.setAnchorRect( 0.05, 0.85, 0.2, 0.95 );
+	ss_btn_back.addClass( "btn-back" );
 	UI_CreateImage( ss_btn_back, 0, 0, 0, 0, "icons/resultset_previous.png" ).setAnchorRect( 0, 0, 0.3, 1 );
 	
 	ss_cont = UI_CreateScrollingAutoLayout( START_SCREEN, 0, 0, 0, 0 );
@@ -327,8 +339,7 @@ function sgs_ui_example_menu()
 	// INFO SCREEN
 	//
 	INFO_SCREEN = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "" );
-	INFO_SCREEN.backgroundColor = UIColor( 0, 0.2 );
-	INFO_SCREEN.setAnchorRect( 1.22, 0.22, 1.98, 0.98 );
+	INFO_SCREEN.addClass( "screen-panel" );
 	function info_screen_enter() use( INFO_SCREEN, mm_btn_info )
 	{
 		INFO_SCREEN.animate({ q0x = 0.22, q1x = 0.98 }, 0.5 );
@@ -341,12 +352,10 @@ function sgs_ui_example_menu()
 	}
 	
 	is_stat_title = UI_CreateStatic( INFO_SCREEN, 0, 0, 0, 0, "Info // TODO: HTML-like content here" );
-	is_stat_title.setAnchorRect( 0, 0, 1, 0.1 );
-	is_stat_title.backgroundColor = UIColor( 0.3, 0.02, 0.01, 0.5 );
-	is_stat_title.textColor = UIColor( 0.9, 1 );
+	is_stat_title.addClass( "title" );
 	
 	is_btn_back = UI_CreateButton( INFO_SCREEN, 0, 0, 0, 0, "Back" );
-	is_btn_back.setAnchorRect( 0.05, 0.85, 0.2, 0.95 );
+	is_btn_back.addClass( "btn-back" );
 	UI_CreateImage( is_btn_back, 0, 0, 0, 0, "icons/resultset_previous.png" ).setAnchorRect( 0, 0, 0.3, 1 );
 	
 	//

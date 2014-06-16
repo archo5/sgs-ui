@@ -15,25 +15,8 @@ function UI_CreateStatic( parent, x, y, width, height, caption, textmode )
 	Static.caption = caption;
 	Static._interface = UI_Static;
 	
-	function Static.renderfunc()
-	{
-		data = this.data;
-		text = this.caption;
-		
-		c = this.backgroundColor;
-		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, c.r, c.g, c.b, c.a );
-		
-		if( text )
-		{
-			SS_DrawTextRect( text, this._cachedFont, SS_UI_ConvertColor( this.textColor ), data.textmode, this.px0, this.px1, this.py0, this.py1 );
-		}
-	}
-	
-	if( typeof(parent) == "UIControl" )
-		parent.addChild( Static );
-	else if( typeof(parent) == "UIFrame" )
-		parent.root = Static;
-	
+	Static.updateTheme();
+	parent.addChild( Static );
 	return Static;
 }
 
