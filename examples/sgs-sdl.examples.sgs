@@ -181,8 +181,10 @@ function sgs_ui_example_menu()
 		"*scrollingautolayout button static" = { font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 },
 		// main menu
 		".main-menu-frame" = { anchorMode = UI_Anchor_All, renderfunc = function MAIN_MENU_Renderfunc(){ SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.5, 0.5, 1, 0.2, 0.2, 0.2, 1 ); } },
-		".main-menu-frame .title" = { backgroundColor = UIColor( 0 ), anchorMode = UI_Anchor_All, font = "fonts/gauge-oblique.ttf", fontSize = 48, textColor = UIColor(0.3,0.7,0.9,1), q1y = 0.5 },
+		".main-menu-frame .title" = { backgroundColor = UIColor( 0 ), anchorMode = UI_Anchor_Hor, font = "fonts/gauge-oblique.ttf", fontSize = 48, textColor = UIColor(0.3,0.7,0.9,1), q0y = 0, q1y = 0.5 },
 		".main-menu" = { q0x = 0.4, q0y = 0.5, q1x = 0.6, q1y = 1.0, overflow = true },
+		".main-menu button" = { height = 36, anchorMode = UI_Anchor_Hor },
+		".main-menu button image" = { width = 36, anchorMode = UI_Anchor_Vert },
 		// question window
 		".qwindowbgr" = { backgroundColor = UIColor(0.5,0.5), anchorMode = UI_Anchor_All },
 		".qwindow" = { backgroundColor = UIColor(0,0.5), q0x = 0.3, q0y = 0.3, q1x = 0.7, q1y = 0.7 },
@@ -279,17 +281,18 @@ function sgs_ui_example_menu()
 	}
 	
 	// PREVIEW OF COMING ATTRACTIONS
-//	UI_Build
-	([
+//	UI_BuildControls
+	( FRAME,
+	[
 		{ type = "static", class = "main-menu-frame", children =
 		[
 			{ type = "static", class = "title", caption = "Example Menu" },
 			{ type = "autolayout", class = "main-menu", children =
 			[
-				{ type = "imagebutton", name = "start", caption = "Start", icon = "icons/control_play.png", class = "act-close-info act-close-options act-open-start act-menu-shrink" },
-				{ type = "imagebutton", name = "info", caption = "Info", icon = "icons/information.png", class = "act-close-start act-close-options act-open-info act-menu-shrink" },
-				{ type = "imagebutton", name = "options", caption = "Options", icon = "icons/cog.png", class = "act-close-start act-close-info act-open-options act-menu-shrink" },
-				{ type = "imagebutton", name = "quit", caption = "Quit", icon = "icons/stop.png", class = "act-ask-quit" },
+				{ type = "imagebutton", name = "start", caption = "Start", image = "icons/control_play.png", class = "act-close-info act-close-options act-open-start act-menu-shrink" },
+				{ type = "imagebutton", name = "info", caption = "Info", image = "icons/information.png", class = "act-close-start act-close-options act-open-info act-menu-shrink" },
+				{ type = "imagebutton", name = "options", caption = "Options", image = "icons/cog.png", class = "act-close-start act-close-info act-open-options act-menu-shrink" },
+				{ type = "imagebutton", name = "quit", caption = "Quit", image = "icons/stop.png", class = "act-ask-quit" },
 			]},
 		]},
 	]);
@@ -410,7 +413,7 @@ function sgs_ui_example_selectors()
 	button = UI_CreateButton( FRAME.root, 100, 100, 200, 20, "Test" );
 	button.addClass( "red" );
 	button.name = "submit";
-	print "Verify that classes are set: "; printvar( button.getClasses() );
+	print "Verify that classes are set: "; printvar( button.class );
 	
 	stylerule = UI_CreateStyleRule();
 	stylerule.addSelector( "button.red.^re.$ed.~e@submit@^sub@$mit@~bmi" );

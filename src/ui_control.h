@@ -599,8 +599,7 @@ struct UIControl
 	SGS_PROPERTY READ UIFrame::Handle frame;
 	
 	sgsString classes;
-	SGS_METHOD sgsString getClasses(){ return classes; }
-	SGS_METHOD void setClasses( const sgsString& ss ){ classes = ss; }
+	SGS_PROPERTY_FUNC( READ WRITE VARNAME class ) SGS_ALIAS( sgsString classes );
 	SGS_METHOD bool addClass( const sgsString& ss ){ return addClass( ss.c_str(), ss.size() ); }
 	SGS_METHOD bool removeClass( const sgsString& ss ){ return removeClass( ss.c_str(), ss.size() ); }
 	SGS_METHOD bool hasClass( const sgsString& ss ){ return hasClass( ss.c_str(), ss.size() ); }

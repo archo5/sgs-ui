@@ -20,6 +20,14 @@ function UI_CreateStatic( parent, x, y, width, height, caption, textmode )
 	return Static;
 }
 
+UI_Controls.static_params = ["textmode"];
+function UI_Controls.static( parent, params )
+{
+	ctrl = UI_CreateStatic( parent, null, null, null, null, null, @params.textmode );
+	UI_ConfigControl( ctrl, params );
+}
+
+
 global
 	UI_ImageScale_None    = 1,
 	UI_ImageScale_Stretch = -1,
@@ -107,6 +115,14 @@ function UI_CreateImage( parent, x, y, width, height, src, scale, align_x, align
 	return Image;
 }
 
+UI_Controls.image_params = ["src","scale","align_x","align_y"];
+function UI_Controls.image( parent, params )
+{
+	ctrl = UI_CreateImage( parent, null, null, null, null, @params.src, @params.scale, @params.align_x, @params.align_y );
+	UI_ConfigControl( ctrl, params );
+}
+
+
 function UI_CreateButton( parent, x, y, width, height, caption, icon )
 {
 	Button = parent.frame.createControl( "button" );
@@ -138,6 +154,28 @@ function UI_CreateButton( parent, x, y, width, height, caption, icon )
 	Button.updateTheme();
 	parent.addChild( Button );
 	return Button;
+}
+
+UI_Controls.button_params = ["icon"];
+function UI_Controls.button( parent, params )
+{
+	ctrl = UI_CreateButton( parent, null, null, null, null, null, @params.icon );
+	UI_ConfigControl( ctrl, params );
+}
+
+
+function UI_CreateImageButton( parent, image, scale, align_x, align_y )
+{
+	Button = UI_CreateButton( parent );
+	UI_CreateImage( Button, null, null, null, null, image, scale, align_x, align_y );
+	return Button;
+}
+
+UI_Controls.imagebutton_params = ["image","scale","align_x","align_y"];
+function UI_Controls.imagebutton( parent, params )
+{
+	ctrl = UI_CreateImageButton( parent, @params.image, @params.scale, @params.align_x, @params.align_y );
+	UI_ConfigControl( ctrl, params );
 }
 
 

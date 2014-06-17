@@ -218,6 +218,8 @@ int sgscript_main( SGS_CTX )
 	sgs_PushCFunction( C, UI_EasingFunction_smoother );
 	sgs_PushDict( C, sgs_StackSize( C ) - start );
 	sgs_StoreGlobal( C, "UI_EasingFunctions" );
+	sgs_PushDict( C, 0 );
+	sgs_StoreGlobal( C, "UI_Controls" );
 	
 	return SGS_SUCCESS;
 }

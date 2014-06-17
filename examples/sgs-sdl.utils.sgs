@@ -1,5 +1,29 @@
 
 
+function UI_ConfigControl( control, params )
+{
+	removed = UI_Controls[ params.type $ "_params" ];
+	foreach( key, val : params )
+	{
+		if( key == "children" )
+			UI_BuildControls( control.frame, val, control );
+		else if( key == "type" )
+			;
+		else if( removed.find( key ) === null )
+			control.(key) = val;
+	}
+}
+
+function UI_BuildControls( frame, controls, parent )
+{
+	parent ||= frame.root;
+	
+	foreach( control : controls )
+		UI_Controls[ control.type ]( parent, control );
+}
+
+
+
 function draw_fitted( tex, x0, x1, y0, y1 )
 {
 	dw = x1 - x0;

@@ -71,6 +71,14 @@ function UI_CreateAutoLayout( parent, x, y, width, height )
 	return AutoLayout;
 }
 
+UI_Controls.autolayout_params = [];
+function UI_Controls.autolayout( parent, params )
+{
+	ctrl = UI_CreateAutoLayout( parent, null, null, null, null );
+	UI_ConfigControl( ctrl, params );
+}
+
+
 function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 {
 	vscroll = if( vscroll === null, "auto", vscroll );
