@@ -281,7 +281,7 @@ function sgs_ui_example_menu()
 	}
 	
 	// PREVIEW OF COMING ATTRACTIONS
-//	UI_BuildControls
+	UI_BuildControls
 	( FRAME.root,
 	[
 		{ type = "static", class = "main-menu-frame", children =
@@ -296,7 +296,27 @@ function sgs_ui_example_menu()
 			]},
 		]},
 	]);
-//	FRAME.registerAction( "act-menu-shrink", "click", main_menu_shrink );
+	function main_menu_shrink()
+	{
+		FRAME.find(".main-menu-frame .title").animate({ q1y = 0.2, textColor = UIColor( 0.3, 0.7, 0.9, 0.5 ) }, 0.5 );
+		FRAME.find(".main-menu-frame .main-menu").animate({ q0x = 0.05, q1x = 0.2 }, 0.5 );
+	}
+	function main_menu_grow()
+	{
+		FRAME.find(".main-menu-frame .title").animate({ q1y = 0.5, textColor = UIColor( 0.3, 0.7, 0.9, 1 ) }, 0.5 );
+		FRAME.find(".main-menu-frame .main-menu").animate({ q0x = 0.4, q1x = 0.6 }, 0.5 );
+	}
+	FRAME.find( ".act-menu-shrink" ).bindEvent( "click", main_menu_shrink );
+	FRAME.find( ".act-menu-grow" ).bindEvent( "click", main_menu_grow );
+	FRAME.find( ".act-ask-quit" ).bindEvent( "click", function() use( CreateYesNoQuestionWindow ){
+		CreateYesNoQuestionWindow( "Do you really want to quit?",
+			function( result )
+			{
+				if( result )
+					global sys_exit = true;
+			}
+		);
+	} );
 	
 	//
 	// START SCREEN

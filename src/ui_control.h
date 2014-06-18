@@ -187,6 +187,7 @@ struct UIEvent
 	SGS_PROPERTY float y;
 	SGS_PROPERTY float rx;
 	SGS_PROPERTY float ry;
+	SGS_PROPERTY sgsHandle<struct UIControl> target;
 };
 
 inline void UI_PushEvent( SGS_CTX, UIEvent* e ){ sgs_PushLiteClassFrom( C, e ); }
@@ -415,6 +416,7 @@ struct UIFrame
 	~UIFrame();
 	
 	SGS_METHOD sgsHandle< UIControl > createControl( sgsString type );
+	SGS_METHOD sgsHandle<struct UIQuery> find( /* args */ );
 	
 	SGS_METHOD void event( UIEvent* e );
 	SGS_METHOD void render();
@@ -528,13 +530,6 @@ struct UIControl
 	typedef sgsHandle< UIControl > Handle;
 	typedef std::vector< Handle > HandleArray;
 	
-	static Handle CreateHandle( UIControl* ctrl )
-	{
-		if( ctrl )
-			return Handle( ctrl->m_sgsObject, ctrl->C );
-		return Handle();
-	}
-	
 	
 	// Animation tools
 	struct Animation
@@ -555,7 +550,7 @@ struct UIControl
 	UIControl();
 	~UIControl();
 	
-	int niEvent( UIEvent* event );
+	int niEvent( UIEvent* event, bool only = false );
 	void niBubblingEvent( UIEvent* e );
 	void niRender();
 	SGS_METHOD void updateLayout();
@@ -573,6 +568,11 @@ struct UIControl
 	SGS_METHOD void sortSiblings();
 	SGS_METHOD void setAnchorMode( int mode );
 	SGS_METHOD void setAnchorRect( float x0, float y0, float x1, float y1 );
+	
+	UIControl* _getPrev();
+	UIControl* _getNext();
+	SGS_METHOD Handle getPrev(){ UIControl* ctrl = _getPrev(); if( ctrl ) return Handle( C, ctrl->m_sgsObject ); return Handle(); }
+	SGS_METHOD Handle getNext(){ UIControl* ctrl = _getNext(); if( ctrl ) return Handle( C, ctrl->m_sgsObject ); return Handle(); }
 	
 	SGS_METHOD bool bindEvent( sgsString name, sgsVariable callable );
 	SGS_METHOD bool unbindEvent( sgsString name, sgsVariable callable );
@@ -780,12 +780,14 @@ struct UIQuery
 	typedef sgsHandle< UIQuery > Handle;
 	
 	SGS_OBJECT;
+	SGS_IFUNC(CONVERT) int sgs_convert( SGS_CTX, sgs_VarObj* obj, int type );
 	SGS_IFUNC(GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop );
 	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
 	
 	// utility functions
 	bool _parseArgs( sgs_StkIdx stacksize );
 	bool _checkCtrl( UIControl* ctrl );
+	bool _hasCtrl( UIControl* ctrl );
 	
 	// query functions (args=unspecified number of selector strings, selector objects or UI controls)
 	static UIQuery::Handle Create( /* args, */ UIFrame::Handle frame );
@@ -799,17 +801,29 @@ struct UIQuery
 	SGS_METHOD UIQuery::Handle nextAll( /* args */ );
 	
 	// filtering functions
-	SGS_METHOD UIQuery::Handle filter( /* args */ ){}
-	SGS_METHOD UIQuery::Handle first(){}
-	SGS_METHOD UIQuery::Handle last(){}
+	SGS_METHOD UIQuery::Handle filter( /* args */ );
+	SGS_METHOD UIQuery::Handle first();
+	SGS_METHOD UIQuery::Handle last();
 	
 	// data functions
-	SGS_METHOD sgsVariable getAttr( sgsString key ){}
-	SGS_METHOD sgsVariable /*self*/ setAttr( sgsString key, sgsVariable value ){}
+	SGS_METHOD sgsVariable getAttr( sgsString key );
+	SGS_METHOD UIQuery::Handle setAttr( sgsString key, sgsVariable value );
+	SGS_METHOD UIQuery::Handle bindEvent( sgsString name, sgsVariable callable );
+	SGS_METHOD UIQuery::Handle unbindEvent( sgsString name, sgsVariable callable );
+	SGS_METHOD UIQuery::Handle callEvent( sgsString name, UIEvent* e );
+	SGS_METHOD UIQuery::Handle animate( sgsVariable state, float length, sgsVariable func, sgsVariable oncomplete );
+	SGS_METHOD UIQuery::Handle stop( bool nofinish );
+	SGS_METHOD UIQuery::Handle dequeue();
+	SGS_METHOD UIQuery::Handle skip( bool nofinish );
 	
-	UIFrame::Handle m_frame;
+	SGS_PROPERTY READ UIFrame::Handle m_frame;
 	StyleSelArray m_selectors;
 	UIControl::HandleArray m_items;
+	
+	// ArrayIterator interface
+	static const char* IteratorTypeName;
+	UIControl::Handle operator [] ( sgs_SizeVal i ) const { return m_items[ i ]; }
+	sgs_SizeVal size() const { return m_items.size(); }
 };
 
 

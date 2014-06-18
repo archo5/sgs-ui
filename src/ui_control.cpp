@@ -213,7 +213,7 @@ void UIStyleSheet::build( sgsVariable var )
 			goto key_fail;
 		
 		// try to add selector
-		const char* errpos = StyleArr_addSelectors( rule->selectors, sgsString( orig2 + 1, C ) );
+		const char* errpos = StyleArr_addSelectors( rule->selectors, sgsString( C, orig2 + 1 ) );
 		if( errpos )
 		{
 			sgs_Msg( C, SGS_WARNING, "failed to parse selectors: '%.*s' (position %d)",
@@ -251,7 +251,7 @@ void UIStyleSheet::build( sgsVariable var )
 			sgs_SetStackSize( C, orig3 );
 		}
 		
-		UIStyleRule::Handle rulehandle = UIStyleRule::Handle( rule->m_sgsObject, C );
+		UIStyleRule::Handle rulehandle = UIStyleRule::Handle( C, rule->m_sgsObject );
 		if( rulehandle.object && VFIND( rules, rulehandle ) >= rules.size() )
 			rules.push_back( rulehandle );
 		
@@ -778,14 +778,14 @@ int UIControl_CtrlProc( SGS_CTX )
 	case EV_ButtonDown:
 		ctrl->clicked += ctrl->mouseOn;
 		ctrl->frame->_updateStyles( ctrl );
-		ctrl->callEvent( sgsString( "mousedown", C ), event );
+		ctrl->callEvent( sgsString( C, "mousedown" ), event );
 		if( ctrl->frame.object )
 			ctrl->frame->setFocus( ctrl );
 		return 1;
 	case EV_ButtonUp:
-		ctrl->callEvent( sgsString( "mouseup", C ), event );
-		if( ctrl->clicked && ctrl->frame.object && ctrl->frame->isControlUnderCursor( UIControl::CreateHandle( ctrl ) ) )
-			ctrl->callEvent( sgsString( "click", C ), event );
+		ctrl->callEvent( sgsString( C, "mouseup" ), event );
+		if( ctrl->clicked && ctrl->frame.object && ctrl->frame->isControlUnderCursor( UIControl::Handle( ctrl ) ) )
+			ctrl->callEvent( sgsString( C, "click" ), event );
 		ctrl->clicked--;
 		ctrl->frame->_updateStyles( ctrl );
 		if( ctrl->clicked < 0 )
@@ -815,7 +815,7 @@ UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0)
 	memset( m_clicktargets, 0, sizeof(m_clicktargets) );
 	memset( m_clickoffsets, 0, sizeof(m_clickoffsets) );
 	
-	root = createControl( sgsString( "root", C ) );
+	root = createControl( sgsString( C, "root" ) );
 	root->style.q1x.set( 1 );
 	root->style.q1y.set( 1 );
 	root->_remergeStyle();
@@ -830,7 +830,7 @@ UIControl::Handle UIFrame::createControl( sgsString type )
 {
 	UIControl* ctrl = SGS_PUSHCLASS( C, UIControl, () );
 	ctrl->type = type;
-	ctrl->frame = Handle( m_sgsObject, C );
+	ctrl->frame = Handle( C, m_sgsObject );
 	ctrl->id = m_controlIDGen.GetID();
 	ctrl->updateFont();
 	UIFilteredStyleArray fsa;
@@ -840,10 +840,16 @@ UIControl::Handle UIFrame::createControl( sgsString type )
 	return handle;
 }
 
+sgsHandle<struct UIQuery> UIFrame::find( /* args */ )
+{
+	return UIQuery::Create( Handle( C, m_sgsObject ) );
+}
+
+
 void UIFrame::event( UIEvent* e )
 {
 	if( root )
-		root->niEvent( e );
+		root->niEvent( e, true );
 }
 
 void UIFrame::render()
@@ -872,7 +878,7 @@ UIControl* UIFrame::_getControlAtPosition( float x, float y )
 				continue;
 			if( nonclient < 0 || nonclient == ( nc->nonclient ? 1 : 0 ) )
 			{
-				int hit = nc->niEvent( &htev );
+				int hit = nc->niEvent( &htev, true );
 				if( hit != Hit_None )
 				{
 					ctrl = nc;
@@ -923,11 +929,11 @@ void UIFrame::setFocus( UIControl* ctrl )
 	UIEvent e;
 	e.type = EV_NeedFocus;
 	
-	if( ctrl->niEvent( &e ) )
+	if( ctrl->niEvent( &e, true ) )
 	{
-		if( m_focus ){ e.type = EV_FocusLeave; m_focus->niEvent( &e ); }
+		if( m_focus ){ e.type = EV_FocusLeave; m_focus->niEvent( &e, true ); }
 		m_focus = ctrl;
-		if( m_focus ){ e.type = EV_FocusEnter; m_focus->niEvent( &e ); }
+		if( m_focus ){ e.type = EV_FocusEnter; m_focus->niEvent( &e, true ); }
 	}
 }
 
@@ -976,7 +982,7 @@ void UIFrame::doMouseMove( float x, float y )
 	
 	if( root.object )
 	{
-		root->callEvent( sgsString( "globalmousemove", C ), &e );
+		root->callEvent( sgsString( C, "globalmousemove" ), &e );
 	}
 }
 
@@ -1009,7 +1015,7 @@ void UIFrame::doMouseButton( int btn, bool down )
 	
 	if( root.object )
 	{
-		root->callEvent( sgsString( down ? "globalbuttondown" : "globalbuttonup", C ), &e );
+		root->callEvent( sgsString( C, down ? "globalbuttondown" : "globalbuttonup" ), &e );
 	}
 }
 
@@ -1027,7 +1033,7 @@ void UIFrame::doMouseWheel( float x, float y )
 	
 	if( root.object )
 	{
-		root->callEvent( sgsString( "globalmousewheel", C ), &e );
+		root->callEvent( sgsString( C, "globalmousewheel" ), &e );
 	}
 }
 
@@ -1038,7 +1044,7 @@ void UIFrame::doKeyPress( int key, bool down )
 	e.key = key;
 	
 	if( m_focus )
-		m_focus->niEvent( &e );
+		m_focus->niEvent( &e, true );
 }
 
 void UIFrame::doPutChar( int chr )
@@ -1048,7 +1054,7 @@ void UIFrame::doPutChar( int chr )
 	e.uchar = chr;
 	
 	if( m_focus )
-		m_focus->niEvent( &e );
+		m_focus->niEvent( &e, true );
 }
 
 int64_t UIFrame::_setTimer( float t, sgsVariable func, bool one_shot )
@@ -1175,7 +1181,7 @@ static UIStyleSheet::Handle _theme_getstylesheet( SGS_CTX, sgsVariable theme )
 		{
 			sgs_CheckString32( &str32 );
 			if( val.type == SGS_VT_OBJECT )
-				return UIStyleSheet::Handle( val.data.O, C );
+				return UIStyleSheet::Handle( C, val.data.O );
 		}
 		sgs_CheckString32( &str32 );
 	}
@@ -1272,7 +1278,7 @@ void UIFrame::removeStyleSheet( UIStyleSheet::Handle sheet )
 sgsVariable UIFrame::getStyleSheets()
 {
 	for( size_t i = 0; i < m_styleSheets.size(); ++i )
-		sgs_PushHandle( C, m_styleSheets[ i ] );
+		m_styleSheets[ i ].push( C );
 	sgs_PushArray( C, m_styleSheets.size() );
 	return sgsVariable( C, -1 );
 }
@@ -1295,26 +1301,26 @@ void UIFrame::_updateStyles( UIControl* initial )
 }
 
 
-sgsHandle< UIControl > UIFrame::getHoverControl()
+UIControl::Handle UIFrame::getHoverControl()
 {
-	return sgsHandle< UIControl >( m_hover ? m_hover->m_sgsObject : NULL, C );
+	return UIControl::Handle( m_hover );
 }
 
-sgsHandle< UIControl > UIFrame::getFocusControl()
+UIControl::Handle UIFrame::getFocusControl()
 {
-	return sgsHandle< UIControl >( m_focus ? m_focus->m_sgsObject : NULL, C );
+	return UIControl::Handle( m_focus );
 }
 
-sgsHandle< UIControl > UIFrame::getControlUnderCursor()
+UIControl::Handle UIFrame::getControlUnderCursor()
 {
 	UIControl* ctrl = _getControlAtPosition( mouseX, mouseY );
-	return sgsHandle< UIControl >( ctrl ? ctrl->m_sgsObject : NULL, C );
+	return UIControl::Handle( ctrl );
 }
 
-sgsHandle< UIControl > UIFrame::getControlUnderPoint( float x, float y )
+UIControl::Handle UIFrame::getControlUnderPoint( float x, float y )
 {
 	UIControl* ctrl = _getControlAtPosition( x, y );
-	return sgsHandle< UIControl >( ctrl ? ctrl->m_sgsObject : NULL, C );
+	return UIControl::Handle( ctrl );
 }
 
 bool UIFrame::isControlUnderCursor( const sgsHandle< UIControl >& ctrl )
@@ -1364,10 +1370,12 @@ UIControl::~UIControl()
 	frame->m_controlIDGen.ReleaseID( id );
 }
 
-int UIControl::niEvent( UIEvent* e )
+int UIControl::niEvent( UIEvent* e, bool only )
 {
 	int orig = sgs_StackSize( C );
-	sgs_PushVar( C, Handle( m_sgsObject, C ) );
+	sgs_PushVar( C, Handle( C, m_sgsObject ) );
+	if( only )
+		e->target = Handle( C, m_sgsObject );
 	UI_PushEvent( C, e );
 	callback.push();
 	sgs_ThisCall( C, 1, 1 );
@@ -1379,6 +1387,7 @@ int UIControl::niEvent( UIEvent* e )
 void UIControl::niBubblingEvent( UIEvent* e )
 {
 	UIControl* cc = this;
+	e->target = Handle( C, m_sgsObject );
 	while( cc )
 	{
 		if( !cc->niEvent( e ) )
@@ -1395,7 +1404,7 @@ void UIControl::niRender()
 	if( get_renderfunc().not_null() )
 	{
 		sgs_StkIdx orig = sgs_StackSize( C );
-		sgs_PushVar( C, Handle( m_sgsObject, C ) );
+		sgs_PushVar( C, Handle( C, m_sgsObject ) );
 		get_renderfunc().push( C );
 		sgs_ThisCall( C, 0, 0 );
 		sgs_SetStackSize( C, orig );
@@ -1428,7 +1437,7 @@ void UIControl::updateLayout()
 	_updatingLayout = true;
 	UIEvent e;
 	e.type = EV_Layout;
-	niEvent( &e );
+	niEvent( &e, true );
 	_updatingLayout = false;
 }
 
@@ -1436,7 +1445,7 @@ void UIControl::updateTheme()
 {
 	UIEvent e;
 	e.type = EV_ChgTheme;
-	niEvent( &e );
+	niEvent( &e, true );
 }
 
 void UIControl::updateThemeRecursive()
@@ -1505,17 +1514,17 @@ bool UIControl::addChild( UIControl::Handle ch )
 	}
 	m_children.push_back( ch );
 	m_sorted.push_back( ch );
-	ch->parent = Handle( m_sgsObject, C );
+	ch->parent = Handle( C, m_sgsObject );
 	sortChildren();
 	
 	frame->_updateStyles( ch );
 	
 	UIEvent e;
 	e.type = EV_AddChild;
-	niEvent( &e );
+	niEvent( &e, true );
 	
 	e.type = EV_Attach;
-	ch->niEvent( &e );
+	ch->niEvent( &e, true );
 	
 	puts(ch->classes.c_str());
 	
@@ -1526,10 +1535,10 @@ bool UIControl::removeChild( UIControl::Handle ch )
 {
 	UIEvent e;
 	e.type = EV_Detach;
-	ch->niEvent( &e );
+	ch->niEvent( &e, true );
 	
 	e.type = EV_RemChild;
-	niEvent( &e );
+	niEvent( &e, true );
 	
 	bool found = false;
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
@@ -1586,7 +1595,7 @@ sgsVariable UIControl::children( bool nonclient )
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
 		if( (*it)->nonclient == nonclient )
-			sgs_PushHandle( C, *it );
+			it->push( C );
 	}
 	sgs_PushArray( C, sgs_StackSize( C ) );
 	return sgsVariable( C, -1 );
@@ -1651,6 +1660,27 @@ void UIControl::setAnchorRect( float x0, float y0, float x1, float y1 )
 	style.q1x.set( x1 );
 	style.q1y.set( y1 );
 	_remergeStyle();
+}
+
+
+UIControl* UIControl::_getPrev()
+{
+	if( !parent.object )
+		return NULL;
+	size_t pos = VFIND( parent->m_children, Handle( C, m_sgsObject ) );
+	if( pos < 1 || pos >= parent->m_children.size() )
+		return NULL;
+	return parent->m_children[ pos ];
+}
+
+UIControl* UIControl::_getNext()
+{
+	if( !parent.object )
+		return NULL;
+	size_t pos = VFIND( parent->m_children, Handle( C, m_sgsObject ) );
+	if( pos >= parent->m_children.size() - 1 )
+		return NULL;
+	return parent->m_children[ pos ];
 }
 
 
@@ -1756,7 +1786,7 @@ UIControl::Handle UIControl::animate( sgsVariable state, float length, sgsVariab
 	sgs_PushDict( C, 0 );
 	sgsVariable currState( C, -1 );
 	sgs_Pop( C, 1 );
-	sgs_PushHandle( C, UIControl::CreateHandle( this ) );
+	UIControl::Handle( this ).push( C );
 	sgsVariable me( C, -1 );
 	sgs_Pop( C, 1 );
 	// try to read state and on success, add data to prev/curr states
@@ -1807,7 +1837,7 @@ UIControl::Handle UIControl::animate( sgsVariable state, float length, sgsVariab
 	if( m_animQueue.size() == 1 )
 		_startCurAnim();
 	
-	return Handle( m_sgsObject, C );
+	return Handle( this );
 }
 
 UIControl::Handle UIControl::stop( bool nofinish )
@@ -1816,7 +1846,7 @@ UIControl::Handle UIControl::stop( bool nofinish )
 		_finishCurAnim();
 	
 	m_animQueue.clear();
-	return Handle( m_sgsObject, C );
+	return Handle( this );
 }
 
 UIControl::Handle UIControl::dequeue()
@@ -1825,7 +1855,7 @@ UIControl::Handle UIControl::dequeue()
 		m_animQueue.erase( m_animQueue.begin() + 1, m_animQueue.end() );
 	else
 		m_animQueue.clear();
-	return Handle( m_sgsObject, C );
+	return Handle( this );
 }
 
 UIControl::Handle UIControl::skip( bool nofinish )
@@ -1833,7 +1863,7 @@ UIControl::Handle UIControl::skip( bool nofinish )
 	if( !nofinish && m_animQueue.size() && m_animQueue[0].time > 0 )
 		_finishCurAnim();
 	
-	return Handle( m_sgsObject, C );
+	return Handle( this );
 }
 
 void UIControl::_advanceAnimation( float dt )
@@ -1891,7 +1921,7 @@ void UIControl::_applyCurAnimState()
 				/* interpolated = -1 */
 			}
 			
-			sgs_PushHandle( C, UIControl::CreateHandle( this ) );
+			UIControl::Handle( this ).push( C );
 			sgs_SetIndexIII( C, -1, orig2, -2, 1 );
 			
 			sgs_SetStackSize( C, orig2 );
@@ -1908,7 +1938,7 @@ void UIControl::_finishCurAnim()
 	if( A.oncomplete.not_null() )
 	{
 		sgs_StkIdx orig = sgs_StackSize( C );
-		sgs_PushHandle( C, UIControl::CreateHandle( this ) );
+		UIControl::Handle( this ).push( C );
 		A.oncomplete.push( C );
 		sgs_ThisCall( C, 0, 0 );
 		sgs_SetStackSize( C, orig );
@@ -1924,7 +1954,7 @@ void UIControl::_startCurAnim()
 {
 	Animation& A = m_animQueue[0];
 	
-	sgs_PushHandle( C, UIControl::CreateHandle( this ) );
+	UIControl::Handle( this ).push( C );
 	sgsVariable me( C, -1 );
 	sgs_Pop( C, 1 );
 	
@@ -1989,7 +2019,7 @@ void UIControl::_setClasses3( const char* str1, size_t size1, const char* str2, 
 	if( size2 ) memcpy( out + size1, str2, size2 );
 	if( size3 ) memcpy( out + size1 + size2, str3, size3 );
 	// retrieve new class string
-	classes = sgsString( -1, C );
+	classes = sgsString( C, -1 );
 	// old one is automatically freed
 }
 
@@ -2170,6 +2200,18 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 }
 
 
+const char* UIQuery::IteratorTypeName = "UIQueryIterator";
+
+int UIQuery::sgs_convert( SGS_CTX, sgs_VarObj* obj, int type )
+{
+	if( type == SGS_CONVOP_TOITER )
+	{
+		UIQuery* Q = (UIQuery*) obj->data;
+		SGS_PUSHLITECLASS( C, sgsArrayIterator<UIQuery>, ( Q ) );
+		return SGS_SUCCESS;
+	}
+	return SGS_ENOTSUP;
+}
 
 int UIQuery::sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop )
 {
@@ -2184,7 +2226,7 @@ int UIQuery::sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int ispr
 	{
 		if( idx < 0 || idx >= Q->m_items.size() )
 			return SGS_EBOUNDS;
-		sgs_PushHandle( C, Q->m_items[ idx ] );
+		Q->m_items[ idx ].push( C );
 		return SGS_SUCCESS;
 	}
 	return UIQuery::_sgs_getindex( C, obj, key, isprop );
@@ -2204,10 +2246,14 @@ bool UIQuery::_parseArgs( sgs_StkIdx stacksize )
 	for( sgs_StkIdx i = 0; i < stacksize; ++i )
 	{
 		if( sgs_IsObject( C, i, UIControl::_sgs_interface ) )
-			m_items.push_back( sgs_GetVar<UIControl::Handle>()( C, i ) );
+		{
+			UIControl::Handle hctrl = sgs_GetVar<UIControl::Handle>()( C, i );
+			if( !_hasCtrl( hctrl ) )
+				m_items.push_back( hctrl );
+		}
 		else if( sgs_ItemType( C, i ) == SGS_VT_STRING )
 		{
-			sgsString str( i, C );
+			sgsString str( C, i );
 			const char* err = StyleArr_addSelectors( m_selectors, str );
 			if( err )
 			{
@@ -2232,6 +2278,11 @@ bool UIQuery::_checkCtrl( UIControl* ctrl )
 	return true;
 }
 
+bool UIQuery::_hasCtrl( UIControl* ctrl )
+{
+	return VFIND( m_items, UIControl::Handle( ctrl ) ) < m_items.size();
+}
+
 
 UIQuery::Handle UIQuery::Create( /* args, */ UIFrame::Handle frame )
 {
@@ -2253,14 +2304,14 @@ UIQuery::Handle UIQuery::Create( /* args, */ UIFrame::Handle frame )
 		UIControl* ctrl = controls[0];
 		VREMOVEAT( controls, 0 );
 		
-		if( Q->_checkCtrl( ctrl ) )
-			Q->m_items.push_back( UIControl::Handle( ctrl->m_sgsObject, C ) );
+		if( Q->_checkCtrl( ctrl ) && !Q->_hasCtrl( ctrl ) )
+			Q->m_items.push_back( UIControl::Handle( ctrl ) );
 		
 		for( size_t i = 0; i < ctrl->m_children.size(); ++i )
 			controls.push_back( ctrl->m_children[ i ] );
 	}
 	
-	return UIQuery::Handle( Q->m_sgsObject, C );
+	return Handle( Q );
 }
 
 UIQuery::Handle UIQuery::find( /* args */ )
@@ -2280,14 +2331,14 @@ UIQuery::Handle UIQuery::find( /* args */ )
 		UIControl* ctrl = controls[0];
 		VREMOVEAT( controls, 0 );
 		
-		if( Q->_checkCtrl( ctrl ) )
-			Q->m_items.push_back( UIControl::Handle( ctrl->m_sgsObject, C ) );
+		if( Q->_checkCtrl( ctrl ) && !Q->_hasCtrl( ctrl ) )
+			Q->m_items.push_back( UIControl::Handle( ctrl ) );
 		
 		for( size_t i = 0; i < ctrl->m_children.size(); ++i )
 			controls.push_back( ctrl->m_children[ i ] );
 	}
 	
-	return UIQuery::Handle( Q->m_sgsObject, C );
+	return Handle( Q );
 }
 
 UIQuery::Handle UIQuery::children( /* args */ )
@@ -2304,12 +2355,12 @@ UIQuery::Handle UIQuery::children( /* args */ )
 		UIControl* ctrl = m_items[ i ];
 		for( size_t j = 0; j < ctrl->m_children.size(); ++j )
 		{
-			if( Q->_checkCtrl( ctrl->m_children[ j ] ) )
+			if( Q->_checkCtrl( ctrl->m_children[ j ] ) && !Q->_hasCtrl( ctrl->m_children[ j ] ) )
 				Q->m_items.push_back( ctrl->m_children[ j ] );
 		}
 	}
 	
-	return UIQuery::Handle( Q->m_sgsObject, C );
+	return Handle( Q );
 }
 
 UIQuery::Handle UIQuery::parent()
@@ -2317,18 +2368,18 @@ UIQuery::Handle UIQuery::parent()
 	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
 	Q->m_frame = m_frame;
 	
-	// RETRIEVE ALL PARENT CONTROLS (may repeat)
+	// RETRIEVE ALL PARENT CONTROLS
 	for( size_t i = 0; i < m_items.size(); ++i )
 	{
 		UIControl* ctrl = m_items[ i ];
 		if( ctrl->parent.object )
 		{
-			if( VFIND( Q->m_items, ctrl->parent ) >= Q->m_items.size() )
+			if( !Q->_hasCtrl( ctrl->parent ) )
 				Q->m_items.push_back( ctrl->parent );
 		}
 	}
 	
-	return UIQuery::Handle( Q->m_sgsObject, C );
+	return Handle( Q );
 }
 
 UIQuery::Handle UIQuery::closest( /* args */ )
@@ -2339,7 +2390,7 @@ UIQuery::Handle UIQuery::closest( /* args */ )
 	if( !Q->_parseArgs( ssz ) )
 		return UIQuery::Handle();
 	
-	// ITERATE ALL ANCESTOR CONTROLS UNTIL MATCH IS FOUND (starting from self, may repeat)
+	// ITERATE ALL ANCESTOR CONTROLS UNTIL MATCH IS FOUND (starting from self)
 	for( size_t i = 0; i < m_items.size(); ++i )
 	{
 		UIControl* ctrl = m_items[ i ];
@@ -2347,7 +2398,7 @@ UIQuery::Handle UIQuery::closest( /* args */ )
 		{
 			if( Q->_checkCtrl( ctrl ) )
 			{
-				if( VFIND( Q->m_items, m_items[i] ) >= Q->m_items.size() )
+				if( !Q->_hasCtrl( m_items[i] ) )
 					Q->m_items.push_back( m_items[i] );
 				break;
 			}
@@ -2355,7 +2406,7 @@ UIQuery::Handle UIQuery::closest( /* args */ )
 		}
 	}
 	
-	return UIQuery::Handle( Q->m_sgsObject, C );
+	return Handle( Q );
 }
 
 UIQuery::Handle UIQuery::prev( /* args */ )
@@ -2369,10 +2420,12 @@ UIQuery::Handle UIQuery::prev( /* args */ )
 	// CHECK ONE SIBLING CONTROL BEFORE CURRENT
 	for( size_t i = 0; i < m_items.size(); ++i )
 	{
-		// TODO
+		UIControl* ctrl = m_items[ i ]->_getPrev();
+		if( ctrl && Q->_checkCtrl( ctrl ) && !Q->_hasCtrl( ctrl ) )
+			Q->m_items.push_back( m_items[i] );
 	}
 	
-	return UIQuery::Handle( Q->m_sgsObject, C );
+	return Handle( Q );
 }
 
 UIQuery::Handle UIQuery::next( /* args */ )
@@ -2386,10 +2439,12 @@ UIQuery::Handle UIQuery::next( /* args */ )
 	// CHECK ONE SIBLING CONTROL AFTER CURRENT
 	for( size_t i = 0; i < m_items.size(); ++i )
 	{
-		// TODO
+		UIControl* ctrl = m_items[ i ]->_getNext();
+		if( ctrl && Q->_checkCtrl( ctrl ) && !Q->_hasCtrl( ctrl ) )
+			Q->m_items.push_back( m_items[i] );
 	}
 	
-	return UIQuery::Handle( Q->m_sgsObject, C );
+	return Handle( Q );
 }
 
 UIQuery::Handle UIQuery::prevAll( /* args */ )
@@ -2400,13 +2455,19 @@ UIQuery::Handle UIQuery::prevAll( /* args */ )
 	if( !Q->_parseArgs( ssz ) )
 		return UIQuery::Handle();
 	
-	// ITERATE ALL SIBLING CONTROLS BEFORE CURRENT (may repeat)
+	// ITERATE ALL SIBLING CONTROLS BEFORE CURRENT
 	for( size_t i = 0; i < m_items.size(); ++i )
 	{
-		// TODO
+		UIControl* ctrl = m_items[ i ]->_getPrev();
+		while( ctrl )
+		{
+			if( Q->_checkCtrl( ctrl ) && !Q->_hasCtrl( ctrl ) )
+				Q->m_items.push_back( m_items[i] );
+			ctrl = ctrl->_getPrev();
+		}
 	}
 	
-	return UIQuery::Handle( Q->m_sgsObject, C );
+	return Handle( Q );
 }
 
 UIQuery::Handle UIQuery::nextAll( /* args */ )
@@ -2417,13 +2478,128 @@ UIQuery::Handle UIQuery::nextAll( /* args */ )
 	if( !Q->_parseArgs( ssz ) )
 		return UIQuery::Handle();
 	
-	// ITERATE ALL SIBLING CONTROLS AFTER CURRENT (may repeat)
+	// ITERATE ALL SIBLING CONTROLS AFTER CURRENT
 	for( size_t i = 0; i < m_items.size(); ++i )
 	{
-		// TODO
+		UIControl* ctrl = m_items[ i ]->_getNext();
+		while( ctrl )
+		{
+			if( Q->_checkCtrl( ctrl ) && !Q->_hasCtrl( ctrl ) )
+				Q->m_items.push_back( m_items[i] );
+			ctrl = ctrl->_getNext();
+		}
 	}
 	
-	return UIQuery::Handle( Q->m_sgsObject, C );
+	return Handle( Q );
+}
+
+UIQuery::Handle UIQuery::filter( /* args */ )
+{
+	sgs_StkIdx ssz = sgs_StackSize( C );
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = m_frame;
+	if( !Q->_parseArgs( ssz ) )
+		return UIQuery::Handle();
+	for( size_t i = 0; i < m_items.size(); ++i )
+	{
+		UIControl* ctrl = m_items[ i ];
+		if( Q->_checkCtrl( ctrl ) && !Q->_hasCtrl( ctrl ) )
+			Q->m_items.push_back( m_items[i] );
+	}
+	
+	return Handle( Q );
+}
+
+UIQuery::Handle UIQuery::first()
+{
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = m_frame;
+	if( m_items.size() )
+		Q->m_items.push_back( m_items[0] );
+	return Handle( Q );
+}
+
+UIQuery::Handle UIQuery::last()
+{
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = m_frame;
+	if( m_items.size() )
+		Q->m_items.push_back( VLASTOF( m_items ) );
+	return Handle( Q );
+}
+
+sgsVariable UIQuery::getAttr( sgsString key )
+{
+	if( !m_items.size() )
+		return sgsVariable();
+	m_items[0].push( C );
+	int32_t prevlev = sgs_Cntl( C, SGS_CNTL_APILEV, 0 ); // enable error dumping to avoid rewriting errors
+	SGSRESULT res = sgs_PushIndexII( C, -1, 0, 1 );
+	sgs_Cntl( C, SGS_CNTL_APILEV, prevlev );
+	return SGS_FAILED( res ) ? sgsVariable() : sgsVariable( C, -1 );
+}
+
+UIQuery::Handle UIQuery::setAttr( sgsString key, sgsVariable value )
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+	{
+		m_items[ i ].push( C );
+		int32_t prevlev = sgs_Cntl( C, SGS_CNTL_APILEV, 0 ); // enable error dumping to avoid rewriting errors
+		SGSRESULT res = sgs_SetIndexIII( C, -1, 0, 1, 1 );
+		sgs_Cntl( C, SGS_CNTL_APILEV, prevlev );
+		if( SGS_FAILED( res ) )
+			return Handle();
+	}
+	return Handle( this );
+}
+
+UIQuery::Handle UIQuery::bindEvent( sgsString name, sgsVariable callable )
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+		m_items[ i ]->bindEvent( name, callable );
+	return Handle( this );
+}
+
+UIQuery::Handle UIQuery::unbindEvent( sgsString name, sgsVariable callable )
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+		m_items[ i ]->unbindEvent( name, callable );
+	return Handle( this );
+}
+
+UIQuery::Handle UIQuery::callEvent( sgsString name, UIEvent* e )
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+		m_items[ i ]->callEvent( name, e );
+	return Handle( this );
+}
+
+UIQuery::Handle UIQuery::animate( sgsVariable state, float length, sgsVariable func, sgsVariable oncomplete )
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+		m_items[ i ]->animate( state, length, func, oncomplete );
+	return Handle( this );
+}
+
+UIQuery::Handle UIQuery::stop( bool nofinish )
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+		m_items[ i ]->stop( nofinish );
+	return Handle( this );
+}
+
+UIQuery::Handle UIQuery::dequeue()
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+		m_items[ i ]->dequeue();
+	return Handle( this );
+}
+
+UIQuery::Handle UIQuery::skip( bool nofinish )
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+		m_items[ i ]->skip( nofinish );
+	return Handle( this );
 }
 
 
