@@ -98,7 +98,7 @@ void UIStyle::set_anchorMode( int mode )
 }
 
 
-void UIStyleRule::_trimSelector( const char** str, size_t* size )
+void StyleArr_trimSelector( const char** str, size_t* size )
 {
 	const char* s1 = *str;
 	const char* s2 = s1 + *size;
@@ -110,9 +110,9 @@ void UIStyleRule::_trimSelector( const char** str, size_t* size )
 	*size = s2 - s1;
 }
 
-const char* UIStyleRule::_addSelector( sgsString sgsstr, const char* str, size_t size )
+const char* StyleArr_addSelector( StyleSelArray& selectors, sgsString sgsstr, const char* str, size_t size )
 {
-	_trimSelector( &str, &size );
+	StyleArr_trimSelector( &str, &size );
 	selectors.resize( selectors.size() + 1 );
 	UIStyleSelector* sel = &selectors[ selectors.size() - 1 ];
 	const char* serr = UI_ParseSelector( sel, sgsstr, str, size );
@@ -131,7 +131,7 @@ const char* UIStyleRule::_addSelector( sgsString sgsstr, const char* str, size_t
 	return NULL;
 }
 
-const char* UIStyleRule::_addSelectors( sgsString sgsstr )
+const char* StyleArr_addSelectors( StyleSelArray& selectors, sgsString sgsstr )
 {
 	const char* pp = sgsstr.c_str();
 	const char* ppend = pp + sgsstr.size();
@@ -140,7 +140,7 @@ const char* UIStyleRule::_addSelectors( sgsString sgsstr )
 	{
 		if( pp == ppend || *pp == ',' )
 		{
-			const char* serr = _addSelector( sgsstr, ppcur, pp - ppcur );
+			const char* serr = StyleArr_addSelector( selectors, sgsstr, ppcur, pp - ppcur );
 			if( serr )
 				return serr;
 			ppcur = ++pp;
@@ -150,6 +150,7 @@ const char* UIStyleRule::_addSelectors( sgsString sgsstr )
 	}
 	return NULL;
 }
+
 
 SGS_MULTRET UIStyleRule::_handleSGS( const char* serr, const char* base )
 {
@@ -164,12 +165,12 @@ SGS_MULTRET UIStyleRule::_handleSGS( const char* serr, const char* base )
 
 SGS_MULTRET UIStyleRule::addSelector( sgsString sgsstr )
 {
-	return _handleSGS( _addSelector( sgsstr, sgsstr.c_str(), sgsstr.size() ), sgsstr.c_str() );
+	return _handleSGS( StyleArr_addSelector( selectors, sgsstr, sgsstr.c_str(), sgsstr.size() ), sgsstr.c_str() );
 }
 
 SGS_MULTRET UIStyleRule::addSelectors( sgsString sgsstr )
 {
-	return _handleSGS( _addSelectors( sgsstr ), sgsstr.c_str() );
+	return _handleSGS( StyleArr_addSelectors( selectors, sgsstr ), sgsstr.c_str() );
 }
 
 bool UIStyleRule::checkMatch( sgsHandle< UIControl > ctrl )
@@ -212,7 +213,7 @@ void UIStyleSheet::build( sgsVariable var )
 			goto key_fail;
 		
 		// try to add selector
-		const char* errpos = rule->_addSelectors( sgsString( orig2 + 1, C ) );
+		const char* errpos = StyleArr_addSelectors( rule->selectors, sgsString( orig2 + 1, C ) );
 		if( errpos )
 		{
 			sgs_Msg( C, SGS_WARNING, "failed to parse selectors: '%.*s' (position %d)",
@@ -741,7 +742,6 @@ int UIControl_CtrlProc( SGS_CTX )
 	case EV_Detach:
 	case EV_AddChild:
 	case EV_RemChild:
-		{ UIFilteredStyleArray fsa; ctrl->_refilterStyles( fsa ); }
 		ctrl->updateLayout();
 		sgs_PushInt( C, 1 );
 		return 1;
@@ -769,15 +769,15 @@ int UIControl_CtrlProc( SGS_CTX )
 		
 	case EV_MouseEnter:
 		ctrl->mouseOn = true;
-		{ UIFilteredStyleArray fsa; ctrl->_refilterStyles( fsa ); }
+		ctrl->frame->_updateStyles( ctrl );
 		return 1;
 	case EV_MouseLeave:
 		ctrl->mouseOn = false;
-		{ UIFilteredStyleArray fsa; ctrl->_refilterStyles( fsa ); }
+		ctrl->frame->_updateStyles( ctrl );
 		return 1;
 	case EV_ButtonDown:
 		ctrl->clicked += ctrl->mouseOn;
-		{ UIFilteredStyleArray fsa; ctrl->_refilterStyles( fsa ); }
+		ctrl->frame->_updateStyles( ctrl );
 		ctrl->callEvent( sgsString( "mousedown", C ), event );
 		if( ctrl->frame.object )
 			ctrl->frame->setFocus( ctrl );
@@ -787,7 +787,7 @@ int UIControl_CtrlProc( SGS_CTX )
 		if( ctrl->clicked && ctrl->frame.object && ctrl->frame->isControlUnderCursor( UIControl::CreateHandle( ctrl ) ) )
 			ctrl->callEvent( sgsString( "click", C ), event );
 		ctrl->clicked--;
-		{ UIFilteredStyleArray fsa; ctrl->_refilterStyles( fsa ); }
+		ctrl->frame->_updateStyles( ctrl );
 		if( ctrl->clicked < 0 )
 			ctrl->clicked = 0;
 		return 1;
@@ -1508,12 +1508,16 @@ bool UIControl::addChild( UIControl::Handle ch )
 	ch->parent = Handle( m_sgsObject, C );
 	sortChildren();
 	
+	frame->_updateStyles( ch );
+	
 	UIEvent e;
+	e.type = EV_AddChild;
+	niEvent( &e );
+	
 	e.type = EV_Attach;
 	ch->niEvent( &e );
 	
-	e.type = EV_AddChild;
-	niEvent( &e );
+	puts(ch->classes.c_str());
 	
 	return true;
 }
@@ -2163,6 +2167,263 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	if( updatedCursor ) updateCursor();
 	if( updatedOrder ) sortSiblings();
 	if( updatedLayout ) updateLayout();
+}
+
+
+
+int UIQuery::sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop )
+{
+	char* name;
+	sgs_Int idx;
+	UIQuery* Q = (UIQuery*) obj->data;
+	if( isprop && sgs_ParseStringP( C, key, &name, NULL ) )
+	{
+		if( 0 == strcmp( name, "size" ) ) SGS_RETURN_INT( Q->m_items.size() )
+	}
+	else if( !isprop && sgs_ParseIntP( C, key, &idx ) )
+	{
+		if( idx < 0 || idx >= Q->m_items.size() )
+			return SGS_EBOUNDS;
+		sgs_PushHandle( C, Q->m_items[ idx ] );
+		return SGS_SUCCESS;
+	}
+	return UIQuery::_sgs_getindex( C, obj, key, isprop );
+}
+
+int UIQuery::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
+{
+	UIQuery* Q = (UIQuery*) obj->data;
+	Q->m_frame.gcmark();
+	for( size_t i = 0; i < Q->m_items.size(); ++i )
+		Q->m_items[ i ].gcmark();
+	return SGS_SUCCESS;
+}
+
+bool UIQuery::_parseArgs( sgs_StkIdx stacksize )
+{
+	for( sgs_StkIdx i = 0; i < stacksize; ++i )
+	{
+		if( sgs_IsObject( C, i, UIControl::_sgs_interface ) )
+			m_items.push_back( sgs_GetVar<UIControl::Handle>()( C, i ) );
+		else if( sgs_ItemType( C, i ) == SGS_VT_STRING )
+		{
+			sgsString str( i, C );
+			const char* err = StyleArr_addSelectors( m_selectors, str );
+			if( err )
+			{
+				sgs_Msg( C, SGS_WARNING, "failed to compile selector (error at position %d)", err - str.c_str() );
+				return false;
+			}
+		}
+		else
+		{
+			sgs_Msg( C, SGS_WARNING, "unexpected type passed (not UIControl / selector string) as argument %d", i + 1 );
+			return false;
+		}
+	}
+	return true;
+}
+
+bool UIQuery::_checkCtrl( UIControl* ctrl )
+{
+	for( size_t i = 0; i < m_selectors.size(); ++i )
+		if( !UI_SelectorTestControl( &m_selectors[ i ], ctrl ) )
+			return false;
+	return true;
+}
+
+
+UIQuery::Handle UIQuery::Create( /* args, */ UIFrame::Handle frame )
+{
+	if( !frame.object )
+		return UIQuery::Handle();
+	SGS_CTX = frame.C;
+	sgs_StkIdx ssz = sgs_StackSize( C );
+	
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = frame;
+	if( !Q->_parseArgs( ssz ) )
+		return UIQuery::Handle();
+	
+	// ITERATE ALL CONTROLS
+	std::vector< UIControl* > controls;
+	controls.push_back( frame->root );
+	while( controls.size() )
+	{
+		UIControl* ctrl = controls[0];
+		VREMOVEAT( controls, 0 );
+		
+		if( Q->_checkCtrl( ctrl ) )
+			Q->m_items.push_back( UIControl::Handle( ctrl->m_sgsObject, C ) );
+		
+		for( size_t i = 0; i < ctrl->m_children.size(); ++i )
+			controls.push_back( ctrl->m_children[ i ] );
+	}
+	
+	return UIQuery::Handle( Q->m_sgsObject, C );
+}
+
+UIQuery::Handle UIQuery::find( /* args */ )
+{
+	sgs_StkIdx ssz = sgs_StackSize( C );
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = m_frame;
+	if( !Q->_parseArgs( ssz ) )
+		return UIQuery::Handle();
+	
+	// ITERATE ALL SUB-CONTROLS
+	std::vector< UIControl* > controls;
+	for( size_t i = 0; i < m_items.size(); ++i )
+		controls.push_back( m_items[ i ] );
+	while( controls.size() )
+	{
+		UIControl* ctrl = controls[0];
+		VREMOVEAT( controls, 0 );
+		
+		if( Q->_checkCtrl( ctrl ) )
+			Q->m_items.push_back( UIControl::Handle( ctrl->m_sgsObject, C ) );
+		
+		for( size_t i = 0; i < ctrl->m_children.size(); ++i )
+			controls.push_back( ctrl->m_children[ i ] );
+	}
+	
+	return UIQuery::Handle( Q->m_sgsObject, C );
+}
+
+UIQuery::Handle UIQuery::children( /* args */ )
+{
+	sgs_StkIdx ssz = sgs_StackSize( C );
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = m_frame;
+	if( !Q->_parseArgs( ssz ) )
+		return UIQuery::Handle();
+	
+	// ITERATE ALL CHILD CONTROLS
+	for( size_t i = 0; i < m_items.size(); ++i )
+	{
+		UIControl* ctrl = m_items[ i ];
+		for( size_t j = 0; j < ctrl->m_children.size(); ++j )
+		{
+			if( Q->_checkCtrl( ctrl->m_children[ j ] ) )
+				Q->m_items.push_back( ctrl->m_children[ j ] );
+		}
+	}
+	
+	return UIQuery::Handle( Q->m_sgsObject, C );
+}
+
+UIQuery::Handle UIQuery::parent()
+{
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = m_frame;
+	
+	// RETRIEVE ALL PARENT CONTROLS (may repeat)
+	for( size_t i = 0; i < m_items.size(); ++i )
+	{
+		UIControl* ctrl = m_items[ i ];
+		if( ctrl->parent.object )
+		{
+			if( VFIND( Q->m_items, ctrl->parent ) >= Q->m_items.size() )
+				Q->m_items.push_back( ctrl->parent );
+		}
+	}
+	
+	return UIQuery::Handle( Q->m_sgsObject, C );
+}
+
+UIQuery::Handle UIQuery::closest( /* args */ )
+{
+	sgs_StkIdx ssz = sgs_StackSize( C );
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = m_frame;
+	if( !Q->_parseArgs( ssz ) )
+		return UIQuery::Handle();
+	
+	// ITERATE ALL ANCESTOR CONTROLS UNTIL MATCH IS FOUND (starting from self, may repeat)
+	for( size_t i = 0; i < m_items.size(); ++i )
+	{
+		UIControl* ctrl = m_items[ i ];
+		while( ctrl )
+		{
+			if( Q->_checkCtrl( ctrl ) )
+			{
+				if( VFIND( Q->m_items, m_items[i] ) >= Q->m_items.size() )
+					Q->m_items.push_back( m_items[i] );
+				break;
+			}
+			ctrl = ctrl->parent;
+		}
+	}
+	
+	return UIQuery::Handle( Q->m_sgsObject, C );
+}
+
+UIQuery::Handle UIQuery::prev( /* args */ )
+{
+	sgs_StkIdx ssz = sgs_StackSize( C );
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = m_frame;
+	if( !Q->_parseArgs( ssz ) )
+		return UIQuery::Handle();
+	
+	// CHECK ONE SIBLING CONTROL BEFORE CURRENT
+	for( size_t i = 0; i < m_items.size(); ++i )
+	{
+		// TODO
+	}
+	
+	return UIQuery::Handle( Q->m_sgsObject, C );
+}
+
+UIQuery::Handle UIQuery::next( /* args */ )
+{
+	sgs_StkIdx ssz = sgs_StackSize( C );
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = m_frame;
+	if( !Q->_parseArgs( ssz ) )
+		return UIQuery::Handle();
+	
+	// CHECK ONE SIBLING CONTROL AFTER CURRENT
+	for( size_t i = 0; i < m_items.size(); ++i )
+	{
+		// TODO
+	}
+	
+	return UIQuery::Handle( Q->m_sgsObject, C );
+}
+
+UIQuery::Handle UIQuery::prevAll( /* args */ )
+{
+	sgs_StkIdx ssz = sgs_StackSize( C );
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = m_frame;
+	if( !Q->_parseArgs( ssz ) )
+		return UIQuery::Handle();
+	
+	// ITERATE ALL SIBLING CONTROLS BEFORE CURRENT (may repeat)
+	for( size_t i = 0; i < m_items.size(); ++i )
+	{
+		// TODO
+	}
+	
+	return UIQuery::Handle( Q->m_sgsObject, C );
+}
+
+UIQuery::Handle UIQuery::nextAll( /* args */ )
+{
+	sgs_StkIdx ssz = sgs_StackSize( C );
+	UIQuery* Q = SGS_PUSHCLASS( C, UIQuery, () );
+	Q->m_frame = m_frame;
+	if( !Q->_parseArgs( ssz ) )
+		return UIQuery::Handle();
+	
+	// ITERATE ALL SIBLING CONTROLS AFTER CURRENT (may repeat)
+	for( size_t i = 0; i < m_items.size(); ++i )
+	{
+		// TODO
+	}
+	
+	return UIQuery::Handle( Q->m_sgsObject, C );
 }
 
 

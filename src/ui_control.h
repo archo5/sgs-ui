@@ -345,6 +345,10 @@ struct UIStyleSelector
 };
 typedef std::vector< UIStyleSelector > StyleSelArray;
 
+void StyleArr_trimSelector( const char** str, size_t* size );
+const char* StyleArr_addSelector( StyleSelArray& selectors, sgsString sgsstr, const char* str, size_t size );
+const char* StyleArr_addSelectors( StyleSelArray& selectors, sgsString sgsstr );
+
 struct UIStyleRule
 {
 	typedef sgsHandle< UIStyleRule > Handle;
@@ -355,9 +359,6 @@ struct UIStyleRule
 	SGS_PROPERTY UIStyle style;
 	StyleSelArray selectors;
 	
-	void _trimSelector( const char** str, size_t* size );
-	const char* _addSelector( sgsString sgsstr, const char* str, size_t size );
-	const char* _addSelectors( sgsString sgsstr );
 	SGS_MULTRET _handleSGS( const char* serr, const char* base );
 	SGS_METHOD SGS_MULTRET addSelector( sgsString sgsstr );
 	SGS_METHOD SGS_MULTRET addSelectors( sgsString sgsstr );
@@ -599,7 +600,8 @@ struct UIControl
 	SGS_PROPERTY READ UIFrame::Handle frame;
 	
 	sgsString classes;
-	SGS_PROPERTY_FUNC( READ WRITE VARNAME class ) SGS_ALIAS( sgsString classes );
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK _classUpdated VARNAME class ) SGS_ALIAS( sgsString classes );
+	void _classUpdated(){ frame->_updateStyles( this ); }
 	SGS_METHOD bool addClass( const sgsString& ss ){ return addClass( ss.c_str(), ss.size() ); }
 	SGS_METHOD bool removeClass( const sgsString& ss ){ return removeClass( ss.c_str(), ss.size() ); }
 	SGS_METHOD bool hasClass( const sgsString& ss ){ return hasClass( ss.c_str(), ss.size() ); }
@@ -770,6 +772,44 @@ struct UIControl
 	HandleArray m_sorted;
 	sgsVariable m_events;
 	AnimArray m_animQueue;
+};
+
+
+struct UIQuery
+{
+	typedef sgsHandle< UIQuery > Handle;
+	
+	SGS_OBJECT;
+	SGS_IFUNC(GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop );
+	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
+	
+	// utility functions
+	bool _parseArgs( sgs_StkIdx stacksize );
+	bool _checkCtrl( UIControl* ctrl );
+	
+	// query functions (args=unspecified number of selector strings, selector objects or UI controls)
+	static UIQuery::Handle Create( /* args, */ UIFrame::Handle frame );
+	SGS_METHOD UIQuery::Handle find( /* args */ );
+	SGS_METHOD UIQuery::Handle children( /* args */ );
+	SGS_METHOD UIQuery::Handle parent();
+	SGS_METHOD UIQuery::Handle closest( /* args */ );
+	SGS_METHOD UIQuery::Handle prev( /* args */ );
+	SGS_METHOD UIQuery::Handle next( /* args */ );
+	SGS_METHOD UIQuery::Handle prevAll( /* args */ );
+	SGS_METHOD UIQuery::Handle nextAll( /* args */ );
+	
+	// filtering functions
+	SGS_METHOD UIQuery::Handle filter( /* args */ ){}
+	SGS_METHOD UIQuery::Handle first(){}
+	SGS_METHOD UIQuery::Handle last(){}
+	
+	// data functions
+	SGS_METHOD sgsVariable getAttr( sgsString key ){}
+	SGS_METHOD sgsVariable /*self*/ setAttr( sgsString key, sgsVariable value ){}
+	
+	UIFrame::Handle m_frame;
+	StyleSelArray m_selectors;
+	UIControl::HandleArray m_items;
 };
 
 

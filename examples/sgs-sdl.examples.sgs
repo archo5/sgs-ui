@@ -282,7 +282,7 @@ function sgs_ui_example_menu()
 	
 	// PREVIEW OF COMING ATTRACTIONS
 //	UI_BuildControls
-	( FRAME,
+	( FRAME.root,
 	[
 		{ type = "static", class = "main-menu-frame", children =
 		[
