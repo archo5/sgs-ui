@@ -7,6 +7,8 @@ function UI_ConfigControl( control, params )
 	{
 		if( key == "children" )
 			UI_BuildControls( control, val );
+		else if( key == "contents" )
+			val( control );
 		else if( key == "type" )
 			;
 		else if( removed.find( key ) === null )

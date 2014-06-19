@@ -574,8 +574,9 @@ struct UIControl
 	SGS_METHOD Handle getPrev(){ UIControl* ctrl = _getPrev(); if( ctrl ) return Handle( C, ctrl->m_sgsObject ); return Handle(); }
 	SGS_METHOD Handle getNext(){ UIControl* ctrl = _getNext(); if( ctrl ) return Handle( C, ctrl->m_sgsObject ); return Handle(); }
 	
-	SGS_METHOD bool bindEvent( sgsString name, sgsVariable callable );
-	SGS_METHOD bool unbindEvent( sgsString name, sgsVariable callable );
+	SGS_METHOD bool hasEventBinding( sgsString name, sgsVariable callable );
+	SGS_METHOD UIControl::Handle bindEvent( sgsString name, sgsVariable callable );
+	SGS_METHOD UIControl::Handle unbindEvent( sgsString name, sgsVariable callable );
 	SGS_METHOD bool callEvent( sgsString name, UIEvent* e );
 	
 	SGS_METHOD UIControl::Handle animate( sgsVariable state, float length, sgsVariable func, sgsVariable oncomplete );
@@ -602,9 +603,9 @@ struct UIControl
 	sgsString classes;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK _classUpdated VARNAME class ) SGS_ALIAS( sgsString classes );
 	void _classUpdated(){ frame->_updateStyles( this ); }
-	SGS_METHOD bool addClass( const sgsString& ss ){ return addClass( ss.c_str(), ss.size() ); }
-	SGS_METHOD bool removeClass( const sgsString& ss ){ return removeClass( ss.c_str(), ss.size() ); }
-	SGS_METHOD bool hasClass( const sgsString& ss ){ return hasClass( ss.c_str(), ss.size() ); }
+	SGS_METHOD UIControl::Handle addClass( const sgsString& ss ){ addClass( ss.c_str(), ss.size() ); return Handle( this ); }
+	SGS_METHOD UIControl::Handle removeClass( const sgsString& ss ){ removeClass( ss.c_str(), ss.size() ); return Handle( this ); }
+	SGS_METHOD UIControl::Handle hasClass( const sgsString& ss ){ hasClass( ss.c_str(), ss.size() ); return Handle( this ); }
 	void _setClasses3( const char* str1, size_t size1, const char* str2, size_t size2, const char* str3, size_t size3 );
 	bool addClass( const char* str, size_t size );
 	bool removeClass( const char* str, size_t size );

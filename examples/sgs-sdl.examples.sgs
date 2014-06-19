@@ -168,15 +168,16 @@ function sgs_ui_example_menu()
 		theme = this.frame.theme;
 		button_render_contents = theme.button_render_contents;
 		
-		alpha = if( this.clicked, 0.4, if( this.mouseOn, 0.2, 0.1 ) );
-		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1-1, 0, 0, 0, alpha );
-		SS_DrawColorRect( this.rx0, this.ry1-1, this.rx1, this.ry1, 0, 0, 0, alpha+0.1 );
+		c = this.backgroundColor;
+		alpha = if( this.clicked, 0.2, if( this.mouseOn, 0, -0.1 ) ) + c.a;
+		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1-1, c.r, c.g, c.b, alpha );
+		SS_DrawColorRect( this.rx0, this.ry1-1, this.rx1, this.ry1, c.r, c.g, c.b, alpha+0.1 );
 		
 		this!button_render_contents();
 	}
 	
 	FRAME.addStyleSheet(UI_BuildStyleSheet({
-		"*button" = { renderfunc = MenuButton_Render },
+		"*button" = { renderfunc = MenuButton_Render, backgroundColor = UIColor(0,0.2) },
 		"**" = { font = "fonts/armata-regular.ttf", fontSize = 16 },
 		"*scrollingautolayout button static" = { font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 },
 		// main menu
@@ -190,11 +191,20 @@ function sgs_ui_example_menu()
 		".qwindow" = { backgroundColor = UIColor(0,0.5), q0x = 0.3, q0y = 0.3, q1x = 0.7, q1y = 0.7 },
 		".qwindow .title" = { backgroundColor = UIColor(0.3,0.02,0.01,0.5), textColor = UIColor(0.9,1), q0x = 0, q0y = 0, q1x = 1, q1y = 0.3 },
 		".qwindow .btn-yes" = { q0x = 0.1, q0y = 0.6, q1x = 0.4, q1y = 0.9 },
+		".qwindow .btn-yes:hover" = { backgroundColor = UIColor(0.2,0.4,0.1,0.3) },
 		".qwindow .btn-no" = { q0x = 0.6, q0y = 0.6, q1x = 0.9, q1y = 0.9 },
+		".qwindow .btn-no:hover" = { backgroundColor = UIColor(0.4,0.02,0.01,0.3) },
 		// screen
 		".screen-panel" = { backgroundColor = UIColor( 0, 0.2 ), q0x = 1.22, q0y = 0.22, q1x = 1.98, q1y = 0.98 },
 		".screen-panel .title" = { q0x = 0, q0y = 0, q1x = 1, q1y = 0.1, backgroundColor = UIColor( 0.3, 0.02, 0.01, 0.5 ), textColor = UIColor( 0.9, 1 ) },
 		".screen-panel .btn-back" = { q0x = 0.05, q0y = 0.85, q1x = 0.2, q1y = 0.95 },
+		".screen-panel .btn-back image" = { q0x = 0, q0y = 0, q1x = 0.3, q1y = 1 },
+		".screen-panel .level-list" = { q0x = 0.05, q0y = 0.15, q1x = 0.45, q1y = 0.8 },
+		".screen-panel .level-list scrollable" = { backgroundColor = UIColor(0.1,0.2,0.3,0.1) },
+		".screen-panel .level-list .level-entry" = { height = 48, anchorMode = UI_Anchor_Hor },
+		".screen-panel .level-list .level-entry:hover" = { backgroundColor = UIColor(0.4,0.02,0.01,0.3) },
+		".screen-panel .level-list .level-entry static" = { height = 48, anchorMode = UI_Anchor_Hor, backgroundColor = UIColor(0), textColor = UIColor(0.8,1), fontSize = 14 },
+		".screen-panel .level-list .level-entry image" = { width = 64, height = 48 },
 	}));
 	UI_EasingFunctions.smooth_fast_start = function( a, b, t ){ return UI_EasingFunctions.smooth( a, b, sqrt( t ) ); };
 	
@@ -203,22 +213,11 @@ function sgs_ui_example_menu()
 	//
 	function CreateYesNoQuestionWindow( question, callback )
 	{
-		bgr = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "" );
-		bgr.addClass( "qwindowbgr" );
-		
-		window = UI_CreateStatic( bgr, 0, 0, 0, 0, "" );
-		window.addClass( "qwindow" );
-		
-		title = UI_CreateStatic( window, 0, 0, 0, 0, question );
-		title.addClass( "title" );
-		
-		btn_yes = UI_CreateButton( window, 0, 0, 0, 0, "Yes" );
-		btn_yes.addClass( "btn-yes" );
-		btn_yes.bindEvent( "click", function() use( callback, bgr ){ callback( 1 ); bgr.parent.removeChild( bgr ); } );
-		
-		btn_no = UI_CreateButton( window, 0, 0, 0, 0, "No" );
-		btn_no.addClass( "btn-no" );
-		btn_no.bindEvent( "click", function() use( callback, bgr ){ callback( 0 ); bgr.parent.removeChild( bgr ); } );
+		bgr = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "" ).addClass( "qwindowbgr" );
+		window = UI_CreateStatic( bgr, 0, 0, 0, 0, "" ).addClass( "qwindow" );
+		title = UI_CreateStatic( window, 0, 0, 0, 0, question ).addClass( "title" );
+		btn_yes = UI_CreateButton( window, 0, 0, 0, 0, "Yes" ).addClass( "btn-yes" ).bindEvent( "click", function() use( callback, bgr ){ callback( true ); bgr.parent.removeChild( bgr ); } );
+		btn_no = UI_CreateButton( window, 0, 0, 0, 0, "No" ).addClass( "btn-no" ).bindEvent( "click", function() use( callback, bgr ){ callback( false ); bgr.parent.removeChild( bgr ); } );
 		
 		// background fade in
 		tgtbgcol = bgr.backgroundColor;
@@ -237,50 +236,18 @@ function sgs_ui_example_menu()
 		});
 	}
 	
+	UI_Controls.levelentry_params = ["image","caption"];
+	function UI_Controls.levelentry( parent, params )
+	{
+		ctrl = UI_CreateButton( parent, null, null, null, null, "" ).addClass("level-entry");
+		UI_CreateStatic( ctrl, null, null, null, null, @params.caption, DT_LEFT | DT_VCENTER );
+		UI_CreateImage( ctrl, null, null, null, null, @params.image, UI_ImageScale_Crop );
+		UI_ConfigControl( ctrl, params );
+	}
+	
 	//
-	// MAIN MENU
+	// HARDCORE UI ACTION
 	//
-	MAIN_MENU = UI_CreateStatic( FRAME.root, 0, 0, 0, 0 );
-	MAIN_MENU.addClass( "main-menu-frame" );
-	
-	// Title
-	mm_title = UI_CreateStatic( MAIN_MENU, 0, 0, 0, 0, "Example Menu" );
-	mm_title.addClass( "title" );
-	
-	// Menu
-	mm_menu = UI_CreateAutoLayout( MAIN_MENU, 0, 0, 0 );
-	mm_menu.addClass( "main-menu" );
-	
-	// Menu animations
-	function main_menu_shrink() use( mm_title, mm_menu )
-	{
-		mm_title.animate({ q1y = 0.2, textColor = UIColor( 0.3, 0.7, 0.9, 0.5 ) }, 0.5 );
-		mm_menu.animate({ q0x = 0.05, q1x = 0.2 }, 0.5 );
-	}
-	function main_menu_grow() use( mm_title, mm_menu )
-	{
-		mm_title.animate({ q1y = 0.5, textColor = UIColor( 0.3, 0.7, 0.9, 1 ) }, 0.5 );
-		mm_menu.animate({ q0x = 0.4, q1x = 0.6 }, 0.5 );
-	}
-	
-	mm_btn_start = UI_CreateButton( mm_menu, 0, 0, null, 36, "Start" );
-	UI_CreateImage( mm_btn_start, 0, 0, 36, 0, "icons/control_play.png" ).setAnchorMode( UI_Anchor_Vert );
-	
-	mm_btn_info = UI_CreateButton( mm_menu, 0, 0, null, 36, "Info" );
-	UI_CreateImage( mm_btn_info, 0, 0, 36, 0, "icons/information.png" ).setAnchorMode( UI_Anchor_Vert );
-	
-	mm_btn_options = UI_CreateButton( mm_menu, 0, 0, null, 36, "Options" );
-	UI_CreateImage( mm_btn_options, 0, 0, 36, 0, "icons/cog.png" ).setAnchorMode( UI_Anchor_Vert );
-	
-	mm_btn_quit = UI_CreateButton( mm_menu, 0, 0, null, 36, "Quit" );
-	UI_CreateImage( mm_btn_quit, 0, 0, 36, 0, "icons/stop.png" ).setAnchorMode( UI_Anchor_Vert );
-	
-	foreach( ctrl : mm_menu.children() )
-	{
-		ctrl.setAnchorMode( UI_Anchor_Hor );
-	}
-	
-	// PREVIEW OF COMING ATTRACTIONS
 	UI_BuildControls
 	( FRAME.root,
 	[
@@ -295,7 +262,32 @@ function sgs_ui_example_menu()
 				{ type = "imagebutton", name = "quit", caption = "Quit", image = "icons/stop.png", class = "act-ask-quit" },
 			]},
 		]},
+		{ type = "static", class = "screen-panel start-screen", children =
+		[
+			{ type = "static", class = "title", caption = "Level selection" },
+			{ type = "scrollingautolayout", class = "level-list", contents = function( cont )
+			{
+				UI_BuildControls
+				( cont.getContainer(), // needed for ScrollingAutoLayout
+				[
+					{ type = "levelentry", name = "01-picture", caption = "The Picture", image = "icons/picture.png" },
+					{ type = "levelentry", name = "01-report", caption = "The Report", image = "icons/report.png" },
+				]);
+			}},
+			{ type = "imagebutton", class = "btn-back act-close-start act-menu-grow", caption = "Back", image = "icons/resultset_previous.png" }
+		]},
+		{ type = "static", class = "screen-panel info-screen", children =
+		[
+			{ type = "static", class = "title", caption = "Info // TODO: HTML-like content here" },
+			{ type = "imagebutton", class = "btn-back act-close-info act-menu-grow", caption = "Back", image = "icons/resultset_previous.png" }
+		]},
+		{ type = "static", class = "screen-panel options-screen", children =
+		[
+			{ type = "static", class = "title", caption = "Options" },
+			{ type = "imagebutton", class = "btn-back act-close-options act-menu-grow", caption = "Back", image = "icons/resultset_previous.png" }
+		]},
 	]);
+	
 	function main_menu_shrink()
 	{
 		FRAME.find(".main-menu-frame .title").animate({ q1y = 0.2, textColor = UIColor( 0.3, 0.7, 0.9, 0.5 ) }, 0.5 );
@@ -308,6 +300,46 @@ function sgs_ui_example_menu()
 	}
 	FRAME.find( ".act-menu-shrink" ).bindEvent( "click", main_menu_shrink );
 	FRAME.find( ".act-menu-grow" ).bindEvent( "click", main_menu_grow );
+	
+	function start_screen_enter()
+	{
+		FRAME.find(".start-screen").animate({ q0x = 0.22, q1x = 0.98 }, 0.5 );
+		FRAME.find(".main-menu @start").animate({ height = 64, q1x = 1.1 }, 0.5, "smooth_fast_start" );
+	}
+	function start_screen_exit()
+	{
+		FRAME.find(".start-screen").animate({ q0x = 1.22, q1x = 1.98 }, 0.5 );
+		FRAME.find(".main-menu @start").animate({ height = 36, q1x = 1 }, 0.5, "smooth_fast_start" );
+	}
+	FRAME.find( ".act-open-start" ).bindEvent( "click", start_screen_enter );
+	FRAME.find( ".act-close-start" ).bindEvent( "click", start_screen_exit );
+	
+	function info_screen_enter()
+	{
+		FRAME.find(".info-screen").animate({ q0x = 0.22, q1x = 0.98 }, 0.5 );
+		FRAME.find(".main-menu @info").animate({ height = 64, q1x = 1.1 }, 0.5, "smooth_fast_start" );
+	}
+	function info_screen_exit()
+	{
+		FRAME.find(".info-screen").animate({ q0x = 1.22, q1x = 1.98 }, 0.5 );
+		FRAME.find(".main-menu @info").animate({ height = 36, q1x = 1 }, 0.5, "smooth_fast_start" );
+	}
+	FRAME.find( ".act-open-info" ).bindEvent( "click", info_screen_enter );
+	FRAME.find( ".act-close-info" ).bindEvent( "click", info_screen_exit );
+	
+	function options_screen_enter()
+	{
+		FRAME.find(".options-screen").animate({ q0x = 0.22, q1x = 0.98 }, 0.5 );
+		FRAME.find(".main-menu @options").animate({ height = 64, q1x = 1.1 }, 0.5, "smooth_fast_start" );
+	}
+	function options_screen_exit()
+	{
+		FRAME.find(".options-screen").animate({ q0x = 1.22, q1x = 1.98 }, 0.5 );
+		FRAME.find(".main-menu @options").animate({ height = 36, q1x = 1 }, 0.5, "smooth_fast_start" );
+	}
+	FRAME.find( ".act-open-options" ).bindEvent( "click", options_screen_enter );
+	FRAME.find( ".act-close-options" ).bindEvent( "click", options_screen_exit );
+	
 	FRAME.find( ".act-ask-quit" ).bindEvent( "click", function() use( CreateYesNoQuestionWindow ){
 		CreateYesNoQuestionWindow( "Do you really want to quit?",
 			function( result )
@@ -317,95 +349,6 @@ function sgs_ui_example_menu()
 			}
 		);
 	} );
-	
-	//
-	// START SCREEN
-	//
-	START_SCREEN = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "" );
-	START_SCREEN.addClass( "screen-panel" );
-	function start_screen_enter() use( START_SCREEN, mm_btn_start )
-	{
-		START_SCREEN.animate({ q0x = 0.22, q1x = 0.98 }, 0.5 );
-		mm_btn_start.animate({ height = 64, q1x = 1.1 }, 0.5, "smooth_fast_start" );
-	}
-	function start_screen_exit() use( START_SCREEN, mm_btn_start )
-	{
-		START_SCREEN.animate({ q0x = 1.22, q1x = 1.98 }, 0.5 );
-		mm_btn_start.animate({ height = 36, q1x = 1 }, 0.5, "smooth_fast_start" );
-	}
-	
-	ss_stat_title = UI_CreateStatic( START_SCREEN, 0, 0, 0, 0, "Level selection" );
-	ss_stat_title.addClass( "title" );
-	
-	ss_btn_back = UI_CreateButton( START_SCREEN, 0, 0, 0, 0, "Back" );
-	ss_btn_back.addClass( "btn-back" );
-	UI_CreateImage( ss_btn_back, 0, 0, 0, 0, "icons/resultset_previous.png" ).setAnchorRect( 0, 0, 0.3, 1 );
-	
-	ss_cont = UI_CreateScrollingAutoLayout( START_SCREEN, 0, 0, 0, 0 );
-	ss_cont.setAnchorRect( 0.05, 0.15, 0.45, 0.8 );
-	ss_cont_in = ss_cont.getContainer();
-	function AddLevel( info ) use( ss_cont_in )
-	{
-		item = UI_CreateButton( ss_cont_in, 0, 0, 0, 48, "" );
-		item.setAnchorMode( UI_Anchor_Hor );
-		item.data.info = info;
-		lbl = UI_CreateStatic( item, 0, 0, 0, 48, info.name, DT_LEFT | DT_VCENTER );
-		lbl.setAnchorMode( UI_Anchor_Hor );
-		lbl.backgroundColor = UIColor( 0 );
-		img = UI_CreateImage( item, 0, 0, 64, 48, info.image, UI_ImageScale_Crop );
-		return item;
-	}
-	AddLevel({ name = "The Picture", image = "icons/picture.png" });
-	AddLevel({ name = "The Report", image = "icons/report.png" });
-	
-	//
-	// INFO SCREEN
-	//
-	INFO_SCREEN = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "" );
-	INFO_SCREEN.addClass( "screen-panel" );
-	function info_screen_enter() use( INFO_SCREEN, mm_btn_info )
-	{
-		INFO_SCREEN.animate({ q0x = 0.22, q1x = 0.98 }, 0.5 );
-		mm_btn_info.animate({ height = 64, q1x = 1.1 }, 0.5, "smooth_fast_start" );
-	}
-	function info_screen_exit() use( INFO_SCREEN, mm_btn_info )
-	{
-		INFO_SCREEN.animate({ q0x = 1.22, q1x = 1.98 }, 0.5 );
-		mm_btn_info.animate({ height = 36, q1x = 1 }, 0.5, "smooth_fast_start" );
-	}
-	
-	is_stat_title = UI_CreateStatic( INFO_SCREEN, 0, 0, 0, 0, "Info // TODO: HTML-like content here" );
-	is_stat_title.addClass( "title" );
-	
-	is_btn_back = UI_CreateButton( INFO_SCREEN, 0, 0, 0, 0, "Back" );
-	is_btn_back.addClass( "btn-back" );
-	UI_CreateImage( is_btn_back, 0, 0, 0, 0, "icons/resultset_previous.png" ).setAnchorRect( 0, 0, 0.3, 1 );
-	
-	//
-	// EVENTS
-	//
-	mm_btn_start.bindEvent( "click", main_menu_shrink );
-	mm_btn_start.bindEvent( "click", start_screen_enter );
-	mm_btn_start.bindEvent( "click", info_screen_exit );
-	mm_btn_info.bindEvent( "click", main_menu_shrink );
-	mm_btn_info.bindEvent( "click", start_screen_exit );
-	mm_btn_info.bindEvent( "click", info_screen_enter );
-	mm_btn_quit.bindEvent( "click", function() use( CreateYesNoQuestionWindow ){
-		CreateYesNoQuestionWindow( "Do you really want to quit?",
-			function( result )
-			{
-				if( result )
-					global sys_exit = true;
-			}
-		);
-	} );
-	
-	ss_btn_back.bindEvent( "click", main_menu_grow );
-	ss_btn_back.bindEvent( "click", start_screen_exit );
-	ss_btn_back.bindEvent( "click", info_screen_exit );
-	is_btn_back.bindEvent( "click", main_menu_grow );
-	is_btn_back.bindEvent( "click", start_screen_exit );
-	is_btn_back.bindEvent( "click", info_screen_exit );
 }
 
 

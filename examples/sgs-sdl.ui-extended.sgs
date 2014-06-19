@@ -35,6 +35,13 @@ function UI_CreateScrollingAutoLayout( parent, x, y, width, height )
 	return ScrollingAutoLayout;
 }
 
+UI_Controls.scrollingautolayout_params = [];
+function UI_Controls.scrollingautolayout( parent, params )
+{
+	ctrl = UI_CreateScrollingAutoLayout( parent, null, null, null, null );
+	UI_ConfigControl( ctrl, params );
+}
+
 
 global UI_ListBoxMenu = {};
 

@@ -1004,6 +1004,7 @@ void UIFrame::doMouseButton( int btn, bool down )
 			m_clicktargets[ btn ]->niBubblingEvent( &e );
 			m_clicktargets[ btn ] = NULL;
 		}
+		handleMouseMove( true );
 	}
 	else if( m_hover )
 	{
@@ -1684,7 +1685,18 @@ UIControl* UIControl::_getNext()
 }
 
 
-bool UIControl::bindEvent( sgsString name, sgsVariable callable )
+bool UIControl::hasEventBinding( sgsString name, sgsVariable callable )
+{
+	name.push( C );
+	if( SGS_FAILED( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) ) )
+		return false;
+	callable.push();
+	// check if item isn't already in the array
+	sgs_SizeVal ii = sgs_ObjectAction( C, -2, SGS_ACT_ARRAY_FIND, -1 );
+	return ii == SGS_SUCCESS;
+}
+
+UIControl::Handle UIControl::bindEvent( sgsString name, sgsVariable callable )
 {
 	// try reading the existing array
 	name.push( C );
@@ -1700,22 +1712,23 @@ bool UIControl::bindEvent( sgsString name, sgsVariable callable )
 		// check if item isn't already in the array
 		sgs_SizeVal ii = sgs_ObjectAction( C, -2, SGS_ACT_ARRAY_FIND, -1 );
 		if( ii != SGS_ENOTFND )
-			return false;
+			return Handle( this );
 		// append new item
 		sgs_ObjectAction( C, -2, SGS_ACT_ARRAY_PUSH, 1 );
 	}
-	return true;
+	return Handle( this );
 }
 
-bool UIControl::unbindEvent( sgsString name, sgsVariable callable )
+UIControl::Handle UIControl::unbindEvent( sgsString name, sgsVariable callable )
 {
 	// check if there's an entry for the event
 	name.push( C );
 	if( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) )
-		return false;
+		return Handle( this );
 	// remove item from array
 	callable.push();
-	return !!sgs_ObjectAction( C, -2, SGS_ACT_ARRAY_RM_ONE, -1 );
+	sgs_ObjectAction( C, -2, SGS_ACT_ARRAY_RM_ONE, -1 );
+	return Handle( this );
 }
 
 bool UIControl::callEvent( sgsString name, UIEvent* e )
@@ -2197,6 +2210,8 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	if( updatedCursor ) updateCursor();
 	if( updatedOrder ) sortSiblings();
 	if( updatedLayout ) updateLayout();
+	if( ( updatedBox || updatedOrder ) && frame.not_null() )
+		frame->handleMouseMove( true );
 }
 
 
