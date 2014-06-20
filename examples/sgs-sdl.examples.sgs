@@ -169,6 +169,9 @@ function sgs_ui_example_menu()
 	//
 	// STYLES
 	//
+	global tx_ButtonN = SS_CreateTexture( "images/buttonN.png" );
+	global tx_ButtonH = SS_CreateTexture( "images/buttonH.png" );
+	global tx_ButtonC = SS_CreateTexture( "images/buttonC.png" );
 	function MenuButton_Render()
 	{
 		if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
@@ -177,17 +180,35 @@ function sgs_ui_example_menu()
 		theme = this.frame.theme;
 		button_render_contents = theme.button_render_contents;
 		
-		c = this.backgroundColor;
-		alpha = if( this.clicked, 0.2, if( this.mouseOn, 0, -0.1 ) ) + c.a;
-		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1-1, c.r, c.g, c.b, alpha );
-		SS_DrawColorRect( this.rx0, this.ry1-1, this.rx1, this.ry1, c.r, c.g, c.b, alpha+0.1 );
+		c = this.backgroundColor + UIColor( 0.1, 0.1, 0.1, if( this.clicked, 0.2, if( this.mouseOn, 0, -0.1 ) ) );
+		tex = if( this.clicked, tx_ButtonC, if( this.mouseOn, tx_ButtonH, tx_ButtonN ) );
+		SS_DrawButton( tex, SS_UI_ConvertColor( c ), this.rx0-4, this.ry0-4, this.rx1+4, this.ry1+4, 8 );
+	//	alpha = if( this.clicked, 0.2, if( this.mouseOn, 0, -0.1 ) ) + c.a;
+	//	SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1-1, c.r, c.g, c.b, alpha );
+	//	SS_DrawColorRect( this.rx0, this.ry1-1, this.rx1, this.ry1, c.r, c.g, c.b, alpha+0.1 );
 		
 		this!button_render_contents();
 	}
 	
+	global tx_StaticFrame = SS_CreateTexture( "images/frame.png" );
+	function DrawStaticControl()
+	{
+		data = this.data;
+		text = this.caption;
+		
+		c = this.backgroundColor;
+		SS_DrawButton( tx_StaticFrame, SS_UI_ConvertColor( c ), this.rx0-1, this.ry0-1, this.rx1+1, this.ry1+1, 4 );
+		
+		if( text )
+		{
+			SS_DrawTextRect( text, this._cachedFont, SS_UI_ConvertColor( this.textColor ), data.textmode, this.px0, this.px1, this.py0, this.py1 );
+		}
+	}
+	
 	FRAME.addStyleSheet(UI_BuildStyleSheet({
-		"*button" = { renderfunc = MenuButton_Render, backgroundColor = UIColor(0,0.2) },
+		"*button" = { renderfunc = MenuButton_Render, backgroundColor = UIColor(0.7,0.2) },
 		"**" = { font = "fonts/armata-regular.ttf", fontSize = 16 },
+		".framed" = { renderfunc = DrawStaticControl },
 		"*scrollingautolayout button static" = { font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 },
 		// main menu
 		".main-menu-frame" = { anchorMode = UI_Anchor_All, renderfunc = function MAIN_MENU_Renderfunc(){ SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.5, 0.5, 1, 0.2, 0.2, 0.2, 1 ); } },
@@ -231,8 +252,8 @@ function sgs_ui_example_menu()
 	function CreateYesNoQuestionWindow( question, callback )
 	{
 		bgr = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "" ).addClass( "qwindowbgr" );
-		window = UI_CreateStatic( bgr, 0, 0, 0, 0, "" ).addClass( "qwindow" );
-		title = UI_CreateStatic( window, 0, 0, 0, 0, question ).addClass( "title" );
+		window = UI_CreateStatic( bgr, 0, 0, 0, 0, "" ).addClass( "qwindow framed" );
+		title = UI_CreateStatic( window, 0, 0, 0, 0, question ).addClass( "title framed" );
 		btn_yes = UI_CreateButton( window, 0, 0, 0, 0, "Yes" ).addClass( "btn-yes" ).bindEvent( "click", function() use( callback, bgr ){ callback( true ); bgr.parent.removeChild( bgr ); } );
 		btn_no = UI_CreateButton( window, 0, 0, 0, 0, "No" ).addClass( "btn-no" ).bindEvent( "click", function() use( callback, bgr ){ callback( false ); bgr.parent.removeChild( bgr ); } );
 		
@@ -295,9 +316,9 @@ function sgs_ui_example_menu()
 				{ type = "imagebutton", name = "quit", caption = "Quit", image = "icons/stop.png", class = "act-ask-quit" },
 			]},
 		]},
-		{ type = "static", class = "screen-panel start-screen", children =
+		{ type = "static", class = "framed screen-panel start-screen", children =
 		[
-			{ type = "static", class = "title", caption = "Level selection" },
+			{ type = "static", class = "framed title", caption = "Level selection" },
 			{ type = "scrollingautolayout", class = "level-list", contents = function( cont )
 			{
 				UI_BuildControls
@@ -314,14 +335,14 @@ function sgs_ui_example_menu()
 			]},
 			{ type = "imagebutton", class = "btn-back act-close-start act-menu-grow", caption = "Back", image = "icons/resultset_previous.png" }
 		]},
-		{ type = "static", class = "screen-panel info-screen", children =
+		{ type = "static", class = "framed screen-panel info-screen", children =
 		[
-			{ type = "static", class = "title", caption = "Info // TODO: HTML-like content here" },
+			{ type = "static", class = "framed title", caption = "Info // TODO: HTML-like content here" },
 			{ type = "imagebutton", class = "btn-back act-close-info act-menu-grow", caption = "Back", image = "icons/resultset_previous.png" }
 		]},
-		{ type = "static", class = "screen-panel options-screen", children =
+		{ type = "static", class = "framed screen-panel options-screen", children =
 		[
-			{ type = "static", class = "title", caption = "Options" },
+			{ type = "static", class = "framed title", caption = "Options" },
 			{ type = "imagebutton", class = "btn-back act-close-options act-menu-grow", caption = "Back", image = "icons/resultset_previous.png" }
 		]},
 	]);

@@ -18,3 +18,4 @@ ipch
 *.user
 !output.dir
 !/test/main.sgs
+!/test/images
