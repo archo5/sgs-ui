@@ -778,14 +778,14 @@ int UIControl_CtrlProc( SGS_CTX )
 	case EV_ButtonDown:
 		ctrl->clicked += ctrl->mouseOn;
 		ctrl->frame->_updateStyles( ctrl );
-		ctrl->callEvent( sgsString( C, "mousedown" ), event );
+		ctrl->_callEvent( sgsString( C, "mousedown" ), event );
 		if( ctrl->frame.object )
 			ctrl->frame->setFocus( ctrl );
 		return 1;
 	case EV_ButtonUp:
-		ctrl->callEvent( sgsString( C, "mouseup" ), event );
+		ctrl->_callEvent( sgsString( C, "mouseup" ), event );
 		if( ctrl->clicked && ctrl->frame.object && ctrl->frame->isControlUnderCursor( UIControl::Handle( ctrl ) ) )
-			ctrl->callEvent( sgsString( C, "click" ), event );
+			ctrl->_callEvent( sgsString( C, "click" ), event );
 		ctrl->clicked--;
 		ctrl->frame->_updateStyles( ctrl );
 		if( ctrl->clicked < 0 )
@@ -982,7 +982,7 @@ void UIFrame::doMouseMove( float x, float y )
 	
 	if( root.object )
 	{
-		root->callEvent( sgsString( C, "globalmousemove" ), &e );
+		root->_callEvent( sgsString( C, "globalmousemove" ), &e );
 	}
 }
 
@@ -1016,7 +1016,7 @@ void UIFrame::doMouseButton( int btn, bool down )
 	
 	if( root.object )
 	{
-		root->callEvent( sgsString( C, down ? "globalbuttondown" : "globalbuttonup" ), &e );
+		root->_callEvent( sgsString( C, down ? "globalbuttondown" : "globalbuttonup" ), &e );
 	}
 }
 
@@ -1034,7 +1034,7 @@ void UIFrame::doMouseWheel( float x, float y )
 	
 	if( root.object )
 	{
-		root->callEvent( sgsString( C, "globalmousewheel" ), &e );
+		root->_callEvent( sgsString( C, "globalmousewheel" ), &e );
 	}
 }
 
@@ -1731,7 +1731,7 @@ UIControl::Handle UIControl::unbindEvent( sgsString name, sgsVariable callable )
 	return Handle( this );
 }
 
-bool UIControl::callEvent( sgsString name, UIEvent* e )
+bool UIControl::callEvent( sgsString name, sgsVariable data )
 {
 	sgs_StkIdx orig = sgs_StackSize( C );
 	// check if there's an entry for the event
@@ -1748,7 +1748,7 @@ bool UIControl::callEvent( sgsString name, UIEvent* e )
 		sgs_StkIdx ssz = sgs_StackSize( C );
 		
 		sgs_PushObjectPtr( C, m_sgsObject );
-		UI_PushEvent( C, e );
+		data.push( C );
 		sgs_IterPushData( C, -3, 0, 1 );
 		sgs_ThisCall( C, 1, 0 );
 		
@@ -1756,6 +1756,14 @@ bool UIControl::callEvent( sgsString name, UIEvent* e )
 	}
 	sgs_SetStackSize( C, orig );
 	return true;
+}
+
+bool UIControl::_callEvent( sgsString name, UIEvent* e )
+{
+	UI_PushEvent( C, e );
+	bool res = callEvent( name, sgsVariable( C, -1 ) );
+	sgs_Pop( C, 1 );
+	return res;
 }
 
 
@@ -2054,7 +2062,7 @@ bool UIControl::removeClass( const char* str, size_t size )
 	if( !size )
 		return false;
 	size_t cpos = _findClassAt( str, size );
-	if( cpos > classes.size() )
+	if( cpos >= classes.size() )
 		return false;
 	if( classes.size() == size )
 		_setClasses3( NULL, 0, NULL, 0, NULL, 0 );
@@ -2568,6 +2576,20 @@ UIQuery::Handle UIQuery::setAttr( sgsString key, sgsVariable value )
 	return Handle( this );
 }
 
+UIQuery::Handle UIQuery::addClass( const sgsString& ss )
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+		m_items[ i ]->addClass( ss );
+	return Handle( this );
+}
+
+UIQuery::Handle UIQuery::removeClass( const sgsString& ss )
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+		m_items[ i ]->removeClass( ss );
+	return Handle( this );
+}
+
 UIQuery::Handle UIQuery::bindEvent( sgsString name, sgsVariable callable )
 {
 	for( size_t i = 0; i < m_items.size(); ++i )
@@ -2582,10 +2604,10 @@ UIQuery::Handle UIQuery::unbindEvent( sgsString name, sgsVariable callable )
 	return Handle( this );
 }
 
-UIQuery::Handle UIQuery::callEvent( sgsString name, UIEvent* e )
+UIQuery::Handle UIQuery::callEvent( sgsString name, sgsVariable data )
 {
 	for( size_t i = 0; i < m_items.size(); ++i )
-		m_items[ i ]->callEvent( name, e );
+		m_items[ i ]->callEvent( name, data );
 	return Handle( this );
 }
 

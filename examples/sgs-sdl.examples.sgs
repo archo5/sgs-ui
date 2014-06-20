@@ -158,6 +158,15 @@ function sgs_ui_example_default()
 function sgs_ui_example_menu()
 {
 	//
+	// DATA
+	//
+	leveldata =
+	{
+		"01-picture" = { completed = 73, secretsfound = 6, secretstotal = 11 },
+		"02-report" = { completed = 36, secretsfound = 1, secretstotal = 9 },
+	};
+	
+	//
 	// STYLES
 	//
 	function MenuButton_Render()
@@ -199,12 +208,20 @@ function sgs_ui_example_menu()
 		".screen-panel .title" = { q0x = 0, q0y = 0, q1x = 1, q1y = 0.1, backgroundColor = UIColor( 0.3, 0.02, 0.01, 0.5 ), textColor = UIColor( 0.9, 1 ) },
 		".screen-panel .btn-back" = { q0x = 0.05, q0y = 0.85, q1x = 0.2, q1y = 0.95 },
 		".screen-panel .btn-back image" = { q0x = 0, q0y = 0, q1x = 0.3, q1y = 1 },
+		// - level list
 		".screen-panel .level-list" = { q0x = 0.05, q0y = 0.15, q1x = 0.45, q1y = 0.8 },
 		".screen-panel .level-list scrollable" = { backgroundColor = UIColor(0.1,0.2,0.3,0.1) },
 		".screen-panel .level-list .level-entry" = { height = 48, anchorMode = UI_Anchor_Hor },
 		".screen-panel .level-list .level-entry:hover" = { backgroundColor = UIColor(0.4,0.02,0.01,0.3) },
+		".screen-panel .level-list .level-entry.active" = { backgroundColor = UIColor(0.1,0.1,0.1,0.6) },
+		".screen-panel .level-list .level-entry.active:hover" = { backgroundColor = UIColor(0.5,0.12,0.11,0.6) },
 		".screen-panel .level-list .level-entry static" = { height = 48, anchorMode = UI_Anchor_Hor, backgroundColor = UIColor(0), textColor = UIColor(0.8,1), fontSize = 14 },
 		".screen-panel .level-list .level-entry image" = { width = 64, height = 48 },
+		// - level score
+		".screen-panel .level-score" = { q0x = 0.51, q0y = 0.15, q1x = 0.91, q1y = 0.8, backgroundColor = UIColor(0) },
+		".screen-panel .level-score .score-item" = { anchorMode = UI_Anchor_Hor, height = 36, backgroundColor = UIColor(0) },
+		".screen-panel .level-score .score-item .label" = { q0x = 0, q0y = 0, q1x = 0.5, q1y = 1, backgroundColor = UIColor(0), textColor = UIColor(1) },
+		".screen-panel .level-score .score-item .value" = { q0x = 0.5, q0y = 0, q1x = 1, q1y = 1, backgroundColor = UIColor(0), textColor = UIColor(1) },
 	}));
 	UI_EasingFunctions.smooth_fast_start = function( a, b, t ){ return UI_EasingFunctions.smooth( a, b, sqrt( t ) ); };
 	
@@ -243,6 +260,22 @@ function sgs_ui_example_menu()
 		UI_CreateStatic( ctrl, null, null, null, null, @params.caption, DT_LEFT | DT_VCENTER );
 		UI_CreateImage( ctrl, null, null, null, null, @params.image, UI_ImageScale_Crop );
 		UI_ConfigControl( ctrl, params );
+		ctrl.bindEvent( "click", function( e )
+		{
+			level_list = FRAME.find( this ).closest( ".level-list" );
+			level_list.find( ".level-entry" ).removeClass( "active" );
+			this.addClass( "active" );
+			this.callEvent( "onactivechange", this );
+			level_list.callEvent( "onactivechange", this );
+		});
+	}
+	
+	UI_Controls.scoreitem_params = ["key","label","value"];
+	function UI_Controls.scoreitem( parent, params )
+	{
+		ctrl = UI_CreateStatic( parent, null, null, null, null, "" ).addClass( "score-item" );
+		UI_CreateStatic( ctrl, null, null, null, null, @params.label, DT_LEFT | DT_VCENTER ).addClass( "label" );
+		UI_CreateStatic( ctrl, null, null, null, null, @params.value, DT_RIGHT | DT_VCENTER ).addClass( "value" )[]{ name = @params.key };
 	}
 	
 	//
@@ -271,9 +304,14 @@ function sgs_ui_example_menu()
 				( cont.getContainer(), // needed for ScrollingAutoLayout
 				[
 					{ type = "levelentry", name = "01-picture", caption = "The Picture", image = "icons/picture.png" },
-					{ type = "levelentry", name = "01-report", caption = "The Report", image = "icons/report.png" },
+					{ type = "levelentry", name = "02-report", caption = "The Report", image = "icons/report.png" },
 				]);
 			}},
+			{ type = "autolayout", class = "level-score", children =
+			[
+				{ type = "scoreitem", key = "completed", label = "Completed:", value = "-" },
+				{ type = "scoreitem", key = "secretsfound", label = "Secrets found:", value = "-" },
+			]},
 			{ type = "imagebutton", class = "btn-back act-close-start act-menu-grow", caption = "Back", image = "icons/resultset_previous.png" }
 		]},
 		{ type = "static", class = "screen-panel info-screen", children =
@@ -313,6 +351,12 @@ function sgs_ui_example_menu()
 	}
 	FRAME.find( ".act-open-start" ).bindEvent( "click", start_screen_enter );
 	FRAME.find( ".act-close-start" ).bindEvent( "click", start_screen_exit );
+	FRAME.find( ".level-list" ).bindEvent( "onactivechange", function( e ) use( leveldata )
+	{
+		ldc = leveldata[ e.name ];
+		FRAME.find( ".level-score @completed" ).setAttr( "caption", ldc.completed $ "%" );
+		FRAME.find( ".level-score @secretsfound" ).setAttr( "caption", ldc.secretsfound $ "/" $ ldc.secretstotal );
+	});
 	
 	function info_screen_enter()
 	{

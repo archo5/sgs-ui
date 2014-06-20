@@ -577,7 +577,8 @@ struct UIControl
 	SGS_METHOD bool hasEventBinding( sgsString name, sgsVariable callable );
 	SGS_METHOD UIControl::Handle bindEvent( sgsString name, sgsVariable callable );
 	SGS_METHOD UIControl::Handle unbindEvent( sgsString name, sgsVariable callable );
-	SGS_METHOD bool callEvent( sgsString name, UIEvent* e );
+	SGS_METHOD bool callEvent( sgsString name, sgsVariable data );
+	bool _callEvent( sgsString name, UIEvent* e );
 	
 	SGS_METHOD UIControl::Handle animate( sgsVariable state, float length, sgsVariable func, sgsVariable oncomplete );
 	SGS_METHOD UIControl::Handle stop( bool nofinish ); /* skip + dequeue */
@@ -809,9 +810,11 @@ struct UIQuery
 	// data functions
 	SGS_METHOD sgsVariable getAttr( sgsString key );
 	SGS_METHOD UIQuery::Handle setAttr( sgsString key, sgsVariable value );
+	SGS_METHOD UIQuery::Handle addClass( const sgsString& ss );
+	SGS_METHOD UIQuery::Handle removeClass( const sgsString& ss );
 	SGS_METHOD UIQuery::Handle bindEvent( sgsString name, sgsVariable callable );
 	SGS_METHOD UIQuery::Handle unbindEvent( sgsString name, sgsVariable callable );
-	SGS_METHOD UIQuery::Handle callEvent( sgsString name, UIEvent* e );
+	SGS_METHOD UIQuery::Handle callEvent( sgsString name, sgsVariable data );
 	SGS_METHOD UIQuery::Handle animate( sgsVariable state, float length, sgsVariable func, sgsVariable oncomplete );
 	SGS_METHOD UIQuery::Handle stop( bool nofinish );
 	SGS_METHOD UIQuery::Handle dequeue();
