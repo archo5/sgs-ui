@@ -702,35 +702,7 @@ int UIControl_CtrlProc( SGS_CTX )
 			ctrl->rx1 += lerpf( pr0x, pr1x, ctrl->get_q1x() );
 			ctrl->ry0 += lerpf( pr0y, pr1y, ctrl->get_q0y() );
 			ctrl->ry1 += lerpf( pr0y, pr1y, ctrl->get_q1y() );
-			if( ctrl->_roundedCoords )
-			{
-				ctrl->rx0 = round( ctrl->rx0 );
-				ctrl->rx1 = round( ctrl->rx1 );
-				ctrl->ry0 = round( ctrl->ry0 );
-				ctrl->ry1 = round( ctrl->ry1 );
-			}
-			ctrl->cx0 = ctrl->rx0 + ctrl->get_nonClientLeft();
-			ctrl->cx1 = ctrl->rx1 - ctrl->get_nonClientRight();
-			ctrl->cy0 = ctrl->ry0 + ctrl->get_nonClientTop();
-			ctrl->cy1 = ctrl->ry1 - ctrl->get_nonClientBottom();
-			if( ctrl->_roundedCoords )
-			{
-				ctrl->cx0 = round( ctrl->cx0 );
-				ctrl->cx1 = round( ctrl->cx1 );
-				ctrl->cy0 = round( ctrl->cy0 );
-				ctrl->cy1 = round( ctrl->cy1 );
-			}
-			ctrl->px0 = ctrl->cx0 + ctrl->get_paddingLeft();
-			ctrl->px1 = ctrl->cx1 - ctrl->get_paddingRight();
-			ctrl->py0 = ctrl->cy0 + ctrl->get_paddingTop();
-			ctrl->py1 = ctrl->cy1 - ctrl->get_paddingBottom();
-			if( ctrl->_roundedCoords )
-			{
-				ctrl->px0 = round( ctrl->px0 );
-				ctrl->px1 = round( ctrl->px1 );
-				ctrl->py0 = round( ctrl->py0 );
-				ctrl->py1 = round( ctrl->py1 );
-			}
+			ctrl->_changedFullRect();
 		}
 		for( UIControl::HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
 			(*it)->updateLayout();
@@ -1579,6 +1551,34 @@ bool UIControl::removeAllChildren()
 	return removed;
 }
 
+void UIControl::detach()
+{
+	if( parent.object )
+		parent->removeChild( Handle( this ) );
+}
+
+void UIControl::destroy( bool hard )
+{
+	stop( true );
+	detach();
+	destroyAllChildren( hard );
+	if( hard )
+	{
+		m_events = sgsVariable();
+		callback = sgsVariable();
+		data = sgsVariable();
+		_interface = sgsVariable();
+	}
+	else
+		unbindEverything();
+}
+
+void UIControl::destroyAllChildren( bool hard )
+{
+	while( m_children.size() )
+		m_children[0]->destroy( hard );
+}
+
 UIControl::Handle UIControl::findChild( sgsString name )
 {
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
@@ -1723,7 +1723,7 @@ UIControl::Handle UIControl::unbindEvent( sgsString name, sgsVariable callable )
 {
 	// check if there's an entry for the event
 	name.push( C );
-	if( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) )
+	if( SGS_FAILED( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) ) )
 		return Handle( this );
 	// remove item from array
 	callable.push();
@@ -1731,12 +1731,29 @@ UIControl::Handle UIControl::unbindEvent( sgsString name, sgsVariable callable )
 	return Handle( this );
 }
 
+UIControl::Handle UIControl::unbindEventAll( sgsString name )
+{
+	// check if there's an entry for the event
+	name.push( C );
+	if( SGS_FAILED( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) ) )
+		return Handle( this );
+	sgs_ObjectAction( C, -1, SGS_ACT_ARRAY_POP, sgs_ArraySize( C, -1 ) );
+	return Handle( this );
+}
+
+void UIControl::unbindEverything()
+{
+	sgs_PushDict( C, 0 );
+	m_events = sgsVariable( C, -1 );
+	sgs_Pop( C, 1 );
+}
+
 bool UIControl::callEvent( sgsString name, sgsVariable data )
 {
 	sgs_StkIdx orig = sgs_StackSize( C );
 	// check if there's an entry for the event
 	name.push( C );
-	if( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) )
+	if( SGS_FAILED( sgs_PushIndexPI( C, &m_events.var, -1, 0 ) ) )
 	{
 		sgs_SetStackSize( C, orig );
 		return false;
@@ -2002,7 +2019,10 @@ void UIControl::_startCurAnim()
 int UIControl::sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop )
 {
 	UIControl* ctrl = static_cast<UIControl*>(obj->data);
-	if( sgs_PushIndexPP( C, &ctrl->_interface.var, key, isprop ) == SGS_SUCCESS )
+	int32_t el = sgs_Cntl( C, SGS_CNTL_APILEV, SGS_ERROR );
+	SGSRESULT ret = sgs_PushIndexPP( C, &ctrl->_interface.var, key, isprop );
+	sgs_Cntl( C, SGS_CNTL_APILEV, el );
+	if( SGS_SUCCEEDED( ret ) )
 		return SGS_SUCCESS;
 	return UIControl::_sgs_getindex( C, obj, key, isprop );
 }
@@ -2220,6 +2240,39 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	if( updatedLayout ) updateLayout();
 	if( ( updatedBox || updatedOrder ) && frame.not_null() )
 		frame->handleMouseMove( true );
+}
+
+void UIControl::_changedFullRect()
+{
+	if( _roundedCoords )
+	{
+		rx0 = round( rx0 );
+		rx1 = round( rx1 );
+		ry0 = round( ry0 );
+		ry1 = round( ry1 );
+	}
+	cx0 = rx0 + get_nonClientLeft();
+	cx1 = rx1 - get_nonClientRight();
+	cy0 = ry0 + get_nonClientTop();
+	cy1 = ry1 - get_nonClientBottom();
+	if( _roundedCoords )
+	{
+		cx0 = round( cx0 );
+		cx1 = round( cx1 );
+		cy0 = round( cy0 );
+		cy1 = round( cy1 );
+	}
+	px0 = cx0 + get_paddingLeft();
+	px1 = cx1 - get_paddingRight();
+	py0 = cy0 + get_paddingTop();
+	py1 = cy1 - get_paddingBottom();
+	if( _roundedCoords )
+	{
+		px0 = round( px0 );
+		px1 = round( px1 );
+		py0 = round( py0 );
+		py1 = round( py1 );
+	}
 }
 
 
@@ -2601,6 +2654,13 @@ UIQuery::Handle UIQuery::unbindEvent( sgsString name, sgsVariable callable )
 {
 	for( size_t i = 0; i < m_items.size(); ++i )
 		m_items[ i ]->unbindEvent( name, callable );
+	return Handle( this );
+}
+
+UIQuery::Handle UIQuery::unbindEventAll( sgsString name )
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+		m_items[ i ]->unbindEventAll( name );
 	return Handle( this );
 }
 

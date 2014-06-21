@@ -134,8 +134,11 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 		iw = x1 - x0;
 		ih = y1 - y0;
 		
-		showV = if( this.vscroll === "auto", ih > Scrollable.height - this.scroll_size, this.vscroll );
-		showH = if( this.hscroll === "auto", iw > Scrollable.width - this.scroll_size, this.hscroll );
+		conth = Scrollable.ry1 - Scrollable.ry0;
+		contw = Scrollable.rx1 - Scrollable.rx0;
+		
+		showV = if( this.vscroll === "auto", ih > conth - this.scroll_size * scrH.visible, this.vscroll );
+		showH = if( this.hscroll === "auto", iw > contw - this.scroll_size * scrV.visible, this.hscroll );
 		
 		scrV.visible = showV;
 		scrH.visible = showH;

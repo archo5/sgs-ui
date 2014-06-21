@@ -121,11 +121,7 @@ global UI_PropertyGrid = {};
 function UI_PropertyGrid._create_label( text )
 {
 	data = this.data;
-	ctrl = UI_CreateStatic( data.OpCont, 0, 0, data.label_width_min, data.label_height, text, DT_LEFT | DT_VCENTER );
-	ctrl.backgroundColor = UIColor( 0, 0.1 );
-	ctrl.minWidth = data.label_width_min;
-	ctrl.maxWidth = data.label_width_max;
-	ctrl.q1x = data.label_width_percent;
+	ctrl = UI_CreateStatic( data.OpCont, null, null, null, null, text, DT_LEFT | DT_VCENTER ).addClass( "label" );
 	return ctrl;
 }
 
@@ -139,7 +135,7 @@ function UI_PropertyGrid._create_checkbox( name, value, option )
 	this._createDefaultLabel( name, option );
 	
 	data = this.data;
-	ctrl = UI_CreateCheckbox( data.OpCont, 0, 0, data.value_height, data.value_height, name, null, !!value );
+	ctrl = UI_CreateCheckbox( data.OpCont, name, null, !!value ).addClass( "value" );
 	return ctrl;
 }
 
@@ -148,11 +144,8 @@ function UI_PropertyGrid._create_slider( name, value, option )
 	this._createDefaultLabel( name, option );
 	
 	data = this.data;
-	ctrl = UI_CreateSlider( data.OpCont, 0, 0, data.value_width_min, data.value_height, name, @option.min, @option.max, @option.stopsize );
+	ctrl = UI_CreateSlider( data.OpCont, null, null, null, null, name, @option.min, @option.max, @option.stopsize ).addClass( "value" );
 	ctrl.setValue( value );
-	ctrl.minWidth = data.value_width_min;
-	ctrl.maxWidth = data.value_width_max;
-	ctrl.q1x = data.value_width_percent;
 	return ctrl;
 }
 
@@ -161,19 +154,15 @@ function UI_PropertyGrid._create_textbox( name, value, option )
 	this._createDefaultLabel( name, option );
 	
 	data = this.data;
-	ctrl = UI_CreateTextbox( data.OpCont, 0, 0, data.value_width_min, name, @option.textbox_caption, value );
-	ctrl.minWidth = data.value_width_min;
-	ctrl.maxWidth = data.value_width_max;
-	ctrl.q1x = data.value_width_percent;
+	ctrl = UI_CreateTextbox( data.OpCont, null, null, null, name, @option.textbox_caption, value ).addClass( "value" );
 	return ctrl;
 }
 
 function UI_PropertyGrid._create_button( name, value, option )
 {
 	data = this.data;
-	ctrl = UI_CreateButton( data.OpCont, 0, 0, 0, data.value_height, @option.label || name, @option.icon );
+	ctrl = UI_CreateButton( data.OpCont, null, null, null, null, @option.label || name, @option.icon ).addClass( "value" );
 	ctrl.bindEvent( "click", value );
-	ctrl.q1x = 1;
 	return ctrl;
 }
 
@@ -188,6 +177,8 @@ function UI_PropertyGrid.getType( value, option )
 
 function UI_PropertyGrid.setData( input_values, options )
 {
+	if( input_values === null )
+		return;
 	data = this.data;
 	all_values = {};
 	options ||= {};
@@ -287,6 +278,13 @@ function UI_CreatePropertyGrid( parent, x, y, width, height, seed, options )
 	PropertyGrid.setData( seed, options );
 	
 	return PropertyGrid;
+}
+
+UI_Controls.propertygrid_params = ["seed","options"];
+function UI_Controls.propertygrid( parent, params )
+{
+	ctrl = UI_CreatePropertyGrid( parent, null, null, null, null, @params.seed, @params.options );
+	UI_ConfigControl( ctrl, params );
 }
 
 

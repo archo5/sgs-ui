@@ -562,6 +562,9 @@ struct UIControl
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
 	SGS_METHOD bool removeAllChildren();
+	SGS_METHOD void detach();
+	SGS_METHOD void destroy( bool hard ); /* the goal here is to minimize the possibility of circular references */
+	SGS_METHOD void destroyAllChildren( bool hard );
 	SGS_METHOD UIControl::Handle findChild( sgsString name );
 	SGS_METHOD sgsVariable children( bool nonclient );
 	SGS_METHOD void sortChildren();
@@ -577,6 +580,8 @@ struct UIControl
 	SGS_METHOD bool hasEventBinding( sgsString name, sgsVariable callable );
 	SGS_METHOD UIControl::Handle bindEvent( sgsString name, sgsVariable callable );
 	SGS_METHOD UIControl::Handle unbindEvent( sgsString name, sgsVariable callable );
+	SGS_METHOD UIControl::Handle unbindEventAll( sgsString name );
+	SGS_METHOD void unbindEverything();
 	SGS_METHOD bool callEvent( sgsString name, sgsVariable data );
 	bool _callEvent( sgsString name, UIEvent* e );
 	
@@ -748,21 +753,24 @@ struct UIControl
 	SGS_PROPERTY sgsVariable data;
 	SGS_PROPERTY sgsVariable _interface;
 	
+	// these are writable to allow controls with manual layouts to accept parameters from style rules and undo auto layouts
 	// full rect
-	SGS_PROPERTY READ float rx0;
-	SGS_PROPERTY READ float rx1;
-	SGS_PROPERTY READ float ry0;
-	SGS_PROPERTY READ float ry1;
+	SGS_PROPERTY float rx0;
+	SGS_PROPERTY float rx1;
+	SGS_PROPERTY float ry0;
+	SGS_PROPERTY float ry1;
 	// client rect
-	SGS_PROPERTY READ float cx0;
-	SGS_PROPERTY READ float cx1;
-	SGS_PROPERTY READ float cy0;
-	SGS_PROPERTY READ float cy1;
+	SGS_PROPERTY float cx0;
+	SGS_PROPERTY float cx1;
+	SGS_PROPERTY float cy0;
+	SGS_PROPERTY float cy1;
 	// padded rect
-	SGS_PROPERTY READ float px0;
-	SGS_PROPERTY READ float px1;
-	SGS_PROPERTY READ float py0;
-	SGS_PROPERTY READ float py1;
+	SGS_PROPERTY float px0;
+	SGS_PROPERTY float px1;
+	SGS_PROPERTY float py0;
+	SGS_PROPERTY float py1;
+	
+	SGS_METHOD void _changedFullRect();
 	
 	SGS_PROPERTY bool _updatingLayout : 1; /* true if updating layout and don't want to trigger further layout changes */
 	SGS_PROPERTY bool _roundedCoords : 1; /* true if final coords (r[xy][01]) should be rounded */
@@ -814,6 +822,7 @@ struct UIQuery
 	SGS_METHOD UIQuery::Handle removeClass( const sgsString& ss );
 	SGS_METHOD UIQuery::Handle bindEvent( sgsString name, sgsVariable callable );
 	SGS_METHOD UIQuery::Handle unbindEvent( sgsString name, sgsVariable callable );
+	SGS_METHOD UIQuery::Handle unbindEventAll( sgsString name );
 	SGS_METHOD UIQuery::Handle callEvent( sgsString name, sgsVariable data );
 	SGS_METHOD UIQuery::Handle animate( sgsVariable state, float length, sgsVariable func, sgsVariable oncomplete );
 	SGS_METHOD UIQuery::Handle stop( bool nofinish );

@@ -155,17 +155,9 @@ function UI_CreateHidden( parent, name, value )
 	return Hidden;
 }
 
-function UI_CreateCheckbox( parent, x, y, width, height, name, value, checked )
+function UI_CreateCheckbox( parent, name, value, checked )
 {
-	cb_size = 16;
-	
 	Checkbox = parent.frame.createControl( "checkbox" );
-	x = round( x + width / 2 );
-	y = round( y + width / 2 );
-	Checkbox.x = x - round( cb_size / 2 );
-	Checkbox.y = y - round( cb_size / 2 );
-	Checkbox.width = cb_size;
-	Checkbox.height = cb_size;
 	Checkbox.name = name;
 	Checkbox.data =
 	{
@@ -184,6 +176,28 @@ function UI_CreateCheckbox( parent, x, y, width, height, name, value, checked )
 		
 		if( event.type == EV_NeedFocus )
 			return 1;
+		else if( event.type == EV_Layout )
+		{
+			result = this!orig_callback( event );
+			if( this.rx1 - this.rx0 < this.minWidth )
+				this.rx1 = this.rx0 + this.minWidth;
+			if( this.ry1 - this.ry0 < this.minHeight )
+				this.ry1 = this.ry0 + this.minHeight;
+			if( this.rx1 - this.rx0 > this.maxWidth )
+			{
+				diff = this.rx1 - this.rx0 - this.maxWidth;
+				this.rx0 += diff * 0.5;
+				this.rx1 = this.rx0 + this.maxWidth;
+			}
+			if( this.ry1 - this.ry0 > this.maxHeight )
+			{
+				diff = this.ry1 - this.ry0 - this.maxHeight;
+				this.ry0 += diff * 0.5;
+				this.ry1 = this.ry0 + this.maxHeight;
+			}
+			this._changedFullRect();
+			return result;
+		}
 		else if( event.type == EV_Attach )
 		{
 			UIForm_Attach( this, event );
@@ -197,31 +211,21 @@ function UI_CreateCheckbox( parent, x, y, width, height, name, value, checked )
 			if( event.button == 0 && this.clicked && this == this.frame.getControlUnderCursor() )
 			{
 				data.checked = !data.checked;
-				this.callEvent( "change", event );
 				UIForm_CtrlChanged( this, event );
+				this.callEvent( "change", event );
 			}
 		}
 		return this!orig_callback( event );
 	}
 	
 	Checkbox.updateTheme();
-	
 	parent.addChild( Checkbox );
-	
 	return Checkbox;
 }
 
-function UI_CreateRadioButton( parent, x, y, width, height, name, value, checked )
+function UI_CreateRadioButton( parent, name, value, checked )
 {
-	cb_size = 16;
-	
 	RadioBtn = parent.frame.createControl( "radiobutton" );
-	x = round( x + width / 2 );
-	y = round( y + width / 2 );
-	RadioBtn.x = x - round( cb_size / 2 );
-	RadioBtn.y = y - round( cb_size / 2 );
-	RadioBtn.width = cb_size;
-	RadioBtn.height = cb_size;
 	RadioBtn.name = name;
 	RadioBtn.data =
 	{
@@ -240,6 +244,28 @@ function UI_CreateRadioButton( parent, x, y, width, height, name, value, checked
 		
 		if( event.type == EV_NeedFocus )
 			return 1;
+		else if( event.type == EV_Layout )
+		{
+			result = this!orig_callback( event );
+			if( this.rx1 - this.rx0 < this.minWidth )
+				this.rx1 = this.rx0 + this.minWidth;
+			if( this.ry1 - this.ry0 < this.minHeight )
+				this.ry1 = this.ry0 + this.minHeight;
+			if( this.rx1 - this.rx0 > this.maxWidth )
+			{
+				diff = this.rx1 - this.rx0 - this.maxWidth;
+				this.rx0 += diff * 0.5;
+				this.rx1 = this.rx0 + this.maxWidth;
+			}
+			if( this.ry1 - this.ry0 > this.maxHeight )
+			{
+				diff = this.ry1 - this.ry0 - this.maxHeight;
+				this.ry0 += diff * 0.5;
+				this.ry1 = this.ry0 + this.maxHeight;
+			}
+			this._changedFullRect();
+			return result;
+		}
 		else if( event.type == EV_Attach )
 		{
 			UIForm_Attach( this, event );

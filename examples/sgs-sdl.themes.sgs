@@ -35,8 +35,71 @@ global SS_UI_Theme_Default =
 				this!button_render_contents();
 			}
 		},
+		"image" =
+		{
+			renderfunc = function Image.renderfunc()
+			{
+				data = this.data;
+				scale = data.scale;
+				
+				W = this.rx1 - this.rx0;
+				H = this.ry1 - this.ry0;
+				IW = data.image.width;
+				IH = data.image.height;
+				IW = if( IW >= 1, IW, 1 );
+				IH = if( IH >= 1, IH, 1 );
+				
+				if( scale === UI_ImageScale_Stretch )
+				{
+					xscale = W / IW;
+					yscale = H / IH;
+				}
+				else if( scale === UI_ImageScale_Crop )
+				{
+					xscale = W / IW;
+					yscale = H / IH;
+					if( xscale > yscale )
+						yscale = xscale;
+					else
+						xscale = yscale;
+				}
+				else if( scale === UI_ImageScale_Fit )
+				{
+					xscale = W / IW;
+					yscale = H / IH;
+					if( xscale > yscale )
+						xscale = yscale;
+					else
+						yscale = xscale;
+				}
+				else
+				{
+					xscale = scale;
+					yscale = scale;
+				}
+				
+				realsize_x = round( IW * xscale );
+				realsize_y = round( IH * yscale );
+				
+				off_x = round( ( W - realsize_x ) * data.align_x );
+				off_y = round( ( H - realsize_y ) * data.align_y );
+				
+				if( this.frame.pushScissorRect( this.rx0, this.ry0, this.rx1, this.ry1 ) )
+				{
+					X = this.rx0 + off_x;
+					Y = this.ry0 + off_y;
+					SS_Draw({ preset = "tile", texture = data.image, position = vec2(X,Y), scale = vec2(realsize_x,realsize_y) });
+					
+					this.frame.popScissorRect();
+				}
+			}
+		},
 		"checkbox" =
 		{
+			minWidth = 16,
+			minHeight = 16,
+			maxWidth = 16,
+			maxHeight = 16,
 			renderfunc = function SS_UI_Theme_Default_checkbox_renderfunc()
 			{
 				data = this.data;
@@ -58,6 +121,10 @@ global SS_UI_Theme_Default =
 		},
 		"radiobutton" =
 		{
+			minWidth = 16,
+			minHeight = 16,
+			maxWidth = 16,
+			maxHeight = 16,
 			renderfunc = function SS_UI_Theme_Default_radiobtn_renderfunc()
 			{
 				data = this.data;
@@ -70,15 +137,15 @@ global SS_UI_Theme_Default =
 				cy = ( this.ry0 + this.ry1 ) / 2;
 				radius = round( min( this.rx1 - this.rx0, this.ry1 - this.ry0 ) / 2 );
 				
-				draw_color_circle( cx, cy, radius, null, 0.5, 0.6, 0.8, 1 );
+				SS_DrawColorCircle( cx, cy, radius, null, 0.5, 0.6, 0.8, 1 );
 				
 				if( this.clicked )
-					draw_color_circle( cx, cy, radius - p1, null, 0.8, 0.8, 0.8, 1 );
+					SS_DrawColorCircle( cx, cy, radius - p1, null, 0.8, 0.8, 0.8, 1 );
 				else
-					draw_color_circle( cx, cy, radius - p1, null, 0.9, 0.9, 0.9, 1 );
+					SS_DrawColorCircle( cx, cy, radius - p1, null, 0.9, 0.9, 0.9, 1 );
 				
 				if( data.checked )
-					draw_color_circle( cx, cy, radius - p2, null, 0.1, 0.2, 0.4, 1 );
+					SS_DrawColorCircle( cx, cy, radius - p2, null, 0.1, 0.2, 0.4, 1 );
 			}
 		},
 		"scrollbar" =
@@ -154,6 +221,9 @@ global SS_UI_Theme_Default =
 				SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, c.r, c.g, c.b, c.a );
 			}
 		},
+		"propertygrid .label" = { q1x = 0.5, height = 24, backgroundColor = UIColor(0,0.1) },
+		"propertygrid .value" = { q1x = 0.5, height = 24 },
+		"propertygrid button.value" = { q1x = 1 },
 	}),
 	
 	// BUTTON

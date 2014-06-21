@@ -46,8 +46,8 @@ function initialize()
 {
 	global Window = SS_CreateWindow( "SGS-UI Test",
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-		1024, 576, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL );
-	Window.initRenderer( SS_RENDERER_OPENGL, SS_RENDERER_DONTCARE, SS_RENDERER_VSYNC );
+		1024, 576, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGLMAYBE );
+	Window.initRenderer( SS_RENDERER_DONTCARE, SS_RENDERER_DONTCARE, SS_RENDERER_VSYNC );
 	SS_InitDrawFunctions();
 	
 	SS_StartTextInput();
@@ -78,6 +78,7 @@ function update()
 	var curtime = ftime();
 	var delta = curtime - lasttime;
 	lasttime = curtime;
+	ucdelta = delta;
 	if( delta > 1.0/15.0 )
 		delta = 1.0/15.0;
 	
@@ -88,7 +89,7 @@ function update()
 	
 	SS_SetCameraUI( 0, W, 0, H );
 	
-	FRAME.processTimers( delta );
+	FRAME.processTimers( ucdelta );
 	FRAME.render();
 	
 	if( gDBGDRAW )
