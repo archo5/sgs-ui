@@ -9,6 +9,8 @@ function UI_CreateForm( parent )
 {
 	Form = parent.frame.createControl( "form" );
 	Form.data = { ctrls = map() };
+	Form.q0x = 0;
+	Form.q0y = 0;
 	Form.q1x = 1;
 	Form.q1y = 1;
 	
@@ -310,16 +312,13 @@ function UI_CreateRadioButton( parent, name, value, checked )
 }
 
 
-function UI_CreateTextbox( parent, x, y, width, name, caption, text )
+function UI_CreateTextbox( parent, name, caption, text )
 {
 	caption ||= "";
 	text ||= "";
 	text = tostring( text );
 	
 	Textbox = parent.frame.createControl( "textbox" );
-	Textbox.x = x;
-	Textbox.y = y;
-	Textbox.width = width;
 	Textbox.name = name;
 	Textbox.cursor = UI_Cursor_Text;
 	
@@ -327,7 +326,6 @@ function UI_CreateTextbox( parent, x, y, width, name, caption, text )
 	{
 		padding = 1,
 		text_padding = 2,
-		height = 24,
 		caption = caption,
 		
 		offset = 0,
@@ -426,10 +424,6 @@ function UI_CreateTextbox( parent, x, y, width, name, caption, text )
 		{
 			UIForm_Detach( this, event );
 			data.removeCursorTimer( this.frame );
-		}
-		else if( event.type == EV_Layout )
-		{
-			this.height = data.height;
 		}
 		else if( event.type == EV_NeedFocus )
 			return 1;
@@ -719,16 +713,12 @@ function UI_Slider.setLimits( vmin, vmax, stopsize )
 	this.setValue( data.value );
 }
 
-function UI_CreateSlider( parent, x, y, width, height, name, vmin, vmax, stopsize, vertical )
+function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
 {
 	vmin = if( vmin !== null, vmin, 0.0 );
 	vmax = if( vmax !== null, vmax, 1.0 );
 	
 	Slider = parent.frame.createControl( "slider" );
-	Slider.x = x;
-	Slider.y = y;
-	Slider.width = width;
-	Slider.height = height;
 	Slider.name = name;
 	Slider._interface = UI_Slider;
 	Slider.data =
@@ -931,6 +921,161 @@ function UI_CreateSlider( parent, x, y, width, height, name, vmin, vmax, stopsiz
 }
 
 
+global UI_SwitchButton = {};
+
+function UI_SwitchButton.setOptions( items )
+{
+	data = this.data;
+	data.options = items;
+	// unknown interface, must count manually
+	cnt = 0;
+	foreach( v : items )
+		cnt++;
+	this.addRemClass( "no-options", cnt == 0 );
+	this.addRemClass( "one-option", cnt == 1 );
+	this.addRemClass( "two-options", cnt == 2 );
+	this.addRemClass( "more-than-two-options", cnt > 2 );
+	this.setValue( data.value );
+}
+
+function UI_SwitchButton.setValue( value, event )
+{
+	data = this.data;
+	pvalue = data.value;
+	chg = false;
+	foreach( k ,: data.options )
+	{
+		if( k == value )
+		{
+			data.value = k;
+			chg = true;
+			break;
+		}
+	}
+	if( !chg )
+	{
+		foreach( k ,: data.options )
+		{
+			data.value = k;
+			break;
+		}
+	}
+	if( data.value !== pvalue )
+	{
+		capn = data.options[ data.value ];
+		if( capn === null )
+			capn = data.value;
+		data.btn_main.caption = capn;
+		if( event === null )
+			event = UI_CreateEvent();
+		this.callEvent( "change", event );
+		UIForm_CtrlChanged( this, event );
+	}
+}
+
+function UI_SwitchButton.setPrev( event )
+{
+	data = this.data;
+	v = data.value;
+	pk = null;
+	set = false;
+	foreach( k ,: data.options )
+	{
+		if( k == v )
+		{
+			if( !set )
+				set = true; // do not break because value will be set on last iteration
+			else
+				break;
+		}
+		pk = k;
+		set = true;
+	}
+	this.setValue( pk, event );
+}
+
+function UI_SwitchButton.setNext( event )
+{
+	data = this.data;
+	v = data.value;
+	nk = null;
+	set = false;
+	tobeset = false;
+	foreach( k ,: data.options )
+	{
+		if( tobeset )
+		{
+			nk = k;
+			set = true;
+			break;
+		}
+		if( k == v )
+			tobeset = true;
+	}
+	if( tobeset && !set )
+	{
+		foreach( k ,: data.options )
+		{
+			nk = k;
+			break;
+		}
+	}
+	this.setValue( nk, event );
+}
+
+function UI_CreateSwitchButton( parent, name, options, sidebuttons, defval )
+{
+	sidebuttons ||= false;
+	SwitchButton = parent.frame.createControl( "switchbutton" );
+	SwitchButton.name = name;
+	SwitchButton.data =
+	{
+		options = null,
+		value = null,
+		btn_main = null,
+		btn_prev = null,
+		btn_next = null,
+		getValue = function SwitchButton_data_getValue(){ return this.value; },
+	};
+	SwitchButton._interface = UI_SwitchButton;
+	SwitchButton.data.btn_main = UI_CreateButton( SwitchButton, null, null, null, null, "" ).addClass( "main-button" ).bindEvent( "click", function(){ this.parent.setNext(); } );
+	if( sidebuttons )
+	{
+		SwitchButton.addClass( "has-side-buttons" );
+		SwitchButton.data.btn_prev = UI_CreateButton( SwitchButton, null, null, null, null, "<" ).addClass( "side-button prev" ).bindEvent( "click", function(){ this.parent.setPrev(); } );
+		SwitchButton.data.btn_next = UI_CreateButton( SwitchButton, null, null, null, null, ">" ).addClass( "side-button next" ).bindEvent( "click", function(){ this.parent.setNext(); } );
+	}
+	
+	SwitchButton.setOptions( options );
+	SwitchButton.setValue( defval );
+	
+	ocb = SwitchButton.callback;
+	function SwitchButton.callback( event ) use( ocb )
+	{
+		if( event.type == EV_NeedFocus )
+			return 1;
+		else if( event.type == EV_Attach )
+		{
+			UIForm_Attach( this, event );
+		}
+		else if( event.type == EV_Detach )
+		{
+			UIForm_Detach( this, event );
+		}
+		else if( event.type == EV_ButtonDown && event.button != 0 )
+		{
+			this.frame.setFocus( this );
+			return;
+		}
+		return this!ocb( event );
+	}
+	
+	SwitchButton.updateTheme();
+	parent.addChild( SwitchButton );
+	return SwitchButton;
+}
+
+
 global UI_SelectBox = {};
 function UI_SelectBox.setItems( items )
 {
@@ -980,7 +1125,7 @@ function UI_SelectBox.selectItem( id, event )
 	this.callEvent( "change", event );
 }
 
-function UI_CreateSelectBox( parent, x, y, width, height, name, items )
+function UI_CreateSelectBox( parent, name, items )
 {
 	SelectBox = parent.frame.createControl( "selectbox" );
 	SelectBox._interface = UI_SelectBox;
@@ -989,10 +1134,6 @@ function UI_CreateSelectBox( parent, x, y, width, height, name, items )
 		items = [],
 		icon = SS_CreateTexture( "icons/bullet_arrow_down.png" ),
 	};
-	SelectBox.x = x;
-	SelectBox.y = y;
-	SelectBox.width = width;
-	SelectBox.height = height;
 	SelectBox.name = name;
 	
 	orig_callback = SelectBox.callback;

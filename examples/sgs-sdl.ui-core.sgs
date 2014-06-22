@@ -34,16 +34,12 @@ global
 	UI_ImageScale_Fit     = -2,
 	UI_ImageScale_Crop    = -3;
 
-function UI_CreateImage( parent, x, y, width, height, src, scale, align_x, align_y )
+function UI_CreateImage( parent, src, scale, align_x, align_y )
 {
 	if( typeof(src) == "string" )
 		src = SS_CreateTexture( src );
 	
 	Image = parent.frame.createControl( "image" );
-	Image.x = x;
-	Image.y = y;
-	Image.width = width;
-	Image.height = height;
 	Image.data =
 	{
 		image = src,
@@ -60,7 +56,7 @@ function UI_CreateImage( parent, x, y, width, height, src, scale, align_x, align
 UI_Controls.image_params = ["src","scale","align_x","align_y"];
 function UI_Controls.image( parent, params )
 {
-	ctrl = UI_CreateImage( parent, null, null, null, null, @params.src, @params.scale, @params.align_x, @params.align_y );
+	ctrl = UI_CreateImage( parent, @params.src, @params.scale, @params.align_x, @params.align_y );
 	UI_ConfigControl( ctrl, params );
 }
 
@@ -109,7 +105,7 @@ function UI_Controls.button( parent, params )
 function UI_CreateImageButton( parent, image, scale, align_x, align_y )
 {
 	Button = UI_CreateButton( parent );
-	UI_CreateImage( Button, null, null, null, null, image, scale, align_x, align_y );
+	UI_CreateImage( Button, image, scale, align_x, align_y );
 	return Button;
 }
 
@@ -121,18 +117,14 @@ function UI_Controls.imagebutton( parent, params )
 }
 
 
-function UI_CreateScroll( vertical, parent, x, y, width, height, space, window, position )
+function UI_CreateScroll( vertical, parent, space, window, position )
 {
 	space ||= 0;
 	auto_window = if( window, false, true );
-	window ||= if( vertical, height, width );
+	window ||= 0;
 	position ||= 0;
 	
 	Scroll = parent.frame.createControl( "scrollbar" );
-	Scroll.x = x;
-	Scroll.y = y;
-	Scroll.width = width;
-	Scroll.height = height;
 	Scroll.data =
 	{
 		button_size = 0,
@@ -148,7 +140,7 @@ function UI_CreateScroll( vertical, parent, x, y, width, height, space, window, 
 	
 	bsize = Scroll.data.button_size;
 	
-	scroll_length = if( vertical, height, width ) - bsize * 2;
+	scroll_length = window - bsize * 2;
 	bar_pos = if( space, scroll_length * position / space, 0 );
 	bar_length = if( space, scroll_length * window / space, scroll_length );
 	
@@ -305,8 +297,8 @@ function UI_CreateScroll( vertical, parent, x, y, width, height, space, window, 
 	return Scroll;
 }
 
-function UI_CreateHScroll( parent, x, y, width, height, space, window, position ){ return UI_CreateScroll( false, parent, x, y, width, height, space, window, position ); }
-function UI_CreateVScroll( parent, x, y, width, height, space, window, position ){ return UI_CreateScroll( true, parent, x, y, width, height, space, window, position ); }
+function UI_CreateHScroll( parent, space, window, position ){ return UI_CreateScroll( false, parent, space, window, position ); }
+function UI_CreateVScroll( parent, space, window, position ){ return UI_CreateScroll( true, parent, space, window, position ); }
 
 
 function UI_BuildMenu( parent, x, y, items, default )

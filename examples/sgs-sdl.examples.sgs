@@ -70,30 +70,30 @@ function sgs_ui_example_default()
 		UI_BuildMenu( this.frame.root, this.rx0, this.ry1, menu1_items );
 	});
 	
-	tbKey = UI_CreateTextbox( STAT, 100, 50, 100, "key", "Key" );
+	tbKey = UI_CreateTextbox( STAT, "key", "Key" )[]{ x = 100, y = 50, width = 100, height = 24 };
 	tbKey.bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
-	tbVal = UI_CreateTextbox( STAT, 220, 50, 100, "value", "Value" );
+	tbVal = UI_CreateTextbox( STAT, "value", "Value" )[]{ x = 220, y = 50, width = 100, height = 24 };
 	tbVal.bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
 	
 	UI_CreateCheckbox( STAT, "cbox", "set" )[]{ x = 340, y = 50, width = 24, height = 24 };
 	UI_CreateRadioButton( STAT, "rbtn", "A" )[]{ x = 364, y = 50, width = 24, height = 24 };
 	UI_CreateRadioButton( STAT, "rbtn", "B" )[]{ x = 388, y = 50, width = 24, height = 24 };
 	
-	UI_CreateVScroll( STAT, 400, 100, 16, 300, 1000, 300, 37 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
-	UI_CreateHScroll( STAT, 100, 400, 300, 16, 1000, 300, 137 ).bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
+	UI_CreateVScroll( STAT, 1000, 300, 37 )[]{ x = 400, y = 100, width = 16, height = 300 }.bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
+	UI_CreateHScroll( STAT, 1000, 300, 137 )[]{ x = 100, y = 400, width = 300, height = 16 }.bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
 	
 	SCROLL = UI_CreateScrollable( STAT, 500, 100, 200, 300 );
 	text = string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] );
 	text = string_part( text, 0, 1024 );
 	UI_CreateStatic( SCROLL, 0, 0, 20, 500, text, DT_LEFT | DT_TOP )[]{ q1x = 1, backgroundColor = UIColor( 0.9, 1 ) };
 	
-	SELECT = UI_CreateSelectBox( STAT, 500, 50, 180, 24, "sBoX",
+	SELECT = UI_CreateSelectBox( STAT, "sBoX",
 		[
 			{ text = "Primary choice", value = "1" },
 			{ text = "Situation", value = "sit" },
 			{ text = "Something else", value = "other" },
 		]
-	);
+	)[]{ x = 500, y = 50, width = 180, height = 24 };
 	
 	AUTOLAYOUT = UI_CreateAutoLayout( STAT, 840, 30, 100 );
 	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/page.png" );
@@ -104,10 +104,10 @@ function sgs_ui_example_default()
 		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ width = 32 } }.addSelector( "@hovertest" ) )
 		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ width = 42 } }.addSelector( "@hovertest:hover" ) ) );
 	
-	UI_CreateSlider( STAT, 800, 100, 150, 20, "sldr1", 0, 1, 0, false );
-	UI_CreateSlider( STAT, 800, 140, 150, 20, "sldr2", 0, 5-1, 1, false );
-	UI_CreateSlider( STAT, 720, 40, 30, 120, "sldr3", 0, 1, 0, true );
-	UI_CreateSlider( STAT, 760, 40, 30, 120, "sldr4", 0, 8-1, 1, true );
+	UI_CreateSlider( STAT, "sldr1", 0, 1, 0, false )[]{ x = 800, y = 100, width = 150, height = 20 };
+	UI_CreateSlider( STAT, "sldr2", 0, 5-1, 1, false )[]{ x = 800, y = 140, width = 150, height = 20 };
+	UI_CreateSlider( STAT, "sldr3", 0, 1, 0, true )[]{ x = 720, y = 40, width = 30, height = 120 };
+	UI_CreateSlider( STAT, "sldr4", 0, 8-1, 1, true )[]{ x = 760, y = 40, width = 30, height = 120 };
 	
 	global PGRID;
 	PGRID_data =
@@ -116,11 +116,13 @@ function sgs_ui_example_default()
 		boolean2 = false,
 		value1 = 35,
 		"text ctl" = "Text Here !",
+		Troolean = true,
 		"Dump ALL" = function(){ printvar( PGRID.getData() ); },
 	};
 	PGRID_options =
 	{
 		value1 = { type = "slider", min = 0, max = 50, stopsize = 5 },
+		Troolean = { type = "switchbutton", options = map( true, "True", false, "False", "FileNotFound", "File not found" ) },
 	};
 	PGRID = UI_CreatePropertyGrid( STAT, 720, 180, 200, 300, PGRID_data, PGRID_options );
 	
@@ -139,14 +141,17 @@ function sgs_ui_example_default()
 	LBMENU.addOption({ text = "Test option 1" });
 	LBMENU.addOption({ text = "Test/2", icon = "icons/book.png" });
 	
-	WINIMAGE = UI_CreateImage( WINSTAT, 0, 0, 0, 0, "icons/add.png", UI_ImageScale_None );
+	WINIMAGE = UI_CreateImage( WINSTAT, "icons/add.png", UI_ImageScale_None );
 	WINIMAGE.setAnchorMode( UI_Anchor_Left | UI_Anchor_Vert );
 	WINIMAGE.q1x = 0.2;
 	WINIMAGE.index = 10;
-	WINIMAGE2 = UI_CreateImage( WINSTAT, 0, 0, 0, 0, "icons/delete.png", UI_ImageScale_None );
+	WINIMAGE2 = UI_CreateImage( WINSTAT, "icons/delete.png", UI_ImageScale_None );
 	WINIMAGE2.setAnchorMode( UI_Anchor_Right | UI_Anchor_Vert );
 	WINIMAGE2.q0x = 0.8;
 	WINIMAGE2.index = 10;
+	
+	SWBTN1 = UI_CreateSwitchButton( STAT, "swtchbtn", map( true, "Yes", false, "No", "FileNotFound", "Maybe" ), true, true )[]{ x = 100, y = 150, width = 150, height = 24 };
+	SWBTN2 = UI_CreateSwitchButton( STAT, "swtchbt2", map( true, "Yes", false, "No" ), false, false )[]{ x = 100, y = 180, width = 150, height = 24 };
 }
 
 
@@ -216,6 +221,8 @@ function sgs_ui_example_menu()
 		"**" = { font = "fonts/armata-regular.ttf", fontSize = 16 },
 		".framed" = { renderfunc = DrawStaticControl },
 		"*scrollingautolayout button static" = { font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 },
+		"*scrollbar" = { renderfunc = DrawStaticControl, backgroundColor = UIColor(0.01,0.5) },
+		"*scrollbar button" = { backgroundColor = UIColor(0.8,0.3) },
 		"autolayout button" = { height = 36, anchorMode = UI_Anchor_Hor },
 		"autolayout button image" = { width = 36, anchorMode = UI_Anchor_Vert },
 		// main menu
@@ -241,9 +248,7 @@ function sgs_ui_example_menu()
 		".screen-panel .level-list" = { q0x = 0.05, q0y = 0.15, q1x = 0.45, q1y = 0.8 },
 		".screen-panel .level-list scrollable" = { backgroundColor = UIColor(0.1,0.2,0.3,0.1) },
 		".screen-panel .level-list .level-entry" = { height = 48, anchorMode = UI_Anchor_Hor },
-		".screen-panel .level-list .level-entry:hover" = { backgroundColor = UIColor(0.4,0.02,0.01,0.3) },
 		".screen-panel .level-list .level-entry.active" = { backgroundColor = UIColor(0.1,0.2,0.4,0.6) },
-		".screen-panel .level-list .level-entry.active:hover" = { backgroundColor = UIColor(0.5,0.12,0.11,0.6) },
 		".screen-panel .level-list .level-entry static" = { anchorMode = UI_Anchor_All, backgroundColor = UIColor(0), textColor = UIColor(0.8,1), fontSize = 14 },
 		".screen-panel .level-list .level-entry image" = { width = 64, anchorMode = UI_Anchor_Vert },
 		// - level score
@@ -253,9 +258,10 @@ function sgs_ui_example_menu()
 		".screen-panel .level-score .score-item .value" = { q0x = 0.5, q0y = 0, q1x = 1, q1y = 1, backgroundColor = UIColor(0), textColor = UIColor(1) },
 		// - options
 		".options-submenu" = { q0x = 0.03, q0y = 0.15, q1x = 0.23, q1y = 0.8, overflow = true },
-		".opt-pg" = { q0x = 0.3, q0y = 0.15, q1x = 0.9, q1y = 0.8 },
+		".opt-sub-btn.active" = { backgroundColor = UIColor(0.5,0.02,0.01,0.4) },
+		".opt-pg" = { q0x = 0.3, q0y = 0.15, q1x = 0.9, q1y = 0.8, visible = false },
 		".opt-pg scrollable" = { backgroundColor = UIColor(0) },
-		".opt-pg .label" = { backgroundColor = UIColor(1,0.5), height = 36, renderfunc = DrawStaticControl, padding = 8, nonClientBottom = 4 },
+		".opt-pg .label" = { backgroundColor = UIColor(0.4,0.3), textColor = UIColor(0.95,1), height = 36, renderfunc = DrawStaticControl, padding = 8, nonClientBottom = 4 },
 		".opt-pg .value" = { height = 36, nonClientBottom = 4 },
 		// loading screen
 		".load-screen-frame" = { anchorMode = UI_Anchor_All, backgroundColor = UIColor(0), visible = false },
@@ -301,7 +307,7 @@ function sgs_ui_example_menu()
 	{
 		ctrl = UI_CreateButton( parent, null, null, null, null, "" ).addClass("level-entry");
 		UI_CreateStatic( ctrl, null, null, null, null, @params.caption, DT_LEFT | DT_VCENTER ).addClass("le-name");
-		UI_CreateImage( ctrl, null, null, null, null, @params.image, UI_ImageScale_Crop ).addClass("le-image");
+		UI_CreateImage( ctrl, @params.image, UI_ImageScale_Crop ).addClass("le-image");
 		UI_ConfigControl( ctrl, params );
 		ctrl.bindEvent( "click", function( e )
 		{
@@ -369,12 +375,15 @@ function sgs_ui_example_menu()
 			{ type = "imagebutton", class = "btn-back act-close-options act-menu-grow", caption = "Back", image = "icons/resultset_previous.png" },
 			{ type = "autolayout", class = "options-submenu", children =
 			[
-				{ type = "imagebutton", name = "game", caption = "Game", image = "icons/lightning.png", class = "" },
-				{ type = "imagebutton", name = "graphics", caption = "Graphics", image = "icons/monitor.png", class = "" },
-				{ type = "imagebutton", name = "audio", caption = "Audio", image = "icons/music.png", class = "" },
-				{ type = "imagebutton", name = "controls", caption = "Controls", image = "icons/joystick.png", class = "" },
+				{ type = "imagebutton", name = "game", caption = "Game", image = "icons/lightning.png", class = "opt-sub-btn active" },
+				{ type = "imagebutton", name = "graphics", caption = "Graphics", image = "icons/monitor.png", class = "opt-sub-btn" },
+				{ type = "imagebutton", name = "audio", caption = "Audio", image = "icons/music.png", class = "opt-sub-btn" },
+				{ type = "imagebutton", name = "controls", caption = "Controls", image = "icons/joystick.png", class = "opt-sub-btn" },
 			]},
-			{ type = "propertygrid", class = "opt-pg options-game" },
+			{ type = "propertygrid", class = "opt-pg options-game", visible = true, },
+			{ type = "propertygrid", class = "opt-pg options-graphics" },
+			{ type = "propertygrid", class = "opt-pg options-audio" },
+			{ type = "propertygrid", class = "opt-pg options-controls" },
 		]},
 		{ type = "static", class = "load-screen-frame", children =
 		[
@@ -449,6 +458,13 @@ function sgs_ui_example_menu()
 	}
 	FRAME.find( ".act-open-options" ).bindEvent( "click", options_screen_enter );
 	FRAME.find( ".act-close-options" ).bindEvent( "click", options_screen_exit );
+	FRAME.find( ".opt-sub-btn" ).bindEvent( "click", function()
+	{
+		FRAME.find( ".opt-pg" ).hide();
+		FRAME.find( ".opt-pg.options-"$this.name ).show();
+		FRAME.find( ".opt-sub-btn" ).removeClass( "active" );
+		this.addClass( "active" );
+	});
 	
 	FRAME.find( ".act-ask-quit" ).bindEvent( "click", function() use( CreateYesNoQuestionWindow ){
 		CreateYesNoQuestionWindow( "Do you really want to quit?",
@@ -499,10 +515,66 @@ function sgs_ui_example_menu()
 	};
 	options_game_spec =
 	{
-		show_blood = { label = "Show blood" },
-		show_subtitles = { label = "Show subtitles" },
+		show_blood = { label = "Show blood", type = "switchbutton", options = map( false, "No", true, "Yes" ) },
+		show_subtitles = { label = "Show subtitles", type = "switchbutton", options = map( false, "No", true, "Yes" ) },
 	};
 	FRAME.find( ".options-game" )[0].setData( options_game, options_game_spec );
+	
+	options_graphics =
+	{
+		resolution = "1024x576",
+		aspect_ratio = "16:9",
+		refresh_rate = 60,
+		antialiasing = false,
+		brightness = 1.0,
+		vsync = false,
+		shadows = true,
+		texture_lod = 2,
+		model_lod = 2,
+	};
+	options_graphics_spec =
+	{
+		resolution = { label = "Resolution", type = "switchbutton", options = { "1024x576" = null, "1280x720" = null, "1680x1020" = null }, sidebuttons = true },
+		aspect_ratio = { label = "Aspect Ratio", type = "switchbutton", options = { "16:9" = "Wide (16:9)", "16:10" = "Wide (16:10)", "4:3" = "Normal (4:3)", "5:4" = "Normal (5:4)" }, sidebuttons = true },
+		refresh_rate = { label = "Screen Refresh Rate", type = "switchbutton", options = map( 60, "60Hz", 75, "75Hz" ), },
+		antialiasing = { label = "Anti-aliasing", type = "switchbutton", options = map( false, "None", 2, "2x", 4, "4x", 8, "8x", "FXAA", "FXAA" ), },
+		brightness = { label = "Brightness", type = "slider", min = 0.2, max = 5 },
+		vsync = { label = "Sync Every Frame", type = "switchbutton", options = map( false, "No", true, "Yes" ) },
+		shadows = { label = "Shadows", type = "switchbutton", options = map( false, "No", true, "Yes" ) },
+		texture_lod = { label = "Texture Detail", type = "switchbutton", options = map( 0, "Very low", 1, "Low", 2, "Medium", 3, "High", 4, "Very high" ), sidebuttons = true },
+		model_lod = { label = "Model Detail", type = "switchbutton", options = map( 0, "Very low", 1, "Low", 2, "Medium", 3, "High", 4, "Very high" ), sidebuttons = true },
+	};
+	FRAME.find( ".options-graphics" )[0].setData( options_graphics, options_graphics_spec );
+	
+	options_audio =
+	{
+		master_volume = 0.7,
+		fx_volume = 0.9,
+		music_volume = 1.0,
+		voice_volume = 0.8,
+	};
+	options_audio_spec =
+	{
+		master_volume = { label = "Master Volume", type = "slider", min = 0.0, max = 1.0 },
+		fx_volume = { label = "Effect Volume", type = "slider", min = 0.0, max = 1.0 },
+		music_volume = { label = "Music Volume", type = "slider", min = 0.0, max = 1.0 },
+		voice_volume = { label = "Voice Volume", type = "slider", min = 0.0, max = 1.0 },
+	};
+	FRAME.find( ".options-audio" )[0].setData( options_audio, options_audio_spec );
+	
+	options_controls =
+	{
+		invert_mouse = false,
+		mouse_sensitivity = 1.3,
+		keyboard_mapping = function(){ println("TODO"); },
+	};
+	options_controls_spec =
+	{
+		invert_mouse = { label = "Invert Mouse Y", type = "switchbutton", options = map( false, "No", true, "Yes" ) },
+		mouse_sensitivity = { label = "Mouse Sensitivity", type = "slider", min = 0.1, max = 10.0 },
+		keyboard_mapping = { label = "Change Keyboard Mapping", type = "button" },
+	};
+	FRAME.find( ".options-controls" )[0].setData( options_controls, options_controls_spec );
 }
 
 

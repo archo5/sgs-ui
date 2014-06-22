@@ -148,6 +148,11 @@ global SS_UI_Theme_Default =
 					SS_DrawColorCircle( cx, cy, radius - p2, null, 0.1, 0.2, 0.4, 1 );
 			}
 		},
+		"switchbutton button" = { height = 0 },
+		"switchbutton .main-button" = { anchorMode = UI_Anchor_All, width = 0 },
+		"switchbutton .side-button.prev" = { anchorMode = UI_Anchor_Vert | UI_Anchor_Left, x = 0, width = 24 },
+		"switchbutton .side-button.next" = { anchorMode = UI_Anchor_Vert | UI_Anchor_Right, x = -24, width = 24 },
+		"switchbutton.has-side-buttons .main-button" = { x = 24, width = -48 },
 		"scrollbar" =
 		{
 			padding = 1,

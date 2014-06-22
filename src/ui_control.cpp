@@ -1499,8 +1499,6 @@ bool UIControl::addChild( UIControl::Handle ch )
 	e.type = EV_Attach;
 	ch->niEvent( &e, true );
 	
-	puts(ch->classes.c_str());
-	
 	return true;
 }
 
@@ -2696,6 +2694,13 @@ UIQuery::Handle UIQuery::skip( bool nofinish )
 {
 	for( size_t i = 0; i < m_items.size(); ++i )
 		m_items[ i ]->skip( nofinish );
+	return Handle( this );
+}
+
+UIQuery::Handle UIQuery::setVisible( bool visible )
+{
+	for( size_t i = 0; i < m_items.size(); ++i )
+		m_items[ i ]->set_visible( visible );
 	return Handle( this );
 }
 

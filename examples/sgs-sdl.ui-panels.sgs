@@ -28,7 +28,7 @@ function UI_CreateAutoLayout( parent, x, y, width, height )
 			ch._updatingLayout = true;
 			chwidth = max( ch.rx1 - ch.rx0, ch.minWidth );
 			chheight = max( ch.height, ch.minHeight );
-			if( x > 0 && x + chwidth > maxwidth )
+			if( x > 0 && x + chwidth - toint(AutoLayout._roundedCoords || ch._roundedCoords) > maxwidth ) /* compensate for rounding errors with offset=1 */
 			{
 				y += mostheight_line;
 				mostwidth_total = max( mostwidth_total, x );
@@ -101,10 +101,8 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 	pad = Scrollable.data.padding;
 	ssize = Scrollable.data.scroll_size;
 	
-	scrV = UI_CreateVScroll( Scrollable, pad, -pad, ssize, pad * 2 );
-	scrH = UI_CreateHScroll( Scrollable, -pad, pad, pad * 2, ssize );
-	scrV.nonclient = true; scrV.visible = false; scrV.q0x = 1; scrV.q1x = 1; scrV.q1y = 1;
-	scrH.nonclient = true; scrH.visible = false; scrH.q0y = 1; scrH.q1y = 1; scrH.q1x = 1;
+	scrV = UI_CreateVScroll( Scrollable )[]{ x = pad, y = -pad, width = ssize, height = pad * 2, nonclient = true, visible = false, q0x = 1, q1x = 1, q1y = 1 };
+	scrH = UI_CreateHScroll( Scrollable )[]{ x = -pad, y = pad, width = pad * 2, height = ssize, nonclient = true, visible = false, q0y = 1, q1y = 1, q1x = 1 };
 	
 	Scrollable_data = Scrollable.data;
 	function Scrollable_data.recalc( Scrollable ) use( scrV, scrH )

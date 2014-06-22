@@ -144,7 +144,7 @@ function UI_PropertyGrid._create_slider( name, value, option )
 	this._createDefaultLabel( name, option );
 	
 	data = this.data;
-	ctrl = UI_CreateSlider( data.OpCont, null, null, null, null, name, @option.min, @option.max, @option.stopsize ).addClass( "value" );
+	ctrl = UI_CreateSlider( data.OpCont, name, @option.min, @option.max, @option.stopsize ).addClass( "value" );
 	ctrl.setValue( value );
 	return ctrl;
 }
@@ -154,7 +154,16 @@ function UI_PropertyGrid._create_textbox( name, value, option )
 	this._createDefaultLabel( name, option );
 	
 	data = this.data;
-	ctrl = UI_CreateTextbox( data.OpCont, null, null, null, name, @option.textbox_caption, value ).addClass( "value" );
+	ctrl = UI_CreateTextbox( data.OpCont, name, @option.textbox_caption, value ).addClass( "value" );
+	return ctrl;
+}
+
+function UI_PropertyGrid._create_switchbutton( name, value, option )
+{
+	this._createDefaultLabel( name, option );
+	
+	data = this.data;
+	ctrl = UI_CreateSwitchButton( data.OpCont, name, @option.options, @option.sidebuttons, value ).addClass( "value" );
 	return ctrl;
 }
 

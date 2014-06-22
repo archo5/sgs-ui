@@ -611,6 +611,7 @@ struct UIControl
 	void _classUpdated(){ frame->_updateStyles( this ); }
 	SGS_METHOD UIControl::Handle addClass( const sgsString& ss ){ addClass( ss.c_str(), ss.size() ); return Handle( this ); }
 	SGS_METHOD UIControl::Handle removeClass( const sgsString& ss ){ removeClass( ss.c_str(), ss.size() ); return Handle( this ); }
+	SGS_METHOD UIControl::Handle addRemClass( const sgsString& ss, bool add ){ if( add ) return addClass( ss ); else return removeClass( ss ); }
 	SGS_METHOD UIControl::Handle hasClass( const sgsString& ss ){ hasClass( ss.c_str(), ss.size() ); return Handle( this ); }
 	void _setClasses3( const char* str1, size_t size1, const char* str2, size_t size2, const char* str3, size_t size3 );
 	bool addClass( const char* str, size_t size );
@@ -828,6 +829,11 @@ struct UIQuery
 	SGS_METHOD UIQuery::Handle stop( bool nofinish );
 	SGS_METHOD UIQuery::Handle dequeue();
 	SGS_METHOD UIQuery::Handle skip( bool nofinish );
+	
+	// shortcuts
+	SGS_METHOD UIQuery::Handle setVisible( bool visible );
+	SGS_METHOD UIQuery::Handle show(){ return setVisible( true ); }
+	SGS_METHOD UIQuery::Handle hide(){ return setVisible( false ); }
 	
 	SGS_PROPERTY READ UIFrame::Handle m_frame;
 	StyleSelArray m_selectors;
