@@ -181,8 +181,6 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 function UI_CreateMenuPanel( parent, items )
 {
 	MenuPanel = parent.frame.createControl( "menupanel" );
-	MenuPanel.q1x = 1;
-	MenuPanel.q1y = 1;
 	
 	items = clone( items );
 	foreach( item : items )
@@ -208,10 +206,10 @@ function UI_CreateMenuPanel( parent, items )
 		menu_open_for = null,
 	};
 	
-	function mpdata.recalcItemWidths()
+	function mpdata.recalcItemWidths( MenuPanel )
 	{
 		foreach( item : this.items )
-			item.width = Font.getTextLength( item.text ) + this.side_padding * 2;
+			item.width = MenuPanel._cachedFont.getTextLength( item.text ) + this.side_padding * 2;
 	}
 	
 	function mpdata.recalcItemPositions( MenuPanel )
@@ -254,7 +252,7 @@ function UI_CreateMenuPanel( parent, items )
 		}
 	}
 	
-	mpdata.recalcItemWidths();
+	mpdata.recalcItemWidths( MenuPanel );
 	mpdata.recalcItemPositions( MenuPanel );
 	
 	ocb = MenuPanel.callback;
@@ -309,38 +307,8 @@ function UI_CreateMenuPanel( parent, items )
 		return this!ocb( event );
 	}
 	
-	function MenuPanel.renderfunc()
-	{
-		data = this.data;
-		iht = data.item_height;
-		
-		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.cy0, 0.9, 0.9, 0.9, 1 );
-		
-		foreach( i, item : data.items )
-		{
-			disabled = @item.disabled;
-			
-			if( data.selected === i )
-			{
-				if( disabled )
-				{
-					SS_DrawColorRect( item.x, item.y, item.x + item.width, item.y + iht, 0.5, 0.5, 0.5, 1 );
-					SS_DrawColorRect( item.x+1, item.y+1, item.x + item.width-1, item.y + iht-1, 0.8, 0.8, 0.8, 1 );
-				}
-				else
-				{
-					SS_DrawColorRect( item.x, item.y, item.x + item.width, item.y + iht, 0.4, 0.5, 0.6, 1 );
-					SS_DrawColorRect( item.x+1, item.y+1, item.x + item.width-1, item.y + iht-1, 0.7, 0.8, 0.9, 1 );
-				}
-			}
-			
-			col = if( disabled, [0.5,0.5,0.5,1], [0.1,0.1,0.1,1] );
-			SS_DrawTextLine_VC( item.text, Font, item.x + data.side_padding, item.y + iht / 2, col );
-		}
-	}
-	
+	MenuPanel.updateTheme();
 	parent.addChild( MenuPanel );
-	
 	return MenuPanel;
 }
 

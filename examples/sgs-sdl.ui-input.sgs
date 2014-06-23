@@ -9,10 +9,6 @@ function UI_CreateForm( parent )
 {
 	Form = parent.frame.createControl( "form" );
 	Form.data = { ctrls = map() };
-	Form.q0x = 0;
-	Form.q0y = 0;
-	Form.q1x = 1;
-	Form.q1y = 1;
 	
 	Form._interface = UI_Form;
 	
@@ -359,7 +355,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 		this.show_cursor = true;
 	}
 	
-	function tbdata.updateSelOffsets()
+	function tbdata.updateSelOffsets( Textbox )
 	{
 		this.sel_from = max( 0, min( this.sel_from, this.chars.size ) );
 		this.sel_to = max( 0, min( this.sel_to, this.chars.size ) );
@@ -370,7 +366,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 		for( i = 0; i < this.sel_from; ++i )
 		{
 			ch = this.chars[ i ];
-			this.fsel_from += Font.getAdvance( pc, ch );
+			this.fsel_from += Textbox._cachedFont.getAdvance( pc, ch );
 			pc = ch;
 		}
 		
@@ -378,7 +374,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 		for( i = 0; i < this.sel_to; ++i )
 		{
 			ch = this.chars[ i ];
-			this.fsel_to += Font.getAdvance( pc, ch );
+			this.fsel_to += Textbox._cachedFont.getAdvance( pc, ch );
 			pc = ch;
 		}
 	}
@@ -400,7 +396,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 		for( i = 0; i < this.chars.size; ++i )
 		{
 			ch = this.chars[ i ];
-			fmax += Font.getAdvance( pc, ch );
+			fmax += ctrl._cachedFont.getAdvance( pc, ch );
 			if( x <= (fmin+fmax)*0.5 )
 				break;
 			fmin = fmax;
@@ -409,7 +405,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 		return i;
 	}
 	
-	tbdata.updateSelOffsets();
+	tbdata.updateSelOffsets( Textbox );
 	
 	ocb = Textbox.callback;
 	function Textbox.callback( event ) use( ocb )
@@ -470,7 +466,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 					data.sel_from = from;
 					data.sel_to = from;
 				}
-				data.updateSelOffsets();
+				data.updateSelOffsets( this );
 				data.resetCursorTimer( this.frame );
 			}
 		}
@@ -480,7 +476,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 			{
 				data.selecting = true;
 				data.sel_to = data.sel_from = data.findOffset( this, event.x, event.y );
-				data.updateSelOffsets();
+				data.updateSelOffsets( this );
 				data.resetCursorTimer( this.frame );
 			}
 		}
@@ -489,7 +485,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 			if( event.button == Mouse_ButtonL && data.selecting )
 			{
 				data.sel_to = data.findOffset( this, event.x, event.y );
-				data.updateSelOffsets();
+				data.updateSelOffsets( this );
 				data.resetCursorTimer( this.frame );
 			}
 		}
@@ -515,7 +511,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 						data.sel_to = if( key == Key_Left, min( data.sel_from, data.sel_to ), max( data.sel_from, data.sel_to ) );
 					if( !( mods & KeyMod_Shift ) )
 						data.sel_from = data.sel_to;
-					data.updateSelOffsets();
+					data.updateSelOffsets( this );
 					data.resetCursorTimer( this.frame );
 				}
 				else if( key == Key_DelLeft || key == Key_DelRight )
@@ -545,7 +541,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 					}
 					data.updateText();
 					this.callEvent( "change", event );
-					data.updateSelOffsets();
+					data.updateSelOffsets( this );
 					data.resetCursorTimer( this.frame );
 				}
 				else if( key == Key_Cut || key == Key_Copy )
@@ -568,7 +564,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 						}
 						data.updateText();
 						this.callEvent( "change", event );
-						data.updateSelOffsets();
+						data.updateSelOffsets( this );
 						data.resetCursorTimer( this.frame );
 					}
 				}
@@ -597,7 +593,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 						data.sel_from = data.sel_to = at + utext.size;
 						data.updateText();
 						this.callEvent( "change", event );
-						data.updateSelOffsets();
+						data.updateSelOffsets( this );
 						data.resetCursorTimer( this.frame );
 					}
 				}
@@ -605,7 +601,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 				{
 					data.sel_from = 0;
 					data.sel_to = data.chars.size;
-					data.updateSelOffsets();
+					data.updateSelOffsets( this );
 					data.resetCursorTimer( this.frame );
 				}
 			}
@@ -630,16 +626,16 @@ function UI_CreateTextbox( parent, name, caption, text )
 		x0 = this.rx0 + cpad - data.offset;
 		y0 = this.ry0 + cpad;
 		yc = ( this.ry0 + this.ry1 ) * 0.5;
-		xh = ( H-pad*2-tpad*2 - Font.size ) * 0.5;
+		xh = ( H-pad*2-tpad*2 - this._cachedFont.size ) * 0.5;
 		
 		if( this.frame.pushScissorRect( this.rx0 + cpad, this.ry0 + cpad, this.rx1 - cpad, this.ry1 - cpad ) )
 		{
 			if( !data.chars && !this.keyboardFocus )
 			{
-				SS_DrawTextLine_VC( data.caption, Font, x0 + xh, yc, color(0.1,0.1,0.1,0.5) );
+				SS_DrawTextLine_VC( data.caption, this._cachedFont, x0 + xh, yc, color(0.1,0.1,0.1,0.5) );
 			}
 			
-			SS_DrawTextLine_VC( data.text, Font, x0, yc, color(0.1,0.1,0.1,1) );
+			SS_DrawTextLine_VC( data.text, this._cachedFont, x0, yc, color(0.1,0.1,0.1,1) );
 			
 			if( data.sel_to !== null )
 			{
@@ -751,14 +747,14 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
 		BP = this.padding + this.border;
 		if( !this.vertical )
 		{
-			pmin = Slider.rx0 + this.mhs_x + BP;
-			pmax = Slider.rx1 - this.mhs_x - BP;
+			pmin = Slider.cx0 + this.mhs_x + BP;
+			pmax = Slider.cx1 - this.mhs_x - BP;
 			q = ( dx + this.dragoff_x - pmin ) / if( pmax > pmin + 0.0001, pmax - pmin, 0.0001 );
 		}
 		else
 		{
-			pmin = Slider.ry0 + this.mhs_y + BP;
-			pmax = Slider.ry1 - this.mhs_y - BP;
+			pmin = Slider.cy0 + this.mhs_y + BP;
+			pmax = Slider.cy1 - this.mhs_y - BP;
 			q = ( dy + this.dragoff_y - pmin ) / if( pmax > pmin + 0.0001, pmax - pmin, 0.0001 );
 		}
 		q = if( q < 0, 0, if( q > 1, 1, q ) );
@@ -770,15 +766,15 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
 		BP = this.padding + this.border;
 		if( !this.vertical )
 		{
-			pmin = Slider.rx0 + this.mhs_x + BP;
-			pmax = Slider.rx1 - this.mhs_x - BP;
-			return (pmin*(1-pos) + pmax*pos), floor((Slider.ry0+Slider.ry1)*0.5);
+			pmin = Slider.cx0 + this.mhs_x + BP;
+			pmax = Slider.cx1 - this.mhs_x - BP;
+			return (pmin*(1-pos) + pmax*pos), floor((Slider.cy0+Slider.cy1)*0.5);
 		}
 		else
 		{
-			pmin = Slider.ry0 + this.mhs_y + BP;
-			pmax = Slider.ry1 - this.mhs_y - BP;
-			return floor((Slider.rx0+Slider.rx1)*0.5), (pmin*(1-pos) + pmax*pos);
+			pmin = Slider.cy0 + this.mhs_y + BP;
+			pmax = Slider.cy1 - this.mhs_y - BP;
+			return floor((Slider.cx0+Slider.cx1)*0.5), (pmin*(1-pos) + pmax*pos);
 		}
 	}
 	function Slider_data.startDragging( Slider, cx, cy )
@@ -846,10 +842,10 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
 		data = this.data;
 		OFSX = data.border + data.padding + data.mhs_x - 3;
 		OFSY = data.border + data.padding + data.mhs_y - 3;
-		P1X = this.rx0 + OFSX;
-		P1Y = this.ry0 + OFSY;
-		P2X = this.rx1 - OFSX;
-		P2Y = this.ry1 - OFSY;
+		P1X = this.cx0 + OFSX;
+		P1Y = this.cy0 + OFSY;
+		P2X = this.cx1 - OFSX;
+		P2Y = this.cy1 - OFSY;
 		if( !data.vertical )
 		{
 			mp = round( ( P1Y + P2Y ) * 0.5 );
@@ -874,8 +870,8 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
 			if( !data.vertical )
 			{
 				BPS = data.border + data.padding + data.mhs_x;
-				SRS = this.rx0 + BPS;
-				SRE = this.rx1 - BPS;
+				SRS = this.cx0 + BPS;
+				SRE = this.cx1 - BPS;
 				scaled_stopsize = data.stopsize / vdist;
 				if( NS * 2 < SRE - SRS )
 				{
@@ -891,8 +887,8 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
 			else
 			{
 				BPS = data.border + data.padding + data.mhs_y;
-				SRS = this.ry0 + BPS;
-				SRE = this.ry1 - BPS;
+				SRS = this.cy0 + BPS;
+				SRE = this.cy1 - BPS;
 				scaled_stopsize = data.stopsize / vdist;
 				if( NS * 2 < SRE - SRS )
 				{
@@ -1179,7 +1175,7 @@ function UI_CreateSelectBox( parent, name, items )
 			fullwidth = 0;
 			if( text )
 			{
-				textlen = Font.getTextLength( text );
+				textlen = this._cachedFont.getTextLength( text );
 				fullwidth += textlen;
 			}
 			
@@ -1191,7 +1187,7 @@ function UI_CreateSelectBox( parent, name, items )
 			
 			if( text )
 			{
-				SS_DrawTextLine_VC( text, Font, this.rx0 + 4, cy, color(0,1) );
+				SS_DrawTextLine_VC( text, this._cachedFont, this.rx0 + 4, cy, color(0,1) );
 			}
 			
 			this.frame.popScissorRect();

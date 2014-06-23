@@ -45,68 +45,27 @@ function UI_Controls.scrollingautolayout( parent, params )
 
 global UI_ListBoxMenu = {};
 
-function UI_ListBoxMenu._optionRenderFunc()
-{
-	if( this.rx0 >= this.rx1 || this.ry0 >= this.ry1 )
-		return;
-	
-	data = this.data;
-	icon = @data.icon;
-	text = this.caption;
-	
-	caddt = if( this.clicked, 0.02, if( this.mouseOn, -0.05, 0.0 ) );
-	caddb = if( this.clicked, 0.09, if( this.mouseOn, 0.05, 0.0 ) );
-	SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.4-caddt, 0.6-caddt, 0.8-caddt, 1, 0.4+caddb, 0.5+caddb, 0.6+caddb, 1 );
-//		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
-//		SS_DrawColorRect( this.rx0+1, this.ry0+1, this.rx1-1, this.ry1-1, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
-	
-	if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
-	{
-		cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
-		if( icon )
-		{
-			SS_Draw({ preset = "box", position = vec2( this.rx1 - round( 4 + icon.width / 2 ), cy ), scale = vec2( icon.width, icon.height ), texture = icon });
-		}
-		
-		if( text )
-		{
-			SS_DrawTextLine_VC( text, Font, this.rx0 + 4, cy, color(1,1,1,1) );
-		}
-		
-		this.frame.popScissorRect();
-	}
-}
-
 function UI_ListBoxMenu.addOption( option )
 {
 	data = this.data;
 	data.options.push( option );
 	
-	ListBoxItem = UI_CreateButton( data.OpCont, 0, 0, 0, 24, option.text, @option.icon );
-	ListBoxItem.q1x = 1;
-	ListBoxItem.renderfunc = UI_ListBoxMenu._optionRenderFunc;
+	return UI_CreateButton( data.OpCont, null, null, null, null, option.text, @option.icon );
 }
 
-function UI_CreateListBoxMenu( parent, x, y, width, height )
+function UI_CreateListBoxMenu( parent )
 {
 	ListBoxMenu = parent.frame.createControl( "listboxmenu" );
-	ListBoxMenu.x = x;
-	ListBoxMenu.y = y;
-	ListBoxMenu.width = width;
-	ListBoxMenu.height = height;
 	ListBoxMenu._interface = UI_ListBoxMenu;
 	ListBoxMenu.data =
 	{
 		options = [],
 	};
 	
-	Scrollable = UI_CreateScrollable( ListBoxMenu, 0, 0, 0, 0, "auto", false );
-	Scrollable.q1x = 1;
-	Scrollable.q1y = 1;
+	Scrollable = UI_CreateScrollable( ListBoxMenu, null, null, null, null, "auto", false );
 	ListBoxMenu.data.Scrollable = Scrollable;
 	
 	AutoLayout = UI_CreateAutoLayout( Scrollable, 0, 0, 100 );
-	AutoLayout.q1x = 1;
 	ListBoxMenu.data.AutoLayout = AutoLayout;
 	ListBoxMenu.data.OpCont = AutoLayout;
 	
@@ -299,30 +258,18 @@ function UI_Controls.propertygrid( parent, params )
 
 global UI_Window = {};
 
-function UI_Window.close()
+function UI_Window.adjustSize()
 {
-	this.parent.removeChild( this );
+	this.x -= this.nonClientLeft;
+	this.y -= this.nonClientTop;
+	this.width += this.nonClientLeft + this.nonClientRight;
+	this.height += this.nonClientTop + this.nonClientBottom;
+	return this;
 }
 
-function UI_CreateWindow( parent, x, y, width, height, caption, adjust )
+function UI_CreateWindow( parent )
 {
-	if( adjust )
-	{
-		x -= 4;
-		y -= 24;
-		width += 8;
-		height += 28;
-	}
 	Window = parent.frame.createControl( "window" );
-	Window.x = x;
-	Window.y = y;
-	Window.width = width;
-	Window.height = height;
-	Window.nonClientTop = 24;
-	Window.nonClientBottom = 4;
-	Window.nonClientLeft = 4;
-	Window.nonClientRight = 4;
-	Window.caption = caption;
 	Window.data =
 	{
 		dragging = null,
@@ -377,10 +324,9 @@ function UI_CreateWindow( parent, x, y, width, height, caption, adjust )
 	}
 	
 	CloseBtn = UI_CreateButton( Window, -20, -22, 20, 18, "", "icons/cross.png" );
+	CloseBtn.addClass( "close-button" );
 	CloseBtn.nonclient = true;
-	CloseBtn.q0x = 1;
-	CloseBtn.q1x = 1;
-	CloseBtn.bindEvent( "click", function(){ this.parent.close(); } );
+	CloseBtn.bindEvent( "click", function(){ this.parent.destroy(true); } );
 	Window.data.CloseBtn = CloseBtn;
 	
 	ocb = Window.callback;
@@ -429,18 +375,8 @@ function UI_CreateWindow( parent, x, y, width, height, caption, adjust )
 		return this!ocb( event );
 	}
 	
-	function Window.renderfunc()
-	{
-		SS_DrawColorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 + 2, this.ry1 + 2, 0.0, 0.0, 0.0, 0.2 );
-		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.4, 0.6, 0.8, 1 );
-		SS_DrawColorRect( this.rx0 + 1, this.ry0 + 1, this.rx1 - 1, this.ry1 - 1, 0.3, 0.5, 0.7, 1 );
-		SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, 0.4, 0.6, 0.8, 1 );
-		
-		SS_DrawTextLine_VC( this.caption, Font, this.rx0 + 4, this.ry0 + 12, color(1) );
-	}
-	
+	Window.updateTheme();
 	parent.addChild( Window );
-	
 	return Window;
 }
 

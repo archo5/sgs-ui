@@ -94,6 +94,7 @@ global SS_UI_Theme_Default =
 				}
 			}
 		},
+		"form" = { anchorMode = UI_Anchor_All },
 		"checkbox" =
 		{
 			minWidth = 16,
@@ -226,9 +227,95 @@ global SS_UI_Theme_Default =
 				SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, c.r, c.g, c.b, c.a );
 			}
 		},
+		"menupanel" =
+		{
+			anchorMode = UI_Anchor_All,
+			renderfunc = function SS_UI_Theme_Default_menupanel_renderfunc()
+			{
+				data = this.data;
+				iht = data.item_height;
+				
+				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.cy0, 0.9, 0.9, 0.9, 1 );
+				
+				foreach( i, item : data.items )
+				{
+					disabled = @item.disabled;
+					
+					if( data.selected === i )
+					{
+						if( disabled )
+						{
+							SS_DrawColorRect( item.x, item.y, item.x + item.width, item.y + iht, 0.5, 0.5, 0.5, 1 );
+							SS_DrawColorRect( item.x+1, item.y+1, item.x + item.width-1, item.y + iht-1, 0.8, 0.8, 0.8, 1 );
+						}
+						else
+						{
+							SS_DrawColorRect( item.x, item.y, item.x + item.width, item.y + iht, 0.4, 0.5, 0.6, 1 );
+							SS_DrawColorRect( item.x+1, item.y+1, item.x + item.width-1, item.y + iht-1, 0.7, 0.8, 0.9, 1 );
+						}
+					}
+					
+					col = if( disabled, [0.5,0.5,0.5,1], [0.1,0.1,0.1,1] );
+					SS_DrawTextLine_VC( item.text, this._cachedFont, item.x + data.side_padding, item.y + iht / 2, col );
+				}
+			}
+		},
+		"listboxmenu scrollable" = { anchorMode = UI_Anchor_All },
+		"listboxmenu autolayout" = { anchorMode = UI_Anchor_Hor },
+		"listboxmenu autolayout button" =
+		{
+			height = 24,
+			q1x = 1,
+			renderfunc = function SS_UI_Theme_Default_listboxmenu_button_renderfunc()
+			{
+				if( this.rx0 >= this.rx1 || this.ry0 >= this.ry1 )
+					return;
+				
+				data = this.data;
+				icon = @data.icon;
+				text = this.caption;
+				
+				caddt = if( this.clicked, 0.02, if( this.mouseOn, -0.05, 0.0 ) );
+				caddb = if( this.clicked, 0.09, if( this.mouseOn, 0.05, 0.0 ) );
+				SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.4-caddt, 0.6-caddt, 0.8-caddt, 1, 0.4+caddb, 0.5+caddb, 0.6+caddb, 1 );
+				
+				if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
+				{
+					cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
+					if( icon )
+					{
+						SS_Draw({ preset = "box", position = vec2( this.rx1 - round( 4 + icon.width / 2 ), cy ), scale = vec2( icon.width, icon.height ), texture = icon });
+					}
+					
+					if( text )
+					{
+						SS_DrawTextLine_VC( text, this._cachedFont, this.rx0 + 4, cy, color(1,1,1,1) );
+					}
+					
+					this.frame.popScissorRect();
+				}
+			}
+		},
 		"propertygrid .label" = { q1x = 0.5, height = 24, backgroundColor = UIColor(0,0.1) },
 		"propertygrid .value" = { q1x = 0.5, height = 24 },
 		"propertygrid button.value" = { q1x = 1 },
+		"window" =
+		{
+			nonClientTop = 24,
+			nonClientBottom = 4,
+			nonClientLeft = 4,
+			nonClientRight = 4,
+			renderfunc = function SS_UI_Theme_Default_window_renderfunc()
+			{
+				SS_DrawColorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 + 2, this.ry1 + 2, 0.0, 0.0, 0.0, 0.2 );
+				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.4, 0.6, 0.8, 1 );
+				SS_DrawColorRect( this.rx0 + 1, this.ry0 + 1, this.rx1 - 1, this.ry1 - 1, 0.3, 0.5, 0.7, 1 );
+				SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, 0.4, 0.6, 0.8, 1 );
+				
+				SS_DrawTextLine_VC( this.caption, this._cachedFont, this.rx0 + 4, this.ry0 + 12, color(1) );
+			}
+		},
+		"window .close-button" = { anchorMode = UI_Anchor_Right },
 	}),
 	
 	// BUTTON
