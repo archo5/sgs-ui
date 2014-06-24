@@ -911,7 +911,7 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
 		SS_DrawColorRect( x-MX+1, y-MY+1, x+MX-1, y+MY-1, 0.3+mf, 0.5+mf, 0.7+mf, 1 );
 	}
 	
-	parent.updateTheme();
+	Slider.updateTheme();
 	parent.addChild( Slider );
 	return Slider;
 }
@@ -1034,12 +1034,12 @@ function UI_CreateSwitchButton( parent, name, options, sidebuttons, defval )
 		getValue = function SwitchButton_data_getValue(){ return this.value; },
 	};
 	SwitchButton._interface = UI_SwitchButton;
-	SwitchButton.data.btn_main = UI_CreateButton( SwitchButton, null, null, null, null, "" ).addClass( "main-button" ).bindEvent( "click", function(){ this.parent.setNext(); } );
+	SwitchButton.data.btn_main = UI_CreateButton( SwitchButton ).addClass( "main-button" ).bindEvent( "click", function(){ this.parent.setNext(); } );
 	if( sidebuttons )
 	{
 		SwitchButton.addClass( "has-side-buttons" );
-		SwitchButton.data.btn_prev = UI_CreateButton( SwitchButton, null, null, null, null, "<" ).addClass( "side-button prev" ).bindEvent( "click", function(){ this.parent.setPrev(); } );
-		SwitchButton.data.btn_next = UI_CreateButton( SwitchButton, null, null, null, null, ">" ).addClass( "side-button next" ).bindEvent( "click", function(){ this.parent.setNext(); } );
+		SwitchButton.data.btn_prev = UI_CreateButton( SwitchButton, "<" ).addClass( "side-button prev" ).bindEvent( "click", function(){ this.parent.setPrev(); } );
+		SwitchButton.data.btn_next = UI_CreateButton( SwitchButton, ">" ).addClass( "side-button next" ).bindEvent( "click", function(){ this.parent.setNext(); } );
 	}
 	
 	SwitchButton.setOptions( options );

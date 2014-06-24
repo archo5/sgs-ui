@@ -98,6 +98,25 @@ void UIStyle::set_anchorMode( int mode )
 }
 
 
+int UIStyleCache::get_anchorMode()
+{
+	int out = 0;
+	if( q0x == 0 )
+	{
+		if( q1x == 0 ) out |= UI_Anchor_Left;
+		else if( q1x == 1 ) out |= UI_Anchor_Hor;
+	}
+	else if( q0x == 1 && q1x == 1 ) out |= UI_Anchor_Right;
+	if( q0y == 0 )
+	{
+		if( q1y == 0 ) out |= UI_Anchor_Top;
+		else if( q1y == 1 ) out |= UI_Anchor_Vert;
+	}
+	else if( q0y == 1 && q1y == 1 ) out |= UI_Anchor_Bottom;
+	return out;
+}
+
+
 void StyleArr_trimSelector( const char** str, size_t* size )
 {
 	const char* s1 = *str;
@@ -644,10 +663,13 @@ bool UI_TxMatchPart( const char* stfrom, const char* stto, const char* tgt, size
 }
 
 
-
-int UIControl_CtrlProc( SGS_CTX )
+#define _MTOSTR(x) #x
+#define MTOSTR(x) _MTOSTR(x)
+#define UICFPNAME UIControl_CtrlProc
+#define UNCFPNS MTOSTR(UICFPNAME)
+int UICFPNAME( SGS_CTX )
 {
-	SGSFN( "UIControl_CtrlProc" );
+	SGSFN( UNCFPNS );
 	sgs_Method( C );
 	if( !sgs_IsObject( C, 0, UIControl::_sgs_interface ) )
 		return sgs_Msg( C, SGS_WARNING, "expected UIControl as argument 0 / this" );
@@ -662,6 +684,7 @@ int UIControl_CtrlProc( SGS_CTX )
 	switch( event->type )
 	{
 	case EV_Layout:
+		SGSFN( UNCFPNS "/layout" );
 		{
 			float pr0x, pr0y, pr1x, pr1y;
 			UIControl* prt = ctrl->parent;
@@ -705,20 +728,31 @@ int UIControl_CtrlProc( SGS_CTX )
 			ctrl->_changedFullRect();
 		}
 		for( UIControl::HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
-			(*it)->updateLayout();
-		if( ctrl->parent.object )
+			if( (*it)->_parentAffectsLayout )
+				(*it)->updateLayout();
+		if( ctrl->parent.object && ctrl->parent->_childAffectsLayout )
 			ctrl->parent->updateLayout();
 		return 1;
 		
 	case EV_Attach:
 	case EV_Detach:
+		SGSFN( UNCFPNS "/childevent" );
+		ctrl->frame->_updateStyles( ctrl );
+		if( ctrl->_parentAffectsLayout )
+			ctrl->updateLayout();
+		sgs_PushInt( C, 1 );
+		return 1;
+		
 	case EV_AddChild:
 	case EV_RemChild:
-		ctrl->updateLayout();
+		SGSFN( UNCFPNS "/parentevent" );
+		if( ctrl->_childAffectsLayout )
+			ctrl->updateLayout();
 		sgs_PushInt( C, 1 );
 		return 1;
 		
 	case EV_HitTest:
+		SGSFN( UNCFPNS "/hittest" );
 		if( event->x >= ctrl->rx0 && event->x <= ctrl->rx1 &&
 			event->y >= ctrl->ry0 && event->y <= ctrl->ry1 )
 		{
@@ -740,14 +774,17 @@ int UIControl_CtrlProc( SGS_CTX )
 		return 1;
 		
 	case EV_MouseEnter:
+		SGSFN( UNCFPNS "/mouseenter" );
 		ctrl->mouseOn = true;
 		ctrl->frame->_updateStyles( ctrl );
 		return 1;
 	case EV_MouseLeave:
+		SGSFN( UNCFPNS "/mouseleave" );
 		ctrl->mouseOn = false;
 		ctrl->frame->_updateStyles( ctrl );
 		return 1;
 	case EV_ButtonDown:
+		SGSFN( UNCFPNS "/buttondown" );
 		ctrl->clicked += ctrl->mouseOn;
 		ctrl->frame->_updateStyles( ctrl );
 		ctrl->_callEvent( sgsString( C, "mousedown" ), event );
@@ -755,6 +792,7 @@ int UIControl_CtrlProc( SGS_CTX )
 			ctrl->frame->setFocus( ctrl );
 		return 1;
 	case EV_ButtonUp:
+		SGSFN( UNCFPNS "/buttonup" );
 		ctrl->_callEvent( sgsString( C, "mouseup" ), event );
 		if( ctrl->clicked && ctrl->frame.object && ctrl->frame->isControlUnderCursor( UIControl::Handle( ctrl ) ) )
 			ctrl->_callEvent( sgsString( C, "click" ), event );
@@ -1318,7 +1356,8 @@ UIControl::UIControl() :
 	id( UI_NO_ID ), scroll_x(0.0f), scroll_y(0.0f), nonclient(false),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
 	_updatingLayout(false), _roundedCoords(true),
-	mouseOn(false), clicked(0), keyboardFocus(false)
+	_parentAffectsLayout(true), _childAffectsLayout(false),
+	mouseOn(false), keyboardFocus(false), clicked(0)
 {
 	sgs_PushCFunction( C, UIControl_CtrlProc );
 	callback = sgsVariable( C, -1 );
@@ -1490,8 +1529,6 @@ bool UIControl::addChild( UIControl::Handle ch )
 	ch->parent = Handle( C, m_sgsObject );
 	sortChildren();
 	
-	frame->_updateStyles( ch );
-	
 	UIEvent e;
 	e.type = EV_AddChild;
 	niEvent( &e, true );
@@ -1559,16 +1596,24 @@ void UIControl::destroy( bool hard )
 {
 	stop( true );
 	detach();
-	destroyAllChildren( hard );
+	UIControl::HandleArray chs = m_children;
+	removeAllChildren();
+	
 	if( hard )
 	{
-		m_events = sgsVariable();
 		callback = sgsVariable();
+		m_events = sgsVariable();
 		data = sgsVariable();
 		_interface = sgsVariable();
 	}
 	else
 		unbindEverything();
+	
+	while( chs.size() )
+	{
+		chs.back()->destroy( hard );
+		chs.pop_back();
+	}
 }
 
 void UIControl::destroyAllChildren( bool hard )
@@ -1619,37 +1664,6 @@ void UIControl::sortSiblings()
 {
 	if( parent.object )
 		parent->sortChildren();
-}
-
-void UIControl::setAnchorMode( int mode )
-{
-	if( mode & UI_Anchor_Left )
-	{
-		style.q0x.set( 0 );
-		if( mode & UI_Anchor_Right )
-			style.q1x.set( 1 );
-		else
-			style.q1x.set( 0 );
-	}
-	else if( mode & UI_Anchor_Right )
-	{
-		style.q0x.set( 1 );
-		style.q1x.set( 1 );
-	}
-	if( mode & UI_Anchor_Top )
-	{
-		style.q0y.set( 0 );
-		if( mode & UI_Anchor_Bottom )
-			style.q1y.set( 1 );
-		else
-			style.q1y.set( 0 );
-	}
-	else if( mode & UI_Anchor_Bottom )
-	{
-		style.q0y.set( 1 );
-		style.q1y.set( 1 );
-	}
-	_remergeStyle();
 }
 
 void UIControl::setAnchorRect( float x0, float y0, float x1, float y1 )

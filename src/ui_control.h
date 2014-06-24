@@ -299,6 +299,8 @@ struct UIStyleCache /* computed style cache */
 	sgsString   font;
 	float       fontSize;
 	sgsVariable renderfunc;
+	
+	int get_anchorMode();
 };
 
 struct UIStyleSelector
@@ -569,7 +571,9 @@ struct UIControl
 	SGS_METHOD sgsVariable children( bool nonclient );
 	SGS_METHOD void sortChildren();
 	SGS_METHOD void sortSiblings();
-	SGS_METHOD void setAnchorMode( int mode );
+	
+	int get_anchorMode(){ return computedStyle.get_anchorMode(); }
+	void set_anchorMode( int mode ){ style.set_anchorMode( mode ); _remergeStyle(); }
 	SGS_METHOD void setAnchorRect( float x0, float y0, float x1, float y1 );
 	
 	UIControl* _getPrev();
@@ -738,6 +742,7 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ get_paddingH WRITE set_paddingH ) SGS_ALIAS( sgsMaybe<float> paddingH );
 	SGS_PROPERTY_FUNC( READ get_paddingV WRITE set_paddingV ) SGS_ALIAS( sgsMaybe<float> paddingV );
 	SGS_PROPERTY_FUNC( READ get_padding WRITE set_padding ) SGS_ALIAS( sgsMaybe<float> padding );
+	SGS_PROPERTY_FUNC( READ get_anchorMode WRITE set_anchorMode ) SGS_ALIAS( int anchorMode );
 	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_y;
@@ -775,9 +780,11 @@ struct UIControl
 	
 	SGS_PROPERTY bool _updatingLayout : 1; /* true if updating layout and don't want to trigger further layout changes */
 	SGS_PROPERTY bool _roundedCoords : 1; /* true if final coords (r[xy][01]) should be rounded */
-	SGS_PROPERTY READ bool mouseOn;
+	SGS_PROPERTY bool _parentAffectsLayout : 1; /* true if parent has any influence over the layout and should be updated if parent is */
+	SGS_PROPERTY bool _childAffectsLayout : 1; /* true if child has any influence over the layout and should be updated if child is */
+	SGS_PROPERTY READ bool mouseOn : 1;
+	SGS_PROPERTY READ bool keyboardFocus : 1;
 	SGS_PROPERTY READ int clicked;
-	SGS_PROPERTY READ bool keyboardFocus;
 	
 	HandleArray m_children;
 	HandleArray m_sorted;

@@ -260,8 +260,10 @@ global SS_UI_Theme_Default =
 				}
 			}
 		},
+		"scrollingautolayout scrollable" = { anchorMode = UI_Anchor_All },
+		"scrollingautolayout autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
 		"listboxmenu scrollable" = { anchorMode = UI_Anchor_All },
-		"listboxmenu autolayout" = { anchorMode = UI_Anchor_Hor },
+		"listboxmenu autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
 		"listboxmenu autolayout button" =
 		{
 			height = 24,
@@ -296,6 +298,8 @@ global SS_UI_Theme_Default =
 				}
 			}
 		},
+		"propertygrid scrollable" = { anchorMode = UI_Anchor_All },
+		"propertygrid autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
 		"propertygrid .label" = { q1x = 0.5, height = 24, backgroundColor = UIColor(0,0.1) },
 		"propertygrid .value" = { q1x = 0.5, height = 24 },
 		"propertygrid button.value" = { q1x = 1 },
@@ -315,7 +319,7 @@ global SS_UI_Theme_Default =
 				SS_DrawTextLine_VC( this.caption, this._cachedFont, this.rx0 + 4, this.ry0 + 12, color(1) );
 			}
 		},
-		"window .close-button" = { anchorMode = UI_Anchor_Right },
+		"window .close-button" = { anchorMode = UI_Anchor_Right, x = -20, y = -22, width = 20, height = 18 },
 	}),
 	
 	// BUTTON

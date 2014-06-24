@@ -1,18 +1,13 @@
 
 global UI_Static = {};
 
-function UI_CreateStatic( parent, x, y, width, height, caption, textmode )
+function UI_CreateStatic( parent, textmode )
 {
 	Static = parent.frame.createControl( "static" );
 	Static.data =
 	{
 		textmode = textmode || DT_CENTER | DT_VCENTER,
 	};
-	Static.x = x;
-	Static.y = y;
-	Static.width = width;
-	Static.height = height;
-	Static.caption = caption;
 	Static._interface = UI_Static;
 	
 	Static.updateTheme();
@@ -23,7 +18,7 @@ function UI_CreateStatic( parent, x, y, width, height, caption, textmode )
 UI_Controls.static_params = ["textmode"];
 function UI_Controls.static( parent, params )
 {
-	ctrl = UI_CreateStatic( parent, null, null, null, null, null, @params.textmode );
+	ctrl = UI_CreateStatic( parent, @params.textmode );
 	UI_ConfigControl( ctrl, params );
 }
 
@@ -61,16 +56,12 @@ function UI_Controls.image( parent, params )
 }
 
 
-function UI_CreateButton( parent, x, y, width, height, caption, icon )
+function UI_CreateButton( parent, caption, icon )
 {
 	Button = parent.frame.createControl( "button" );
 	if( typeof(icon) == "string" )
 		icon = SS_CreateTexture( icon );
 	Button.data = { icon = icon };
-	Button.x = x;
-	Button.y = y;
-	Button.width = width;
-	Button.height = height;
 	Button.caption = caption;
 	
 	orig_callback = Button.callback;
@@ -97,7 +88,7 @@ function UI_CreateButton( parent, x, y, width, height, caption, icon )
 UI_Controls.button_params = ["icon"];
 function UI_Controls.button( parent, params )
 {
-	ctrl = UI_CreateButton( parent, null, null, null, null, null, @params.icon );
+	ctrl = UI_CreateButton( parent, null, @params.icon );
 	UI_ConfigControl( ctrl, params );
 }
 
@@ -117,7 +108,7 @@ function UI_Controls.imagebutton( parent, params )
 }
 
 
-function UI_CreateScroll( vertical, parent, space, window, position )
+function UI_CreateScrollbar( parent, vertical, space, window, position )
 {
 	space ||= 0;
 	auto_window = if( window, false, true );
@@ -125,6 +116,7 @@ function UI_CreateScroll( vertical, parent, space, window, position )
 	position ||= 0;
 	
 	Scroll = parent.frame.createControl( "scrollbar" );
+	Scroll.addClass( if( vertical, "vertical", "horizontal" ) );
 	Scroll.data =
 	{
 		button_size = 0,
@@ -146,23 +138,19 @@ function UI_CreateScroll( vertical, parent, space, window, position )
 	
 	if( vertical )
 	{
-		btnUP = UI_CreateButton( Scroll, 0, 0, 0, bsize, "", "icons/arrow_up.png" );
-		btnDN = UI_CreateButton( Scroll, 0, -bsize, 0, bsize, "", "icons/arrow_down.png" );
-		btnCS = UI_CreateButton( Scroll, 0, bsize + bar_pos, 0, bar_length, "" );
-		btnUP.q1x = 1; btnDN.q1x = 1; btnCS.q1x = 1;
-		btnDN.q0y = 1; btnDN.q1y = 1;
+		btnUP = UI_CreateButton( Scroll, null, "icons/arrow_up.png" )[]{ y = 0, height = bsize, anchorMode = UI_Anchor_Hor | UI_Anchor_Top, class = "btn-back" };
+		btnDN = UI_CreateButton( Scroll, null, "icons/arrow_down.png" )[]{ y = -bsize, height = bsize, anchorMode = UI_Anchor_Hor | UI_Anchor_Bottom, class = "btn-fwd" };
+		btnCS = UI_CreateButton( Scroll )[]{ y = bsize + bar_pos, height = bar_length, anchorMode = UI_Anchor_Hor };
 	}
 	else
 	{
-		btnUP = UI_CreateButton( Scroll, 0, 0, bsize, 0, "", "icons/arrow_left.png" );
-		btnDN = UI_CreateButton( Scroll, -bsize, 0, bsize, 0, "", "icons/arrow_right.png" );
-		btnCS = UI_CreateButton( Scroll, bsize + bar_pos, 0, bar_length, 0, "" );
-		btnUP.q1y = 1; btnDN.q1y = 1; btnCS.q1y = 1;
-		btnDN.q0x = 1; btnDN.q1x = 1;
+		btnUP = UI_CreateButton( Scroll, null, "icons/arrow_left.png" )[]{ x = 0, width = bsize, anchorMode = UI_Anchor_Vert | UI_Anchor_Left, class = "btn-back" };
+		btnDN = UI_CreateButton( Scroll, null, "icons/arrow_right.png" )[]{ x = -bsize, width = bsize, anchorMode = UI_Anchor_Vert | UI_Anchor_Right, class = "btn-fwd" };
+		btnCS = UI_CreateButton( Scroll )[]{ x = bsize + bar_pos, width = bar_length, anchorMode = UI_Anchor_Vert };
 	}
 	
-	Scroll_data = Scroll.data;
-	function Scroll_data.moveRel( dist, Scroll, btnCS )
+	Scrollbar_data = Scroll.data;
+	function Scrollbar_data.moveRel( dist, Scroll, btnCS )
 	{
 		opos = this.position;
 		this.position += dist;
@@ -194,7 +182,7 @@ function UI_CreateScroll( vertical, parent, space, window, position )
 			Scroll.callEvent( "change", e );
 		}
 	}
-	function Scroll_data.moveToAbs( coord, Scroll, btnCS )
+	function Scrollbar_data.moveToAbs( coord, Scroll, btnCS )
 	{
 		if( this.vertical )
 		{
@@ -212,8 +200,9 @@ function UI_CreateScroll( vertical, parent, space, window, position )
 		this.moveRel( np - this.position, Scroll, btnCS );
 	}
 	
-	btnUP.bindEvent( "click", function() use( Scroll, btnCS ){ Scroll.data.moveRel( -Scroll.data.move_step, Scroll, btnCS ); } );
-	btnDN.bindEvent( "click", function() use( Scroll, btnCS ){ Scroll.data.moveRel( Scroll.data.move_step, Scroll, btnCS ); } );
+	/* parent = Scroll */
+	btnUP.bindEvent( "click", function() use( btnCS ){ parent.data.moveRel( -parent.data.move_step, parent, btnCS ); } );
+	btnDN.bindEvent( "click", function() use( btnCS ){ parent.data.moveRel( parent.data.move_step, parent, btnCS ); } );
 	
 	scroll_orig_callback = Scroll.callback;
 	function Scroll.callback( event ) use( scroll_orig_callback, btnCS )
@@ -297,8 +286,8 @@ function UI_CreateScroll( vertical, parent, space, window, position )
 	return Scroll;
 }
 
-function UI_CreateHScroll( parent, space, window, position ){ return UI_CreateScroll( false, parent, space, window, position ); }
-function UI_CreateVScroll( parent, space, window, position ){ return UI_CreateScroll( true, parent, space, window, position ); }
+function UI_CreateHScrollbar( parent, space, window, position ){ return UI_CreateScrollbar( parent, false, space, window, position ); }
+function UI_CreateVScrollbar( parent, space, window, position ){ return UI_CreateScrollbar( parent, true, space, window, position ); }
 
 
 function UI_BuildMenu( parent, x, y, items, default )

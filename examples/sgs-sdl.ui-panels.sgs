@@ -1,17 +1,10 @@
 
 
-function UI_CreateAutoLayout( parent, x, y, width, height )
+function UI_CreateAutoLayout( parent, hexpand )
 {
 	AutoLayout = parent.frame.createControl( "autolayout" );
-	AutoLayout.x = x;
-	AutoLayout.y = y;
-	AutoLayout.width = width;
-	AutoLayout.height = height;
-//	AutoLayout.minWidth = 0;
-//	AutoLayout.maxWidth = if( width !== null, width, UI_MaxValue );
-//	AutoLayout.minHeight = 0;
-//	AutoLayout.maxHeight = if( height !== null, height, UI_MaxValue );
-	AutoLayout.data = {};
+	AutoLayout._childAffectsLayout = true;
+	AutoLayout.data = { hexpand = hexpand };
 	
 	AutoLayout_data = AutoLayout.data;
 	function AutoLayout_data.recalc( AutoLayout )
@@ -74,21 +67,18 @@ function UI_CreateAutoLayout( parent, x, y, width, height )
 UI_Controls.autolayout_params = [];
 function UI_Controls.autolayout( parent, params )
 {
-	ctrl = UI_CreateAutoLayout( parent, null, null, null, null );
+	ctrl = UI_CreateAutoLayout( parent );
 	UI_ConfigControl( ctrl, params );
 }
 
 
-function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
+function UI_CreateScrollable( parent, vscroll, hscroll )
 {
 	vscroll = if( vscroll === null, "auto", vscroll );
 	hscroll = if( hscroll === null, "auto", hscroll );
 	
 	Scrollable = parent.frame.createControl( "scrollable" );
-	Scrollable.x = x;
-	Scrollable.y = y;
-	Scrollable.width = width;
-	Scrollable.height = height;
+	Scrollable._childAffectsLayout = true;
 	Scrollable.data =
 	{
 		padding = 1,
@@ -101,8 +91,8 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 	pad = Scrollable.data.padding;
 	ssize = Scrollable.data.scroll_size;
 	
-	scrV = UI_CreateVScroll( Scrollable )[]{ x = pad, y = -pad, width = ssize, height = pad * 2, nonclient = true, visible = false, q0x = 1, q1x = 1, q1y = 1 };
-	scrH = UI_CreateHScroll( Scrollable )[]{ x = -pad, y = pad, width = pad * 2, height = ssize, nonclient = true, visible = false, q0y = 1, q1y = 1, q1x = 1 };
+	scrV = UI_CreateVScrollbar( Scrollable )[]{ x = pad, y = -pad, width = ssize, height = pad * 2, nonclient = true, visible = false, q0x = 1, q1x = 1, q1y = 1 };
+	scrH = UI_CreateHScrollbar( Scrollable )[]{ x = -pad, y = pad, width = pad * 2, height = ssize, nonclient = true, visible = false, q0y = 1, q1y = 1, q1x = 1 };
 	
 	Scrollable_data = Scrollable.data;
 	function Scrollable_data.recalc( Scrollable ) use( scrV, scrH )
@@ -151,12 +141,13 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 	scrV.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_y = -this.data.position; } );
 	scrH.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_x = -this.data.position; } );
 	
-	orig_callback = Scrollable.callback;
-	function Scrollable.callback( event ) use( orig_callback, scrV, scrH )
+	ocb = Scrollable.callback;
+	function Scrollable.callback( event ) use( ocb, scrV, scrH )
 	{
 		data = this.data;
 		if( event.type == EV_Layout )
 		{
+			this!ocb( event );
 			data.recalc( this );
 		}
 		else if( event.type == EV_MouseWheel )
@@ -170,7 +161,7 @@ function UI_CreateScrollable( parent, x, y, width, height, vscroll, hscroll )
 			}
 			return 0; // stop bubbling
 		}
-		return this!orig_callback( event );
+		return this!ocb( event );
 	}
 	
 	Scrollable.updateTheme();
@@ -261,8 +252,10 @@ function UI_CreateMenuPanel( parent, items )
 		data = this.data;
 		if( event.type == EV_Layout )
 		{
+			res = this!ocb( event );
 			data.recalcItemPositions( this );
 			this.frame.handleMouseMove();
+			return res;
 		}
 		else if( event.type == EV_MouseMove )
 		{

@@ -44,9 +44,7 @@ function sgs_ui_example_default()
 		printvar( FORM.getData() );
 	}
 	
-	global STATCORE = UI_CreateStatic( FORM, 10, 10, -20, -20 );
-	STATCORE.q1x = 1;
-	STATCORE.q1y = 1;
+	global STATCORE = UI_CreateStatic( FORM )[]{ x = 10, y = 10, width = -20, height = -20, anchorMode = UI_Anchor_All };
 	mpitems =
 	[
 		{ text = "File", func = formdump },
@@ -56,15 +54,13 @@ function sgs_ui_example_default()
 	];
 	global STAT = UI_CreateMenuPanel( STATCORE, mpitems );
 	
-	global TOPBAR = UI_CreateStatic( STAT, 0, 0, 0, 24, "" );
-	TOPBAR.backgroundColor = UIColor( 0.8, 1 );
-	TOPBAR.q1x = 1;
+	global TOPBAR = UI_CreateStatic( STAT )[]{ height = 24, backgroundColor = UIColor( 0.8, 1 ), anchorMode = UI_Anchor_Hor };
 	
-	UI_CreateButton( TOPBAR, 0, 0, 24, 24, "", "icons/page.png" );
-	UI_CreateButton( TOPBAR, 24, 0, 24, 24, "", "icons/disk.png" );
-	UI_CreateButton( TOPBAR, 48, 0, 24, 24, "", "icons/disk_multiple.png" );
+	UI_CreateButton( TOPBAR, null, "icons/page.png" )[]{ x = 0, y = 0, width = 24, height = 24 };
+	UI_CreateButton( TOPBAR, null, "icons/disk.png" )[]{ x = 24, y = 0, width = 24, height = 24 };
+	UI_CreateButton( TOPBAR, null, "icons/disk_multiple.png" )[]{ x = 48, y = 0, width = 24, height = 24 };
 	
-	global BTN = UI_CreateButton( STAT, 100, 100, 100, 30, "Action", "icons/disk.png" );
+	global BTN = UI_CreateButton( STAT, "Action", "icons/disk.png" )[]{ x = 100, y = 100, width = 100, height = 30 };
 	BTN.bindEvent( "click", function() use( menu1_items )
 	{
 		UI_BuildMenu( this.frame.root, this.rx0, this.ry1, menu1_items );
@@ -79,13 +75,13 @@ function sgs_ui_example_default()
 	UI_CreateRadioButton( STAT, "rbtn", "A" )[]{ x = 364, y = 50, width = 24, height = 24 };
 	UI_CreateRadioButton( STAT, "rbtn", "B" )[]{ x = 388, y = 50, width = 24, height = 24 };
 	
-	UI_CreateVScroll( STAT, 1000, 300, 37 )[]{ x = 400, y = 100, width = 16, height = 300 }.bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
-	UI_CreateHScroll( STAT, 1000, 300, 137 )[]{ x = 100, y = 400, width = 300, height = 16 }.bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
+	UI_CreateVScrollbar( STAT, 1000, 300, 37 )[]{ x = 400, y = 100, width = 16, height = 300 }.bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
+	UI_CreateHScrollbar( STAT, 1000, 300, 137 )[]{ x = 100, y = 400, width = 300, height = 16 }.bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
 	
-	SCROLL = UI_CreateScrollable( STAT, 500, 100, 200, 300 );
+	SCROLL = UI_CreateScrollable( STAT )[]{ x = 500, y = 100, width = 200, height = 300 };
 	text = string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] );
 	text = string_part( text, 0, 1024 );
-	UI_CreateStatic( SCROLL, 0, 0, 20, 500, text, DT_LEFT | DT_TOP )[]{ q1x = 1, backgroundColor = UIColor( 0.9, 1 ) };
+	UI_CreateStatic( SCROLL, DT_LEFT | DT_TOP )[]{ width = 20, height = 500, anchorMode = UI_Anchor_Hor, backgroundColor = UIColor( 0.9, 1 ), caption = text };
 	
 	SELECT = UI_CreateSelectBox( STAT, "sBoX",
 		[
@@ -95,10 +91,10 @@ function sgs_ui_example_default()
 		]
 	)[]{ x = 500, y = 50, width = 180, height = 24 };
 	
-	AUTOLAYOUT = UI_CreateAutoLayout( STAT, 840, 30, 100 );
-	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/page.png" );
-	BUTTON = UI_CreateButton( AUTOLAYOUT, 0, 0, null, 32, "", "icons/disk.png" );
-	UI_CreateButton( AUTOLAYOUT, 0, 0, 32, 32, "", "icons/disk_multiple.png" );
+	AUTOLAYOUT = UI_CreateAutoLayout( STAT )[]{ x = 840, y = 30, width = 100 };
+	UI_CreateButton( AUTOLAYOUT, "", "icons/page.png" )[]{ width = 32, height = 32 };
+	BUTTON = UI_CreateButton( AUTOLAYOUT, "", "icons/disk.png" )[]{ height = 32 };
+	UI_CreateButton( AUTOLAYOUT, "", "icons/disk_multiple.png" )[]{ width = 32, height = 32 };
 	BUTTON.name = "hovertest";
 	FRAME.addStyleSheet( UI_CreateStyleSheet()
 		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ width = 32 } }.addSelector( "@hovertest" ) )
@@ -124,7 +120,7 @@ function sgs_ui_example_default()
 		value1 = { type = "slider", min = 0, max = 50, stopsize = 5 },
 		Troolean = { type = "switchbutton", options = map( true, "True", false, "False", "FileNotFound", "File not found" ) },
 	};
-	PGRID = UI_CreatePropertyGrid( STAT, 720, 180, 200, 300, PGRID_data, PGRID_options );
+	PGRID = UI_CreatePropertyGrid( STAT, PGRID_data, PGRID_options )[]{ x = 720, y = 180, width = 200, height = 300 };
 	
 	
 	WINDOW = UI_CreateWindow( FRAME.root )[]{
@@ -137,24 +133,20 @@ function sgs_ui_example_default()
 		minHeight = 80
 	}.adjustSize();
 	
-	WINSTAT = UI_CreateStatic( WINDOW, 0, 0, 0, 32, "The Options", DT_CENTER | DT_VCENTER );
-	WINSTAT.backgroundColor = UIColor( 0.9, 1 );
-	WINSTAT.setAnchorMode( UI_Anchor_Hor | UI_Anchor_Top );
+	WINSTAT = UI_CreateStatic( WINDOW, DT_CENTER | DT_VCENTER )[]{
+		height = 32,
+		caption = "The Options",
+		backgroundColor = UIColor( 0.9, 1 ),
+		anchorMode = UI_Anchor_Hor | UI_Anchor_Top
+	};
 	
-	LBMENU = UI_CreateListBoxMenu( WINDOW )[]{ y = 32, height = -32 };
-	LBMENU.setAnchorMode( UI_Anchor_All );
+	LBMENU = UI_CreateListBoxMenu( WINDOW )[]{ y = 32, height = -32, anchorMode = UI_Anchor_All };
 	
 	LBMENU.addOption({ text = "Test option 1" });
 	LBMENU.addOption({ text = "Test/2", icon = "icons/book.png" });
 	
-	WINIMAGE = UI_CreateImage( WINSTAT, "icons/add.png", UI_ImageScale_None );
-	WINIMAGE.setAnchorMode( UI_Anchor_Left | UI_Anchor_Vert );
-	WINIMAGE.q1x = 0.2;
-	WINIMAGE.index = 10;
-	WINIMAGE2 = UI_CreateImage( WINSTAT, "icons/delete.png", UI_ImageScale_None );
-	WINIMAGE2.setAnchorMode( UI_Anchor_Right | UI_Anchor_Vert );
-	WINIMAGE2.q0x = 0.8;
-	WINIMAGE2.index = 10;
+	WINIMAGE = UI_CreateImage( WINSTAT, "icons/add.png", UI_ImageScale_None )[]{ anchorMode = UI_Anchor_Left | UI_Anchor_Vert, q1x = 0.2, index = 10 };
+	WINIMAGE2 = UI_CreateImage( WINSTAT, "icons/delete.png", UI_ImageScale_None )[]{ anchorMode = UI_Anchor_Right | UI_Anchor_Vert, q0x = 0.8, index = 10 };
 	
 	SWBTN1 = UI_CreateSwitchButton( STAT, "swtchbtn", map( true, "Yes", false, "No", "FileNotFound", "Maybe" ), true, true )[]{ x = 100, y = 150, width = 150, height = 24 };
 	SWBTN2 = UI_CreateSwitchButton( STAT, "swtchbt2", map( true, "Yes", false, "No" ), false, false )[]{ x = 100, y = 180, width = 150, height = 24 };
@@ -285,11 +277,11 @@ function sgs_ui_example_menu()
 	//
 	function CreateYesNoQuestionWindow( question, callback )
 	{
-		bgr = UI_CreateStatic( FRAME.root, 0, 0, 0, 0, "" ).addClass( "qwindowbgr" );
-		window = UI_CreateStatic( bgr, 0, 0, 0, 0, "" ).addClass( "qwindow framed" );
-		title = UI_CreateStatic( window, 0, 0, 0, 0, question ).addClass( "title framed" );
-		btn_yes = UI_CreateButton( window, 0, 0, 0, 0, "Yes" ).addClass( "btn-yes" ).bindEvent( "click", function() use( callback, bgr ){ callback( true ); bgr.destroy(true); } );
-		btn_no = UI_CreateButton( window, 0, 0, 0, 0, "No" ).addClass( "btn-no" ).bindEvent( "click", function() use( callback, bgr ){ callback( false ); bgr.destroy(true); } );
+		bgr = UI_CreateStatic( FRAME.root ).addClass( "qwindowbgr" );
+		window = UI_CreateStatic( bgr ).addClass( "qwindow framed" );
+		title = UI_CreateStatic( window )[]{ caption = question }.addClass( "title framed" );
+		btn_yes = UI_CreateButton( window, "Yes" ).addClass( "btn-yes" ).bindEvent( "click", function() use( callback, bgr ){ callback( true ); bgr.destroy(true); } );
+		btn_no = UI_CreateButton( window, "No" ).addClass( "btn-no" ).bindEvent( "click", function() use( callback, bgr ){ callback( false ); bgr.destroy(true); } );
 		
 		// background fade in
 		tgtbgcol = bgr.backgroundColor;
@@ -311,8 +303,8 @@ function sgs_ui_example_menu()
 	UI_Controls.levelentry_params = ["image","caption"];
 	function UI_Controls.levelentry( parent, params )
 	{
-		ctrl = UI_CreateButton( parent, null, null, null, null, "" ).addClass("level-entry");
-		UI_CreateStatic( ctrl, null, null, null, null, @params.caption, DT_LEFT | DT_VCENTER ).addClass("le-name");
+		ctrl = UI_CreateButton( parent, "" ).addClass("level-entry");
+		UI_CreateStatic( ctrl, DT_LEFT | DT_VCENTER )[]{ caption = @params.caption }.addClass("le-name");
 		UI_CreateImage( ctrl, @params.image, UI_ImageScale_Crop ).addClass("le-image");
 		UI_ConfigControl( ctrl, params );
 		ctrl.bindEvent( "click", function( e )
@@ -328,9 +320,9 @@ function sgs_ui_example_menu()
 	UI_Controls.scoreitem_params = ["key","label","value"];
 	function UI_Controls.scoreitem( parent, params )
 	{
-		ctrl = UI_CreateStatic( parent, null, null, null, null, "" ).addClass( "score-item" );
-		UI_CreateStatic( ctrl, null, null, null, null, @params.label, DT_LEFT | DT_VCENTER ).addClass( "label" );
-		UI_CreateStatic( ctrl, null, null, null, null, @params.value, DT_RIGHT | DT_VCENTER ).addClass( "value" )[]{ name = @params.key };
+		ctrl = UI_CreateStatic( parent ).addClass( "score-item" );
+		UI_CreateStatic( ctrl, DT_LEFT | DT_VCENTER )[]{ caption = @params.label }.addClass( "label" );
+		UI_CreateStatic( ctrl, DT_RIGHT | DT_VCENTER )[]{ caption = @params.value }.addClass( "value" )[]{ name = @params.key };
 	}
 	
 	//
@@ -605,9 +597,8 @@ function sgs_ui_example_selectors()
 	stylerule.style = style;
 	stylesheet.addRule( stylerule );
 	
-	button = UI_CreateButton( FRAME.root, 100, 100, 200, 20, "Test" );
+	button = UI_CreateButton( FRAME.root, "Test" )[]{ x = 100, y = 100, width = 200, height = 20, name = "submit" };
 	button.addClass( "red" );
-	button.name = "submit";
 	print "Verify that classes are set: "; printvar( button.class );
 	
 	stylerule = UI_CreateStyleRule();

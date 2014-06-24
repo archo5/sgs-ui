@@ -7,26 +7,19 @@ function UI_ScrollingAutoLayout.getContainer()
 	return this.data.OpCont;
 }
 
-function UI_CreateScrollingAutoLayout( parent, x, y, width, height )
+function UI_CreateScrollingAutoLayout( parent )
 {
 	ScrollingAutoLayout = parent.frame.createControl( "scrollingautolayout" );
-	ScrollingAutoLayout.x = x;
-	ScrollingAutoLayout.y = y;
-	ScrollingAutoLayout.width = width;
-	ScrollingAutoLayout.height = height;
 	ScrollingAutoLayout._interface = UI_ScrollingAutoLayout;
 	ScrollingAutoLayout.data =
 	{
 		options = [],
 	};
 	
-	Scrollable = UI_CreateScrollable( ScrollingAutoLayout, 0, 0, 0, 0, "auto", false );
-	Scrollable.q1x = 1;
-	Scrollable.q1y = 1;
+	Scrollable = UI_CreateScrollable( ScrollingAutoLayout, "auto", false );
 	ScrollingAutoLayout.data.Scrollable = Scrollable;
 	
-	AutoLayout = UI_CreateAutoLayout( Scrollable, 0, 0, 100 );
-	AutoLayout.q1x = 1;
+	AutoLayout = UI_CreateAutoLayout( Scrollable );
 	ScrollingAutoLayout.data.AutoLayout = AutoLayout;
 	ScrollingAutoLayout.data.OpCont = AutoLayout;
 	
@@ -38,7 +31,7 @@ function UI_CreateScrollingAutoLayout( parent, x, y, width, height )
 UI_Controls.scrollingautolayout_params = [];
 function UI_Controls.scrollingautolayout( parent, params )
 {
-	ctrl = UI_CreateScrollingAutoLayout( parent, null, null, null, null );
+	ctrl = UI_CreateScrollingAutoLayout( parent );
 	UI_ConfigControl( ctrl, params );
 }
 
@@ -50,7 +43,7 @@ function UI_ListBoxMenu.addOption( option )
 	data = this.data;
 	data.options.push( option );
 	
-	return UI_CreateButton( data.OpCont, null, null, null, null, option.text, @option.icon );
+	return UI_CreateButton( data.OpCont, option.text, @option.icon );
 }
 
 function UI_CreateListBoxMenu( parent )
@@ -62,10 +55,10 @@ function UI_CreateListBoxMenu( parent )
 		options = [],
 	};
 	
-	Scrollable = UI_CreateScrollable( ListBoxMenu, null, null, null, null, "auto", false );
+	Scrollable = UI_CreateScrollable( ListBoxMenu, "auto", false );
 	ListBoxMenu.data.Scrollable = Scrollable;
 	
-	AutoLayout = UI_CreateAutoLayout( Scrollable, 0, 0, 100 );
+	AutoLayout = UI_CreateAutoLayout( Scrollable );
 	ListBoxMenu.data.AutoLayout = AutoLayout;
 	ListBoxMenu.data.OpCont = AutoLayout;
 	
@@ -80,7 +73,7 @@ global UI_PropertyGrid = {};
 function UI_PropertyGrid._create_label( text )
 {
 	data = this.data;
-	ctrl = UI_CreateStatic( data.OpCont, null, null, null, null, text, DT_LEFT | DT_VCENTER ).addClass( "label" );
+	ctrl = UI_CreateStatic( data.OpCont, DT_LEFT | DT_VCENTER )[]{ caption = text }.addClass( "label" );
 	return ctrl;
 }
 
@@ -129,7 +122,7 @@ function UI_PropertyGrid._create_switchbutton( name, value, option )
 function UI_PropertyGrid._create_button( name, value, option )
 {
 	data = this.data;
-	ctrl = UI_CreateButton( data.OpCont, null, null, null, null, @option.label || name, @option.icon ).addClass( "value" );
+	ctrl = UI_CreateButton( data.OpCont, @option.label || name, @option.icon ).addClass( "value" );
 	ctrl.bindEvent( "click", value );
 	return ctrl;
 }
@@ -204,13 +197,9 @@ function UI_PropertyGrid.getValueOf( name )
 	return @this.data.values[ name ];
 }
 
-function UI_CreatePropertyGrid( parent, x, y, width, height, seed, options )
+function UI_CreatePropertyGrid( parent, seed, options )
 {
 	PropertyGrid = parent.frame.createControl( "propertygrid" );
-	PropertyGrid.x = x;
-	PropertyGrid.y = y;
-	PropertyGrid.width = width;
-	PropertyGrid.height = height;
 	PropertyGrid._interface = UI_PropertyGrid;
 	PropertyGrid.data =
 	{
@@ -231,13 +220,10 @@ function UI_CreatePropertyGrid( parent, x, y, width, height, seed, options )
 	PropertyGrid.data.Form = Form;
 	Form.bindEvent( "change", function( e ){ this.parent._updateData(); this.parent.callEvent( "change", e ); } );
 	
-	Scrollable = UI_CreateScrollable( Form, 0, 0, 0, 0, "auto", false );
-	Scrollable.q1x = 1;
-	Scrollable.q1y = 1;
+	Scrollable = UI_CreateScrollable( Form, "auto", false );
 	PropertyGrid.data.Scrollable = Scrollable;
 	
-	AutoLayout = UI_CreateAutoLayout( Scrollable, 0, 0, 0 );
-	AutoLayout.q1x = 1;
+	AutoLayout = UI_CreateAutoLayout( Scrollable );
 	PropertyGrid.data.AutoLayout = AutoLayout;
 	PropertyGrid.data.OpCont = AutoLayout;
 	
@@ -251,7 +237,7 @@ function UI_CreatePropertyGrid( parent, x, y, width, height, seed, options )
 UI_Controls.propertygrid_params = ["seed","options"];
 function UI_Controls.propertygrid( parent, params )
 {
-	ctrl = UI_CreatePropertyGrid( parent, null, null, null, null, @params.seed, @params.options );
+	ctrl = UI_CreatePropertyGrid( parent, @params.seed, @params.options );
 	UI_ConfigControl( ctrl, params );
 }
 
@@ -323,7 +309,7 @@ function UI_CreateWindow( parent )
 		}
 	}
 	
-	CloseBtn = UI_CreateButton( Window, -20, -22, 20, 18, "", "icons/cross.png" );
+	CloseBtn = UI_CreateButton( Window, "", "icons/cross.png" );
 	CloseBtn.addClass( "close-button" );
 	CloseBtn.nonclient = true;
 	CloseBtn.bindEvent( "click", function(){ this.parent.destroy(true); } );
