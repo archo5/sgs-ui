@@ -31,13 +31,10 @@ global
 
 function UI_CreateImage( parent, src, scale, align_x, align_y )
 {
-	if( typeof(src) == "string" )
-		src = SS_CreateTexture( src );
-	
 	Image = parent.frame.createControl( "image" );
+	Image.image = src;
 	Image.data =
 	{
-		image = src,
 		scale = if( scale !== null, scale, UI_ImageScale_None ),
 		align_x = if( align_x !== null, align_x, 0.5 ),
 		align_y = if( align_y !== null, align_y, 0.5 ),
@@ -56,17 +53,12 @@ function UI_Controls.image( parent, params )
 }
 
 
-function UI_CreateButton( parent, caption, icon )
+function UI_CreateButton( parent )
 {
 	Button = parent.frame.createControl( "button" );
-	if( typeof(icon) == "string" )
-		icon = SS_CreateTexture( icon );
-	Button.data = { icon = icon };
-	Button.caption = caption;
 	
-	orig_callback = Button.callback;
-	
-	function Button.callback( event ) use( orig_callback )
+	ocb = Button.callback;
+	function Button.callback( event ) use( ocb )
 	{
 		if( event.type == EV_NeedFocus )
 			return 1;
@@ -77,7 +69,7 @@ function UI_CreateButton( parent, caption, icon )
 		}
 		else if( event.type == EV_ButtonUp && event.button != Mouse_ButtonL )
 			return 0;
-		return this!orig_callback( event );
+		return this!ocb( event );
 	}
 	
 	Button.updateTheme();
@@ -85,10 +77,10 @@ function UI_CreateButton( parent, caption, icon )
 	return Button;
 }
 
-UI_Controls.button_params = ["icon"];
+UI_Controls.button_params = [];
 function UI_Controls.button( parent, params )
 {
-	ctrl = UI_CreateButton( parent, null, @params.icon );
+	ctrl = UI_CreateButton( parent );
 	UI_ConfigControl( ctrl, params );
 }
 
@@ -136,18 +128,9 @@ function UI_CreateScrollbar( parent, vertical, space, window, position )
 	bar_pos = if( space, scroll_length * position / space, 0 );
 	bar_length = if( space, scroll_length * window / space, scroll_length );
 	
-	if( vertical )
-	{
-		btnUP = UI_CreateButton( Scroll, null, "icons/arrow_up.png" )[]{ y = 0, height = bsize, anchorMode = UI_Anchor_Hor | UI_Anchor_Top, class = "btn-back" };
-		btnDN = UI_CreateButton( Scroll, null, "icons/arrow_down.png" )[]{ y = -bsize, height = bsize, anchorMode = UI_Anchor_Hor | UI_Anchor_Bottom, class = "btn-fwd" };
-		btnCS = UI_CreateButton( Scroll )[]{ y = bsize + bar_pos, height = bar_length, anchorMode = UI_Anchor_Hor };
-	}
-	else
-	{
-		btnUP = UI_CreateButton( Scroll, null, "icons/arrow_left.png" )[]{ x = 0, width = bsize, anchorMode = UI_Anchor_Vert | UI_Anchor_Left, class = "btn-back" };
-		btnDN = UI_CreateButton( Scroll, null, "icons/arrow_right.png" )[]{ x = -bsize, width = bsize, anchorMode = UI_Anchor_Vert | UI_Anchor_Right, class = "btn-fwd" };
-		btnCS = UI_CreateButton( Scroll )[]{ x = bsize + bar_pos, width = bar_length, anchorMode = UI_Anchor_Vert };
-	}
+	btnUP = UI_CreateButton( Scroll )[]{ class = "btn-back" };
+	btnDN = UI_CreateButton( Scroll )[]{ class = "btn-fwd" };
+	btnCS = UI_CreateButton( Scroll )[]{ class = "btn-slider" };
 	
 	Scrollbar_data = Scroll.data;
 	function Scrollbar_data.moveRel( dist, Scroll, btnCS )

@@ -588,6 +588,8 @@ void UI_StyleMerge( UIStyle* style, UIStyle* add )
 	if( !style->cursor.not_null() ) style->cursor = add->cursor;
 	if( !style->font.c_str() ) style->font = add->font;
 	if( !style->fontSize.isset ) style->fontSize = add->fontSize;
+	if( !style->image.c_str() ) style->image = add->image;
+	if( !style->icon.c_str() ) style->icon = add->icon;
 	if( !style->renderfunc.not_null() ) style->renderfunc = add->renderfunc;
 }
 
@@ -632,6 +634,8 @@ void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style )
 	}
 	cache->font = style->font;
 	cache->fontSize = style->fontSize.isset ? style->fontSize.data : 11;
+	cache->image = style->image;
+	cache->icon = style->icon;
 	cache->renderfunc = style->renderfunc;
 }
 
@@ -1259,6 +1263,8 @@ int UIFrame::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 	frame->clipboard_func.gcmark();
 	frame->cursor_func.gcmark();
 	frame->font_func.gcmark();
+	frame->image_func.gcmark();
+	frame->icon_func.gcmark();
 	frame->theme.gcmark();
 	frame->root.gcmark();
 	for( size_t i = 0; i < frame->m_styleSheets.size(); ++i )
@@ -1492,6 +1498,34 @@ void UIControl::updateFont()
 		frame->font_func.push( C );
 		sgs_ThisCall( C, 2, 1 );
 		_cachedFont = sgsVariable( C, -1 );
+		sgs_SetStackSize( C, orig );
+	}
+}
+
+void UIControl::updateImage()
+{
+	if( frame.object && frame->image_func.not_null() )
+	{
+		sgs_StkIdx orig = sgs_StackSize( C );
+		sgs_PushVar( C, frame );
+		get_image().push( C );
+		frame->image_func.push( C );
+		sgs_ThisCall( C, 1, 1 );
+		_cachedImage = sgsVariable( C, -1 );
+		sgs_SetStackSize( C, orig );
+	}
+}
+
+void UIControl::updateIcon()
+{
+	if( frame.object && frame->icon_func.not_null() )
+	{
+		sgs_StkIdx orig = sgs_StackSize( C );
+		sgs_PushVar( C, frame );
+		get_icon().push( C );
+		frame->icon_func.push( C );
+		sgs_ThisCall( C, 1, 1 );
+		_cachedIcon = sgsVariable( C, -1 );
 		sgs_SetStackSize( C, orig );
 	}
 }
@@ -2048,6 +2082,8 @@ int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 	ctrl->parent.gcmark();
 	ctrl->frame.gcmark();
 	ctrl->_cachedFont.gcmark();
+	ctrl->_cachedImage.gcmark();
+	ctrl->_cachedIcon.gcmark();
 	ctrl->filteredStyle.gcmark();
 	ctrl->style.gcmark();
 	ctrl->callback.gcmark();
@@ -2228,6 +2264,8 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	// diff
 #define NEQ( name ) computedStyle.name != nsc.name
 	bool updatedFont = NEQ( font ) || NEQ( fontSize );
+	bool updatedImage = NEQ( image );
+	bool updatedIcon = NEQ( icon );
 	bool updatedCursor = NEQ( cursor );
 	bool updatedOrder = NEQ( index ) || NEQ( topmost );
 	bool updatedBox = NEQ( x ) || NEQ( y ) || NEQ( width ) || NEQ( height )
@@ -2247,6 +2285,8 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	
 	// act on diffs
 	if( updatedFont ) updateFont();
+	if( updatedImage ) updateImage();
+	if( updatedIcon ) updateIcon();
 	if( updatedCursor ) updateCursor();
 	if( updatedOrder ) sortSiblings();
 	if( updatedLayout ) updateLayout();

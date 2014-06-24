@@ -62,6 +62,18 @@ function SS_UI_CreateFrame()
 		
 		return SS_CreateFont( font, size );
 	}
+	function SS_Frame.image_func( image )
+	{
+		if( typeid( image ) == VT_STRING )
+			image = SS_CreateTexture( image );
+		return image;
+	}
+	function SS_Frame.icon_func( icon )
+	{
+		if( typeid( icon ) == VT_STRING )
+			icon = SS_CreateTexture( icon );
+		return icon;
+	}
 	return SS_Frame;
 }
 

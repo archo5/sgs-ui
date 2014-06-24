@@ -230,6 +230,8 @@ struct UIStyle /* style storage */
 	SGS_PROPERTY sgsVariable     cursor;
 	SGS_PROPERTY sgsString       font;
 	SGS_PROPERTY sgsMaybe<float> fontSize;
+	SGS_PROPERTY sgsString       image;
+	SGS_PROPERTY sgsString       icon;
 	SGS_PROPERTY sgsVariable     renderfunc;
 	
 #define UIS_DEFINE_ACCESSORS_ADC( ty, nm ) \
@@ -298,6 +300,8 @@ struct UIStyleCache /* computed style cache */
 	sgsVariable cursor;
 	sgsString   font;
 	float       fontSize;
+	sgsString   image;
+	sgsString   icon;
 	sgsVariable renderfunc;
 	
 	int get_anchorMode();
@@ -489,6 +493,20 @@ struct UIFrame
 	*/
 	SGS_PROPERTY sgsVariable font_func;
 	
+	/*	image_func
+		arguments: image name
+		- null/empty-string name returns whatever represents the "no image" state (could be null or another image)
+		should return object capable of being used by the theme
+	*/
+	SGS_PROPERTY sgsVariable image_func;
+	
+	/*	icon_func
+		arguments: icon name
+		- null/empty-string name returns whatever represents the "no icon" state (could be null or another icon)
+		should return object capable of being used by the theme
+	*/
+	SGS_PROPERTY sgsVariable icon_func;
+	
 	/*	theme
 		dict containing data about theme
 		the convention:
@@ -560,6 +578,8 @@ struct UIControl
 	void updateThemeRecursive();
 	void updateCursor();
 	void updateFont();
+	void updateImage();
+	void updateIcon();
 	
 	SGS_METHOD bool addChild( UIControl::Handle ch );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
@@ -682,6 +702,8 @@ struct UIControl
 	UIC_DEFINE_ACCESSORS( UIColor, textColor );
 	UIC_DEFINE_ACCESSORS2( sgsVariable, cursor );
 	UIC_DEFINE_ACCESSORS2( sgsString, font );
+	UIC_DEFINE_ACCESSORS2( sgsString, image );
+	UIC_DEFINE_ACCESSORS2( sgsString, icon );
 	UIC_DEFINE_ACCESSORS( float, fontSize );
 	UIC_DEFINE_ACCESSORS2( sgsVariable, renderfunc );
 	
@@ -730,6 +752,8 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ get_textColor WRITE set_textColor ) SGS_ALIAS( sgsMaybe<UIColor> textColor );
 	SGS_PROPERTY_FUNC( READ get_cursor WRITE set_cursor ) SGS_ALIAS( sgsVariable cursor );
 	SGS_PROPERTY_FUNC( READ get_font WRITE set_font ) SGS_ALIAS( sgsString font );
+	SGS_PROPERTY_FUNC( READ get_image WRITE set_image ) SGS_ALIAS( sgsString image );
+	SGS_PROPERTY_FUNC( READ get_icon WRITE set_icon ) SGS_ALIAS( sgsString icon );
 	SGS_PROPERTY_FUNC( READ get_fontSize WRITE set_fontSize ) SGS_ALIAS( sgsMaybe<float> fontSize );
 	SGS_PROPERTY_FUNC( READ get_renderfunc WRITE set_renderfunc ) SGS_ALIAS( sgsVariable renderfunc );
 	
@@ -754,6 +778,8 @@ struct UIControl
 	
 	SGS_PROPERTY sgsVariable _cachedFont;
 	SGS_METHOD void setFont( const sgsString& newFont, float newFontSize ){ style.font = newFont; set_fontSize( newFontSize ); }
+	SGS_PROPERTY sgsVariable _cachedImage;
+	SGS_PROPERTY sgsVariable _cachedIcon;
 	
 	SGS_PROPERTY sgsVariable callback;
 	SGS_PROPERTY sgsVariable data;

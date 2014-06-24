@@ -56,11 +56,11 @@ function sgs_ui_example_default()
 	
 	global TOPBAR = UI_CreateStatic( STAT )[]{ height = 24, backgroundColor = UIColor( 0.8, 1 ), anchorMode = UI_Anchor_Hor };
 	
-	UI_CreateButton( TOPBAR, null, "icons/page.png" )[]{ x = 0, y = 0, width = 24, height = 24 };
-	UI_CreateButton( TOPBAR, null, "icons/disk.png" )[]{ x = 24, y = 0, width = 24, height = 24 };
-	UI_CreateButton( TOPBAR, null, "icons/disk_multiple.png" )[]{ x = 48, y = 0, width = 24, height = 24 };
+	UI_CreateButton( TOPBAR )[]{ x = 0, y = 0, width = 24, height = 24, icon = "icons/page.png" };
+	UI_CreateButton( TOPBAR )[]{ x = 24, y = 0, width = 24, height = 24, icon = "icons/disk.png" };
+	UI_CreateButton( TOPBAR )[]{ x = 48, y = 0, width = 24, height = 24, icon = "icons/disk_multiple.png" };
 	
-	global BTN = UI_CreateButton( STAT, "Action", "icons/disk.png" )[]{ x = 100, y = 100, width = 100, height = 30 };
+	global BTN = UI_CreateButton( STAT )[]{ x = 100, y = 100, width = 100, height = 30, caption = "Action", icon = "icons/disk.png" };
 	BTN.bindEvent( "click", function() use( menu1_items )
 	{
 		UI_BuildMenu( this.frame.root, this.rx0, this.ry1, menu1_items );
@@ -92,10 +92,10 @@ function sgs_ui_example_default()
 	)[]{ x = 500, y = 50, width = 180, height = 24 };
 	
 	AUTOLAYOUT = UI_CreateAutoLayout( STAT )[]{ x = 840, y = 30, width = 100 };
-	UI_CreateButton( AUTOLAYOUT, "", "icons/page.png" )[]{ width = 32, height = 32 };
-	BUTTON = UI_CreateButton( AUTOLAYOUT, "", "icons/disk.png" )[]{ height = 32 };
-	UI_CreateButton( AUTOLAYOUT, "", "icons/disk_multiple.png" )[]{ width = 32, height = 32 };
-	BUTTON.name = "hovertest";
+	UI_CreateButton( AUTOLAYOUT )[]{ width = 32, height = 32, icon = "icons/page.png" };
+	UI_CreateButton( AUTOLAYOUT )[]{ height = 32, icon = "icons/disk.png", name = "hovertest" };
+	UI_CreateButton( AUTOLAYOUT )[]{ width = 32, height = 32, icon = "icons/disk_multiple.png" };
+	
 	FRAME.addStyleSheet( UI_CreateStyleSheet()
 		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ width = 32 } }.addSelector( "@hovertest" ) )
 		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ width = 42 } }.addSelector( "@hovertest:hover" ) ) );
@@ -280,8 +280,8 @@ function sgs_ui_example_menu()
 		bgr = UI_CreateStatic( FRAME.root ).addClass( "qwindowbgr" );
 		window = UI_CreateStatic( bgr ).addClass( "qwindow framed" );
 		title = UI_CreateStatic( window )[]{ caption = question }.addClass( "title framed" );
-		btn_yes = UI_CreateButton( window, "Yes" ).addClass( "btn-yes" ).bindEvent( "click", function() use( callback, bgr ){ callback( true ); bgr.destroy(true); } );
-		btn_no = UI_CreateButton( window, "No" ).addClass( "btn-no" ).bindEvent( "click", function() use( callback, bgr ){ callback( false ); bgr.destroy(true); } );
+		btn_yes = UI_CreateButton( window )[]{ caption = "Yes", class = "btn-yes" }.bindEvent( "click", function() use( callback, bgr ){ callback( true ); bgr.destroy(true); } );
+		btn_no = UI_CreateButton( window )[]{ caption = "No", class = "btn-no" }.bindEvent( "click", function() use( callback, bgr ){ callback( false ); bgr.destroy(true); } );
 		
 		// background fade in
 		tgtbgcol = bgr.backgroundColor;
@@ -303,7 +303,7 @@ function sgs_ui_example_menu()
 	UI_Controls.levelentry_params = ["image","caption"];
 	function UI_Controls.levelentry( parent, params )
 	{
-		ctrl = UI_CreateButton( parent, "" ).addClass("level-entry");
+		ctrl = UI_CreateButton( parent ).addClass("level-entry");
 		UI_CreateStatic( ctrl, DT_LEFT | DT_VCENTER )[]{ caption = @params.caption }.addClass("le-name");
 		UI_CreateImage( ctrl, @params.image, UI_ImageScale_Crop ).addClass("le-image");
 		UI_ConfigControl( ctrl, params );
@@ -597,7 +597,7 @@ function sgs_ui_example_selectors()
 	stylerule.style = style;
 	stylesheet.addRule( stylerule );
 	
-	button = UI_CreateButton( FRAME.root, "Test" )[]{ x = 100, y = 100, width = 200, height = 20, name = "submit" };
+	button = UI_CreateButton( FRAME.root )[]{ x = 100, y = 100, width = 200, height = 20, name = "submit", caption = "Test" };
 	button.addClass( "red" );
 	print "Verify that classes are set: "; printvar( button.class );
 	

@@ -23,8 +23,8 @@ function UI_CreateScrollingAutoLayout( parent )
 	ScrollingAutoLayout.data.AutoLayout = AutoLayout;
 	ScrollingAutoLayout.data.OpCont = AutoLayout;
 	
+	ScrollingAutoLayout.updateTheme();
 	parent.addChild( ScrollingAutoLayout );
-	
 	return ScrollingAutoLayout;
 }
 
@@ -43,7 +43,7 @@ function UI_ListBoxMenu.addOption( option )
 	data = this.data;
 	data.options.push( option );
 	
-	return UI_CreateButton( data.OpCont, option.text, @option.icon );
+	return UI_CreateButton( data.OpCont )[]{ caption = option.text, icon = @option.icon };
 }
 
 function UI_CreateListBoxMenu( parent )
@@ -62,8 +62,8 @@ function UI_CreateListBoxMenu( parent )
 	ListBoxMenu.data.AutoLayout = AutoLayout;
 	ListBoxMenu.data.OpCont = AutoLayout;
 	
+	ListBoxMenu.updateTheme();
 	parent.addChild( ListBoxMenu );
-	
 	return ListBoxMenu;
 }
 
@@ -122,7 +122,7 @@ function UI_PropertyGrid._create_switchbutton( name, value, option )
 function UI_PropertyGrid._create_button( name, value, option )
 {
 	data = this.data;
-	ctrl = UI_CreateButton( data.OpCont, @option.label || name, @option.icon ).addClass( "value" );
+	ctrl = UI_CreateButton( data.OpCont )[]{ caption = @option.label || name, icon = @option.icon, class = "value" };
 	ctrl.bindEvent( "click", value );
 	return ctrl;
 }
@@ -309,8 +309,7 @@ function UI_CreateWindow( parent )
 		}
 	}
 	
-	CloseBtn = UI_CreateButton( Window, "", "icons/cross.png" );
-	CloseBtn.addClass( "close-button" );
+	CloseBtn = UI_CreateButton( Window )[]{ icon = "icons/cross.png", class = "close-button" };
 	CloseBtn.nonclient = true;
 	CloseBtn.bindEvent( "click", function(){ this.parent.destroy(true); } );
 	Window.data.CloseBtn = CloseBtn;

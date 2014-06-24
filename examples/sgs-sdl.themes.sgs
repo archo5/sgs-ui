@@ -4,6 +4,7 @@ global SS_UI_Theme_Default =
 	stylesheet = UI_BuildStyleSheet
 	({
 		"" = { fontSize = 11 },
+		// - core
 		"static" =
 		{
 			textColor = UIColor( 0.1, 1 ),
@@ -42,10 +43,13 @@ global SS_UI_Theme_Default =
 				data = this.data;
 				scale = data.scale;
 				
+				if( !this._cachedImage )
+					return;
+				
 				W = this.rx1 - this.rx0;
 				H = this.ry1 - this.ry0;
-				IW = data.image.width;
-				IH = data.image.height;
+				IW = this._cachedImage.width;
+				IH = this._cachedImage.height;
 				IW = if( IW >= 1, IW, 1 );
 				IH = if( IH >= 1, IH, 1 );
 				
@@ -88,72 +92,12 @@ global SS_UI_Theme_Default =
 				{
 					X = this.rx0 + off_x;
 					Y = this.ry0 + off_y;
-					SS_Draw({ preset = "tile", texture = data.image, position = vec2(X,Y), scale = vec2(realsize_x,realsize_y) });
+					SS_Draw({ preset = "tile", texture = this._cachedImage, position = vec2(X,Y), scale = vec2(realsize_x,realsize_y) });
 					
 					this.frame.popScissorRect();
 				}
 			}
 		},
-		"form" = { anchorMode = UI_Anchor_All },
-		"checkbox" =
-		{
-			minWidth = 16,
-			minHeight = 16,
-			maxWidth = 16,
-			maxHeight = 16,
-			renderfunc = function SS_UI_Theme_Default_checkbox_renderfunc()
-			{
-				data = this.data;
-				
-				theme = this.frame.theme;
-				p1 = theme.checkbox_border;
-				p2 = theme.checkbox_padding + p1;
-				
-				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.6, 0.8, 1 );
-				
-				if( this.clicked )
-					SS_DrawColorRect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.8, 0.8, 0.8, 1 );
-				else
-					SS_DrawColorRect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.9, 0.9, 0.9, 1 );
-				
-				if( data.checked )
-					SS_DrawColorRect( this.rx0 + p2, this.ry0 + p2, this.rx1 - p2, this.ry1 - p2, 0.1, 0.2, 0.4, 1 );
-			}
-		},
-		"radiobutton" =
-		{
-			minWidth = 16,
-			minHeight = 16,
-			maxWidth = 16,
-			maxHeight = 16,
-			renderfunc = function SS_UI_Theme_Default_radiobtn_renderfunc()
-			{
-				data = this.data;
-				
-				theme = this.frame.theme;
-				p1 = theme.radiobtn_border;
-				p2 = theme.radiobtn_padding + p1;
-				
-				cx = ( this.rx0 + this.rx1 ) / 2;
-				cy = ( this.ry0 + this.ry1 ) / 2;
-				radius = round( min( this.rx1 - this.rx0, this.ry1 - this.ry0 ) / 2 );
-				
-				SS_DrawColorCircle( cx, cy, radius, null, 0.5, 0.6, 0.8, 1 );
-				
-				if( this.clicked )
-					SS_DrawColorCircle( cx, cy, radius - p1, null, 0.8, 0.8, 0.8, 1 );
-				else
-					SS_DrawColorCircle( cx, cy, radius - p1, null, 0.9, 0.9, 0.9, 1 );
-				
-				if( data.checked )
-					SS_DrawColorCircle( cx, cy, radius - p2, null, 0.1, 0.2, 0.4, 1 );
-			}
-		},
-		"switchbutton button" = { height = 0 },
-		"switchbutton .main-button" = { anchorMode = UI_Anchor_All, width = 0 },
-		"switchbutton .side-button.prev" = { anchorMode = UI_Anchor_Vert | UI_Anchor_Left, x = 0, width = 24 },
-		"switchbutton .side-button.next" = { anchorMode = UI_Anchor_Vert | UI_Anchor_Right, x = -24, width = 24 },
-		"switchbutton.has-side-buttons .main-button" = { x = 24, width = -48 },
 		"scrollbar" =
 		{
 			padding = 1,
@@ -163,6 +107,13 @@ global SS_UI_Theme_Default =
 				SS_DrawColorRect( this.px0, this.py0, this.px1, this.py1, 0.7, 0.7, 0.7, 1 );
 			}
 		},
+		/* 0000 -> button size */
+		"scrollbar.vertical .btn-back" = { height = 0000, anchorMode = UI_Anchor_Hor | UI_Anchor_Top, icon = "icons/arrow_up.png" },
+		"scrollbar.vertical .btn-fwd" = { height = 0000, anchorMode = UI_Anchor_Hor | UI_Anchor_Bottom, icon = "icons/arrow_down.png" },
+		"scrollbar.vertical .btn-slider" = { anchorMode = UI_Anchor_Hor },
+		"scrollbar.horizontal .btn-back" = { width = 0000, anchorMode = UI_Anchor_Vert | UI_Anchor_Left, icon = "icons/arrow_left.png" },
+		"scrollbar.horizontal .btn-fwd" = { width = 0000, anchorMode = UI_Anchor_Vert | UI_Anchor_Right, icon = "icons/arrow_right.png" },
+		"scrollbar.horizontal .btn-slider" = { anchorMode = UI_Anchor_Vert },
 		"menu" =
 		{
 			renderfunc = function SS_UI_Theme_Default_menu_renderfunc()
@@ -217,6 +168,169 @@ global SS_UI_Theme_Default =
 				}
 			}
 		},
+		// - input
+		"form" = { anchorMode = UI_Anchor_All },
+		"checkbox" =
+		{
+			minWidth = 16,
+			minHeight = 16,
+			maxWidth = 16,
+			maxHeight = 16,
+			renderfunc = function SS_UI_Theme_Default_checkbox_renderfunc()
+			{
+				data = this.data;
+				
+				theme = this.frame.theme;
+				p1 = theme.checkbox_border;
+				p2 = theme.checkbox_padding + p1;
+				
+				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.6, 0.8, 1 );
+				
+				if( this.clicked )
+					SS_DrawColorRect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.8, 0.8, 0.8, 1 );
+				else
+					SS_DrawColorRect( this.rx0 + p1, this.ry0 + p1, this.rx1 - p1, this.ry1 - p1, 0.9, 0.9, 0.9, 1 );
+				
+				if( data.checked )
+					SS_DrawColorRect( this.rx0 + p2, this.ry0 + p2, this.rx1 - p2, this.ry1 - p2, 0.1, 0.2, 0.4, 1 );
+			}
+		},
+		"radiobutton" =
+		{
+			minWidth = 16,
+			minHeight = 16,
+			maxWidth = 16,
+			maxHeight = 16,
+			renderfunc = function SS_UI_Theme_Default_radiobtn_renderfunc()
+			{
+				data = this.data;
+				
+				theme = this.frame.theme;
+				p1 = theme.radiobutton_border;
+				p2 = theme.radiobutton_padding + p1;
+				
+				cx = ( this.rx0 + this.rx1 ) / 2;
+				cy = ( this.ry0 + this.ry1 ) / 2;
+				radius = round( min( this.rx1 - this.rx0, this.ry1 - this.ry0 ) / 2 );
+				
+				SS_DrawColorCircle( cx, cy, radius, null, 0.5, 0.6, 0.8, 1 );
+				
+				if( this.clicked )
+					SS_DrawColorCircle( cx, cy, radius - p1, null, 0.8, 0.8, 0.8, 1 );
+				else
+					SS_DrawColorCircle( cx, cy, radius - p1, null, 0.9, 0.9, 0.9, 1 );
+				
+				if( data.checked )
+					SS_DrawColorCircle( cx, cy, radius - p2, null, 0.1, 0.2, 0.4, 1 );
+			}
+		},
+		"textbox" =
+		{
+			cursor = UI_Cursor_Text,
+			padding = 3,
+			renderfunc = function SS_UI_Theme_Default_textbox_renderfunc()
+			{
+				data = this.data;
+				
+				border = data.border;
+				W = this.rx1 - this.rx0;
+				H = this.ry1 - this.ry0;
+				BW = this.rx1 - this.rx0 - border * 2;
+				BH = this.ry1 - this.ry0 - border * 2;
+				PH = this.py1 - this.py0;
+				
+				SS_Draw({ preset = "tile", position = vec2(this.rx0,this.ry0), scale = vec2(W,H), color = if(this.keyboardFocus,color(0.9,0.6,0.3,1),color(0.6,0.6,0.6,1)) });
+				SS_Draw({ preset = "tile", position = vec2(this.rx0+border,this.ry0+border), scale = vec2(BW,BH), color = color(0.9,0.9,0.9,1) });
+				
+				x0 = this.px0 - data.offset;
+				y0 = this.py0;
+				yc = ( this.py0 + this.py1 ) * 0.5;
+				xh = ( PH - this._cachedFont.size ) * 0.5;
+				
+				if( this.frame.pushScissorRect( this.px0, this.py0, this.px1, this.py1 ) )
+				{
+					if( !data.chars && !this.keyboardFocus )
+					{
+						SS_DrawTextLine_VC( data.caption, this._cachedFont, x0 + xh, yc, color(0.1,0.1,0.1,0.5) );
+					}
+					
+					SS_DrawTextLine_VC( data.text, this._cachedFont, x0, yc, color(0.1,0.1,0.1,1) );
+					
+					if( data.sel_to !== null )
+					{
+						from = min( data.fsel_from, data.fsel_to );
+						to = max( data.fsel_from, data.fsel_to );
+						if( from != to )
+						{
+							selcol = if( this.keyboardFocus, [0.3,0.6,0.9,0.5], [0.8,0.8,0.8,0.5] );
+							SS_Draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,PH], color = selcol });
+						}
+						
+						if( this.keyboardFocus && data.show_cursor )
+							SS_Draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,PH], color = [0.1,0.1,0.1,1] });
+					}
+					
+					this.frame.popScissorRect();
+				}
+			},
+		},
+		"slider" =
+		{
+			padding = 2,
+			renderfunc = function SS_UI_Theme_Default_slider_renderfunc()
+			{
+				theme = this.frame.theme;
+				
+				slider_render_rail = theme.slider_render_rail;
+				slider_render_marker = theme.slider_render_marker;
+				
+				this!slider_render_rail();
+				this!slider_render_marker();
+			},
+		},
+		"switchbutton button" = { height = 0 },
+		"switchbutton .main-button" = { anchorMode = UI_Anchor_All, width = 0 },
+		"switchbutton .side-button.prev" = { anchorMode = UI_Anchor_Vert | UI_Anchor_Left, x = 0, width = 24 },
+		"switchbutton .side-button.next" = { anchorMode = UI_Anchor_Vert | UI_Anchor_Right, x = -24, width = 24 },
+		"switchbutton.has-side-buttons .main-button" = { x = 24, width = -48 },
+		"selectbox" =
+		{
+			icon = "icons/bullet_arrow_down.png",
+			renderfunc = function SS_UI_Theme_Default_selectbox_renderfunc()
+			{
+				data = this.data;
+				icon = this._cachedIcon;
+				text = this.caption;
+				
+				cadd = if( this.clicked, -0.02, if( this.mouseOn, 0.02, 0.0 ) );
+				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.6+cadd, 0.6+cadd, 0.6+cadd, 1 );
+				SS_DrawColorRect( this.rx0+1, this.ry0+1, this.rx1-1, this.ry1-1, 0.8+cadd, 0.8+cadd, 0.8+cadd, 1 );
+				
+				if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
+				{
+					fullwidth = 0;
+					if( text )
+					{
+						textlen = this._cachedFont.getTextLength( text );
+						fullwidth += textlen;
+					}
+					
+					cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
+					if( icon )
+					{
+						SS_Draw({ preset = "box", position = vec2( this.rx1 - icon.width, cy ), scale = vec2( icon.width, icon.height ), texture = icon });
+					}
+					
+					if( text )
+					{
+						SS_DrawTextLine_VC( text, this._cachedFont, this.rx0 + 4, cy, color(0,1) );
+					}
+					
+					this.frame.popScissorRect();
+				}
+			}
+		},
+		// - panels
 		"scrollable" =
 		{
 			backgroundColor = UIColor( 0.8, 1 ),
@@ -260,6 +374,7 @@ global SS_UI_Theme_Default =
 				}
 			}
 		},
+		// - extended
 		"scrollingautolayout scrollable" = { anchorMode = UI_Anchor_All },
 		"scrollingautolayout autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
 		"listboxmenu scrollable" = { anchorMode = UI_Anchor_All },
@@ -337,7 +452,7 @@ global SS_UI_Theme_Default =
 	button_render_contents = function SS_UI_Theme_Default_button_render_contents()
 	{
 		data = this.data;
-		icon = @data.icon;
+		icon = this._cachedIcon;
 		text = this.caption;
 		
 		if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
@@ -369,61 +484,10 @@ global SS_UI_Theme_Default =
 		}
 	},
 	
-	// SCROLL
+	// SCROLLBAR
 	scroll_button_size = 0,
 	
 	// MENU
-	menu_renderfunc = function SS_UI_Theme_Default_menu_renderfunc()
-	{
-		data = this.data;
-		
-		pad = data.menu_padding;
-		
-		SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.8, 0.8, 0.8, 1 );
-		SS_DrawColorRect( this.rx0+pad, this.ry0+pad, this.rx1-pad, this.ry1-pad, 0.9, 0.9, 0.9, 1 );
-		
-		SS_DrawColorRect( this.rx0+32, this.ry0+2+pad, this.rx0+33, this.ry1-2-pad, 0.8, 0.8, 0.8, 1 );
-		
-		x = this.rx0 + pad;
-		y = this.ry0 + pad;
-		foreach( id, item : data.items )
-		{
-			disabled = @item.disabled;
-			checked = @item.checked;
-			
-			if( id === data.selected )
-				SS_Draw({ preset = "tile", position = [x,y], scale = [data.item_width,data.item_height], color = if(disabled,[0.7,0.7,0.7,0.5],[0.4,0.6,0.8,0.8]) });
-			
-			if( isset( item, "menu" ) )
-				SS_DrawFitted( data.icon_submenu, x + data.item_width - data.item_height, x + data.item_width, y, y + data.item_height );
-			
-			if( @item.text !== null )
-				SS_DrawTextLine_VC( item.text, this._cachedFont, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
-			else if( disabled )
-				SS_Draw({ preset = "tile", position = [x+32,y+data.sep_height/2], scale = [data.item_width-36,1], color = [0.8,0.8,0.8,1] });
-			
-			if( disabled && @item.text === null )
-				y += data.sep_height;
-			else
-			{
-				if( checked !== null )
-				{
-					// checkbox
-					cbx0 = x + 4;
-					cby0 = y + 4;
-					cbsz = min( 24, data.item_height - 8 );
-					cbx1 = cbx0 + cbsz;
-					cby1 = cby0 + cbsz;
-					SS_DrawColorRect( cbx0, cby0, cbx1, cby1, 0.5, 0.6, 0.7, 1 );
-					SS_DrawColorRect( cbx0+1, cby0+1, cbx1-1, cby1-1, 0.9, 0.9, 0.9, 1 );
-					if( checked )
-						SS_DrawColorRect( cbx0+3, cby0+3, cbx1-3, cby1-3, 0.1, 0.2, 0.4, 1 );
-				}
-				y += data.item_height;
-			}
-			y += data.item_spacing;
-		}
-	},
 	menu_item_min_width = 200,
 	menu_item_height = 24,
 	menu_sep_height = 8,
@@ -434,7 +498,87 @@ global SS_UI_Theme_Default =
 	checkbox_border = 1,
 	checkbox_padding = 2,
 	
-	// RADIOBTN
-	radiobtn_border = 1,
-	radiobtn_padding = 2,
+	// RADIO BUTTON
+	radiobutton_border = 1,
+	radiobutton_padding = 2,
+	
+	// TEXTBOX
+	textbox_border = 1,
+	
+	// SLIDER
+	slider_render_rail = function SS_UI_Theme_Default_slider_render_rail()
+	{
+		data = this.data;
+		OFSX = data.mhs_x - 3;
+		OFSY = data.mhs_y - 3;
+		P1X = this.px0 + OFSX;
+		P1Y = this.py0 + OFSY;
+		P2X = this.px1 - OFSX;
+		P2Y = this.py1 - OFSY;
+		if( !data.vertical )
+		{
+			mp = round( ( P1Y + P2Y ) * 0.5 );
+			P1Y = mp - 3;
+			P2Y = mp + 3;
+		}
+		else
+		{
+			mp = round( ( P1X + P2X ) * 0.5 );
+			P1X = mp - 3;
+			P2X = mp + 3;
+		}
+		SS_DrawColorRect( P1X, P1Y, P2X, P2Y, 0.85, 0.85, 0.85, 1 );
+		SS_DrawColorRect( P1X+1, P1Y+1, P2X-1, P2Y-1, 0.65, 0.65, 0.65, 1 );
+		
+		NS = if( data.stopsize, floor( ( data.vmax - data.vmin ) / data.stopsize ), 0 );
+		if( NS )
+		{
+			vdist = data.vmax - data.vmin;
+			if( vdist < 0.001 )
+				vdist = 0.001;
+			if( !data.vertical )
+			{
+				SRS = this.px0 + data.mhs_x;
+				SRE = this.px1 - data.mhs_x;
+				scaled_stopsize = data.stopsize / vdist;
+				if( NS * 2 < SRE - SRS )
+				{
+					for( q = 0; q <= 1.0; q += scaled_stopsize )
+					{
+						if( q > 1 )
+							q = 1;
+						spf = SRS * ( 1 - q ) + SRE * q;
+						SS_DrawColorRect( spf, P1Y + 1, spf + 1, P2Y - 1, 0.9, 0.9, 0.9, 0.5 );
+					}
+				}
+			}
+			else
+			{
+				SRS = this.py0 + data.mhs_y;
+				SRE = this.py1 - data.mhs_y;
+				scaled_stopsize = data.stopsize / vdist;
+				if( NS * 2 < SRE - SRS )
+				{
+					for( q = 0; q <= 1.0; q += scaled_stopsize )
+					{
+						if( q > 1 )
+							q = 1;
+						spf = SRS * ( 1 - q ) + SRE * q;
+						SS_DrawColorRect( P1X + 1, spf, P2X - 1, spf + 1, 0.9, 0.9, 0.9, 0.5 );
+					}
+				}
+			}
+		}
+	},
+	
+	slider_render_marker = function SS_UI_Theme_Default_slider_render_marker()
+	{
+		data = this.data;
+		(x,y) = this.getMarkerPos();
+		MX = data.mhs_x;
+		MY = data.mhs_y;
+		mf = if( data.mouse_on, 0.1, 0.0 );
+		SS_DrawColorRect( x-MX, y-MY, x+MX, y+MY, 0.6, 0.7, 0.8, 1 );
+		SS_DrawColorRect( x-MX+1, y-MY+1, x+MX-1, y+MY-1, 0.3+mf, 0.5+mf, 0.7+mf, 1 );
+	},
 };
