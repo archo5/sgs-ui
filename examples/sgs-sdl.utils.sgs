@@ -5,13 +5,16 @@ function UI_ConfigControl( control, params )
 	removed = UI_Controls[ params.type $ "_params" ];
 	foreach( key, val : params )
 	{
+		if( removed.find( key ) !== null )
+			continue;
+		
 		if( key == "children" )
 			UI_BuildControls( control, val );
 		else if( key == "contents" )
 			val( control );
 		else if( key == "type" )
 			;
-		else if( removed.find( key ) === null )
+		else
 			control.(key) = val;
 	}
 }

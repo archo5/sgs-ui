@@ -25,6 +25,7 @@ global SS_UI_Theme_Default =
 		},
 		"button" =
 		{
+			textColor = UIColor( 1, 1 ),
 			renderfunc = function SS_UI_Theme_Default_button_renderfunc()
 			{
 				if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
@@ -138,7 +139,7 @@ global SS_UI_Theme_Default =
 						SS_Draw({ preset = "tile", position = [x,y], scale = [data.item_width,data.item_height], color = if(disabled,[0.7,0.7,0.7,0.5],[0.4,0.6,0.8,0.8]) });
 					
 					if( isset( item, "menu" ) )
-						SS_DrawFitted( data.icon_submenu, x + data.item_width - data.item_height, x + data.item_width, y, y + data.item_height );
+						SS_DrawFitted( data.icon_submenu, x + data.item_width - data.item_height, y, x + data.item_width, y + data.item_height );
 					
 					if( @item.text !== null )
 						SS_DrawTextLine_VC( item.text, this._cachedFont, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
@@ -444,10 +445,10 @@ global SS_UI_Theme_Default =
 		B = 0;
 		if( !this.nonclient )
 		{
-			SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
+			SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, 0.7+cadd, 0.8+cadd, 0.9+cadd, 1 );
 			B = 1;
 		}
-		SS_DrawColorRect( this.rx0+B, this.ry0+B, this.rx1-B, this.ry1-B, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
+		SS_DrawColorRect( this.cx0+B, this.cy0+B, this.cx1-B, this.cy1-B, 0.3+cadd, 0.5+cadd, 0.7+cadd, 1 );
 	},
 	button_render_contents = function SS_UI_Theme_Default_button_render_contents()
 	{
@@ -455,7 +456,7 @@ global SS_UI_Theme_Default =
 		icon = this._cachedIcon;
 		text = this.caption;
 		
-		if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
+		if( this.frame.pushScissorRect( this.cx0 + 2, this.cy0 + 2, this.cx1 - 2, this.cy1 - 2 ) )
 		{
 			fullwidth = 0;
 			if( icon ) fullwidth += icon.width;
@@ -466,18 +467,18 @@ global SS_UI_Theme_Default =
 			}
 			if( icon && text ) fullwidth += 4;
 			
-			icon_off = ( this.rx1 - this.rx0 - fullwidth ) / 2;
+			icon_off = ( this.cx1 - this.cx0 - fullwidth ) / 2;
 			text_off = icon_off;
-			cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
+			cy = round( ( this.cy1 + this.cy0 ) * 0.5 );
 			if( icon )
 			{
 				text_off += icon.width + 4;
-				SS_Draw({ preset = "box", position = vec2( this.rx0 + round( icon_off + icon.width / 2 ), cy ), scale = vec2( icon.width, icon.height ), texture = icon });
+				SS_Draw({ preset = "box", position = vec2( this.cx0 + round( icon_off + icon.width / 2 ), cy ), scale = vec2( icon.width, icon.height ), texture = icon });
 			}
 			
 			if( text )
 			{
-				SS_DrawTextLine_VC( text, this._cachedFont, this.rx0 + text_off, cy, color(1,1,1,1) );
+				SS_DrawTextLine_VC( text, this._cachedFont, this.cx0 + text_off, cy, SS_UI_ConvertColor( this.textColor ) );
 			}
 			
 			this.frame.popScissorRect();

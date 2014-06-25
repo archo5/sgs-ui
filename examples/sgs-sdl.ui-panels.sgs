@@ -169,6 +169,14 @@ function UI_CreateScrollable( parent, vscroll, hscroll )
 	return Scrollable;
 }
 
+UI_Controls.scrollable_params = ["vscroll","hscroll"];
+function UI_Controls.scrollable( parent, params )
+{
+	ctrl = UI_CreateScrollable( parent, @params.vscroll, @params.hscroll );
+	UI_ConfigControl( ctrl, params );
+}
+
+
 function UI_CreateMenuPanel( parent, items )
 {
 	MenuPanel = parent.frame.createControl( "menupanel" );
@@ -303,5 +311,12 @@ function UI_CreateMenuPanel( parent, items )
 	MenuPanel.updateTheme();
 	parent.addChild( MenuPanel );
 	return MenuPanel;
+}
+
+UI_Controls.menupanel_params = ["items"];
+function UI_Controls.menupanel( parent, params )
+{
+	ctrl = UI_CreateMenuPanel( parent, @params.items );
+	UI_ConfigControl( ctrl, params );
 }
 

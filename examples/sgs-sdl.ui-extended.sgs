@@ -28,11 +28,13 @@ function UI_CreateScrollingAutoLayout( parent )
 	return ScrollingAutoLayout;
 }
 
-UI_Controls.scrollingautolayout_params = [];
+UI_Controls.scrollingautolayout_params = ["children"];
 function UI_Controls.scrollingautolayout( parent, params )
 {
 	ctrl = UI_CreateScrollingAutoLayout( parent );
 	UI_ConfigControl( ctrl, params );
+	if( @params.children )
+		UI_BuildControls( ctrl.getContainer(), params.children );
 }
 
 
@@ -65,6 +67,13 @@ function UI_CreateListBoxMenu( parent )
 	ListBoxMenu.updateTheme();
 	parent.addChild( ListBoxMenu );
 	return ListBoxMenu;
+}
+
+UI_Controls.listboxmenu_params = [];
+function UI_Controls.listboxmenu( parent, params )
+{
+	ctrl = UI_CreateListBoxMenu( parent );
+	UI_ConfigControl( ctrl, params );
 }
 
 
@@ -363,5 +372,12 @@ function UI_CreateWindow( parent )
 	Window.updateTheme();
 	parent.addChild( Window );
 	return Window;
+}
+
+UI_Controls.window_params = [];
+function UI_Controls.window( parent, params )
+{
+	ctrl = UI_CreateWindow( parent );
+	UI_ConfigControl( ctrl, params );
 }
 
