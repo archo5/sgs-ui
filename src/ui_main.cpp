@@ -113,6 +113,14 @@ sgs_RegIntConst g_iconsts[] =
 	FN( UI_Anchor_Vert   ),
 	FN( UI_Anchor_All    ),
 	
+	FN( UI_Align_Left    ),
+	FN( UI_Align_Center  ),
+	FN( UI_Align_Right   ),
+	FN( UI_Align_Justify ),
+	FN( UI_Align_Top     ),
+	FN( UI_Align_VCenter ),
+	FN( UI_Align_Bottom  ),
+	
 	FN( EV_Paint      ),
 	FN( EV_Layout     ),
 	FN( EV_ChgTheme   ),

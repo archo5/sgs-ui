@@ -1,13 +1,10 @@
 
 global UI_Static = {};
 
-function UI_CreateStatic( parent, textmode )
+function UI_CreateStatic( parent )
 {
 	Static = parent.frame.createControl( "static" );
-	Static.data =
-	{
-		textmode = textmode || DT_CENTER | DT_VCENTER,
-	};
+	Static.data = {};
 	Static._interface = UI_Static;
 	
 	Static.updateTheme();
@@ -15,10 +12,10 @@ function UI_CreateStatic( parent, textmode )
 	return Static;
 }
 
-UI_Controls.static_params = ["textmode"];
+UI_Controls.static_params = [];
 function UI_Controls.static( parent, params )
 {
-	ctrl = UI_CreateStatic( parent, @params.textmode );
+	ctrl = UI_CreateStatic( parent );
 	UI_ConfigControl( ctrl, params );
 }
 

@@ -81,7 +81,7 @@ function sgs_ui_example_default()
 	SCROLL = UI_CreateScrollable( STAT )[]{ x = 500, y = 100, width = 200, height = 300 };
 	text = string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] );
 	text = string_part( text, 0, 1024 );
-	UI_CreateStatic( SCROLL, DT_LEFT | DT_TOP )[]{ width = 20, height = 500, anchorMode = UI_Anchor_Hor, backgroundColor = UIColor( 0.9, 1 ), caption = text };
+	UI_CreateStatic( SCROLL )[]{ width = 20, height = 500, anchorMode = UI_Anchor_Hor, backgroundColor = UIColor( 0.9, 1 ), caption = text, halign = UI_Align_Left, valign = UI_Align_Top };
 	
 	SELECT = UI_CreateSelectBox( STAT, "sBoX",
 		[
@@ -133,11 +133,13 @@ function sgs_ui_example_default()
 		minHeight = 80
 	}.adjustSize();
 	
-	WINSTAT = UI_CreateStatic( WINDOW, DT_CENTER | DT_VCENTER )[]{
+	WINSTAT = UI_CreateStatic( WINDOW )[]{
 		height = 32,
 		caption = "The Options",
 		backgroundColor = UIColor( 0.9, 1 ),
-		anchorMode = UI_Anchor_Hor | UI_Anchor_Top
+		anchorMode = UI_Anchor_Hor | UI_Anchor_Top,
+		halign = UI_Align_Center,
+		valign = UI_Align_VCenter,
 	};
 	
 	LBMENU = UI_CreateListBoxMenu( WINDOW )[]{ y = 32, height = -32, anchorMode = UI_Anchor_All };
@@ -204,7 +206,7 @@ function sgs_ui_example_menu()
 		
 		if( text )
 		{
-			SS_DrawTextRect( text, this._cachedFont, SS_UI_ConvertColor( this.textColor ), data.textmode, this.px0, this.px1, this.py0, this.py1 );
+			SS_DrawTextRect( text, this._cachedFont, SS_UI_ConvertColor( this.textColor ), SS_UI_ConvertAlignment( this.halign, this.valign ), this.px0, this.px1, this.py0, this.py1 );
 		}
 	}
 	
@@ -246,14 +248,15 @@ function sgs_ui_example_menu()
 		".screen-panel .level-list" = { q0x = 0.05, q0y = 0.15, q1x = 0.45, q1y = 0.8 },
 		".screen-panel .level-list scrollable" = { backgroundColor = UIColor(0.1,0.2,0.3,0.1) },
 		".screen-panel .level-list .level-entry" = { height = 48, anchorMode = UI_Anchor_Hor },
+		".screen-panel .level-list .level-entry .le-name" = { halign = UI_Align_Left },
 		".screen-panel .level-list .level-entry.active" = { backgroundColor = UIColor(0.1,0.2,0.4,0.6) },
 		".screen-panel .level-list .level-entry static" = { anchorMode = UI_Anchor_All, backgroundColor = UIColor(0), textColor = UIColor(0.8,1), fontSize = 14 },
 		".screen-panel .level-list .level-entry image" = { width = 64, anchorMode = UI_Anchor_Vert },
 		// - level score
 		".screen-panel .level-score" = { q0x = 0.51, q0y = 0.15, q1x = 0.91, q1y = 0.8, backgroundColor = UIColor(0) },
 		".screen-panel .level-score .score-item" = { anchorMode = UI_Anchor_Hor, height = 36, backgroundColor = UIColor(0) },
-		".screen-panel .level-score .score-item .label" = { q0x = 0, q0y = 0, q1x = 0.5, q1y = 1, backgroundColor = UIColor(0), textColor = UIColor(1) },
-		".screen-panel .level-score .score-item .value" = { q0x = 0.5, q0y = 0, q1x = 1, q1y = 1, backgroundColor = UIColor(0), textColor = UIColor(1) },
+		".screen-panel .level-score .score-item .label" = { q0x = 0, q0y = 0, q1x = 0.5, q1y = 1, backgroundColor = UIColor(0), textColor = UIColor(1), halign = UI_Align_Left },
+		".screen-panel .level-score .score-item .value" = { q0x = 0.5, q0y = 0, q1x = 1, q1y = 1, backgroundColor = UIColor(0), textColor = UIColor(1), halign = UI_Align_Right },
 		// - options
 		".options-submenu" = { q0x = 0.03, q0y = 0.15, q1x = 0.23, q1y = 0.8, overflow = true },
 		".opt-sub-btn.active" = { backgroundColor = UIColor(0.5,0.02,0.01,0.4) },
@@ -304,7 +307,7 @@ function sgs_ui_example_menu()
 	function UI_Controls.levelentry( parent, params )
 	{
 		ctrl = UI_CreateButton( parent ).addClass("level-entry");
-		UI_CreateStatic( ctrl, DT_LEFT | DT_VCENTER )[]{ caption = @params.caption }.addClass("le-name");
+		UI_CreateStatic( ctrl )[]{ caption = @params.caption }.addClass("le-name");
 		UI_CreateImage( ctrl, @params.image, UI_ImageScale_Crop ).addClass("le-image");
 		UI_ConfigControl( ctrl, params );
 		ctrl.bindEvent( "click", function( e )
@@ -321,8 +324,8 @@ function sgs_ui_example_menu()
 	function UI_Controls.scoreitem( parent, params )
 	{
 		ctrl = UI_CreateStatic( parent ).addClass( "score-item" );
-		UI_CreateStatic( ctrl, DT_LEFT | DT_VCENTER )[]{ caption = @params.label }.addClass( "label" );
-		UI_CreateStatic( ctrl, DT_RIGHT | DT_VCENTER )[]{ caption = @params.value }.addClass( "value" )[]{ name = @params.key };
+		UI_CreateStatic( ctrl )[]{ caption = @params.label }.addClass( "label" );
+		UI_CreateStatic( ctrl )[]{ caption = @params.value }.addClass( "value" )[]{ name = @params.key };
 	}
 	
 	//

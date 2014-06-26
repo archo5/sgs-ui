@@ -1,0 +1,30 @@
+
+function first_non_null( a, b ){ return if( a === null, b, a ); }
+
+function UI_ConfigControl( control, params )
+{
+	removed = UI_Controls[ params.type $ "_params" ];
+	foreach( key, val : params )
+	{
+		if( removed.find( key ) !== null )
+			continue;
+		
+		if( key == "children" )
+			UI_BuildControls( control, val );
+		else if( key == "contents" )
+			val( control );
+		else if( key == "type" )
+			;
+		else
+			control.(key) = val;
+	}
+}
+
+function UI_BuildControls( parent, controls )
+{
+	foreach( control : controls )
+		UI_Controls[ control.type ]( parent, control );
+}
+
+
+include "core", "input", "panels", "extended";

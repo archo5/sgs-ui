@@ -82,7 +82,7 @@ global UI_PropertyGrid = {};
 function UI_PropertyGrid._create_label( text )
 {
 	data = this.data;
-	ctrl = UI_CreateStatic( data.OpCont, DT_LEFT | DT_VCENTER )[]{ caption = text }.addClass( "label" );
+	ctrl = UI_CreateStatic( data.OpCont )[]{ caption = text }.addClass( "label" );
 	return ctrl;
 }
 
@@ -318,7 +318,7 @@ function UI_CreateWindow( parent )
 		}
 	}
 	
-	CloseBtn = UI_CreateButton( Window )[]{ icon = "icons/cross.png", class = "close-button" };
+	CloseBtn = UI_CreateButton( Window )[]{ class = "close-button" };
 	CloseBtn.nonclient = true;
 	CloseBtn.bindEvent( "click", function(){ this.parent.destroy(true); } );
 	Window.data.CloseBtn = CloseBtn;

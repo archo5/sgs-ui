@@ -1,11 +1,8 @@
 
 include "../bin/sgs-ui";
-include "sgs-sdl.utils";
-include "sgs-sdl.themes";
-include "sgs-sdl.ui-core";
-include "sgs-sdl.ui-input";
-include "sgs-sdl.ui-panels";
-include "sgs-sdl.ui-extended";
+include "../ui/ui";
+include "../ui/sgs-sdl/utils";
+include "../ui/sgs-sdl/themes";
 
 include "sgs-sdl.examples";
 
@@ -52,7 +49,7 @@ function initialize()
 	
 	SS_StartTextInput();
 	
-	global Font = SS_CreateFont( "fonts/lato-regular.ttf", 11 );
+	global g_DbgFont = SS_CreateFont( "fonts/lato-regular.ttf", 11 );
 	
 	
 	global FRAME = SS_UI_CreateFrame();
@@ -101,11 +98,11 @@ function update()
 		}
 		
 		tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";
-		SS_DrawTextLine( tx, Font, 101, 1, [0,0,0,1] );
-		SS_DrawTextLine( tx, Font, 100, 0, [0.9,0.8,0.7,1] );
+		SS_DrawTextLine( tx, g_DbgFont, 101, 1, [0,0,0,1] );
+		SS_DrawTextLine( tx, g_DbgFont, 100, 0, [0.9,0.8,0.7,1] );
 		tx = fmt_text( "memory usage: {f.2} kB", sys_stat(3) / 1024 );
-		SS_DrawTextLine( tx, Font, 101, 21, [0,0,0,1] );
-		SS_DrawTextLine( tx, Font, 100, 20, [0.9,0.8,0.7,1] );
+		SS_DrawTextLine( tx, g_DbgFont, 101, 21, [0,0,0,1] );
+		SS_DrawTextLine( tx, g_DbgFont, 100, 20, [0.9,0.8,0.7,1] );
 	}
 	
 	SS_Present();

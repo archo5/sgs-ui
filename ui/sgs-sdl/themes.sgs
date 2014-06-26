@@ -9,9 +9,10 @@ global SS_UI_Theme_Default =
 		{
 			textColor = UIColor( 0.1, 1 ),
 			backgroundColor = UIColor( 0.5, 1 ),
+			halign = UI_Align_Center,
+			valign = UI_Align_VCenter,
 			renderfunc = function SS_UI_Theme_Default_static_renderfunc()
 			{
-				data = this.data;
 				text = this.caption;
 				
 				c = this.backgroundColor;
@@ -19,7 +20,7 @@ global SS_UI_Theme_Default =
 				
 				if( text )
 				{
-					SS_DrawTextRect( text, this._cachedFont, SS_UI_ConvertColor( this.textColor ), data.textmode, this.px0, this.px1, this.py0, this.py1 );
+					SS_DrawTextRect( text, this._cachedFont, SS_UI_ConvertColor( this.textColor ), SS_UI_ConvertAlignment( this.halign, this.valign ), this.px0, this.px1, this.py0, this.py1 );
 				}
 			}
 		},
@@ -416,7 +417,7 @@ global SS_UI_Theme_Default =
 		},
 		"propertygrid scrollable" = { anchorMode = UI_Anchor_All },
 		"propertygrid autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
-		"propertygrid .label" = { q1x = 0.5, height = 24, backgroundColor = UIColor(0,0.1) },
+		"propertygrid .label" = { q1x = 0.5, height = 24, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
 		"propertygrid .value" = { q1x = 0.5, height = 24 },
 		"propertygrid button.value" = { q1x = 1 },
 		"window" =
@@ -435,7 +436,7 @@ global SS_UI_Theme_Default =
 				SS_DrawTextLine_VC( this.caption, this._cachedFont, this.rx0 + 4, this.ry0 + 12, color(1) );
 			}
 		},
-		"window .close-button" = { anchorMode = UI_Anchor_Right, x = -20, y = -22, width = 20, height = 18 },
+		"window .close-button" = { anchorMode = UI_Anchor_Right, x = -20, y = -22, width = 20, height = 18, icon = "icons/cross.png" },
 	}),
 	
 	// BUTTON

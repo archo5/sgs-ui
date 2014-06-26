@@ -1,35 +1,19 @@
 
 
-function UI_ConfigControl( control, params )
-{
-	removed = UI_Controls[ params.type $ "_params" ];
-	foreach( key, val : params )
-	{
-		if( removed.find( key ) !== null )
-			continue;
-		
-		if( key == "children" )
-			UI_BuildControls( control, val );
-		else if( key == "contents" )
-			val( control );
-		else if( key == "type" )
-			;
-		else
-			control.(key) = val;
-	}
-}
-
-function UI_BuildControls( parent, controls )
-{
-	foreach( control : controls )
-		UI_Controls[ control.type ]( parent, control );
-}
-
-
-function first_non_null( a, b ){ return if( a === null, b, a ); }
-
-
 function SS_UI_ConvertColor( cc ){ return color( cc.r, cc.g, cc.b, cc.a ); }
+
+function SS_UI_ConvertAlignment( halign, valign )
+{
+	out = 0;
+	if( halign & UI_Align_Left ) out |= DT_LEFT;
+	if( halign & UI_Align_Center ) out |= DT_CENTER;
+	if( halign & UI_Align_Right ) out |= DT_RIGHT;
+	if( halign & UI_Align_Justify ) out |= DT_JUSTIFY;
+	if( valign & UI_Align_Top ) out |= DT_TOP;
+	if( valign & UI_Align_VCenter ) out |= DT_VCENTER;
+	if( valign & UI_Align_Bottom ) out |= DT_BOTTOM;
+	return out;
+}
 
 function SS_UI_CreateFrame()
 {

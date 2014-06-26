@@ -21,6 +21,14 @@
 #define UI_Anchor_Vert  (UI_Anchor_Top | UI_Anchor_Bottom)
 #define UI_Anchor_All   (UI_Anchor_Hor | UI_Anchor_Vert)
 
+#define UI_Align_Left    0x0001
+#define UI_Align_Center  0x0002
+#define UI_Align_Right   0x0004
+#define UI_Align_Justify 0x0008
+#define UI_Align_Top     0x0010
+#define UI_Align_VCenter 0x0020
+#define UI_Align_Bottom  0x0040
+
 #define EV_Paint      1
 #define EV_Layout     2
 #define EV_ChgTheme   3
@@ -227,6 +235,8 @@ struct UIStyle /* style storage */
 	SGS_PROPERTY sgsMaybe<bool>  overflow;
 	SGS_PROPERTY sgsMaybe<UIColor> backgroundColor;
 	SGS_PROPERTY sgsMaybe<UIColor> textColor;
+	SGS_PROPERTY sgsMaybe<uint16_t> halign;
+	SGS_PROPERTY sgsMaybe<uint16_t> valign;
 	SGS_PROPERTY sgsVariable     cursor;
 	SGS_PROPERTY sgsString       font;
 	SGS_PROPERTY sgsMaybe<float> fontSize;
@@ -297,6 +307,8 @@ struct UIStyleCache /* computed style cache */
 	bool  overflow;
 	UIColor backgroundColor;
 	UIColor textColor;
+	uint16_t halign;
+	uint16_t valign;
 	sgsVariable cursor;
 	sgsString   font;
 	float       fontSize;
@@ -700,6 +712,8 @@ struct UIControl
 	UIC_DEFINE_ACCESSORS( bool, overflow );
 	UIC_DEFINE_ACCESSORS( UIColor, backgroundColor );
 	UIC_DEFINE_ACCESSORS( UIColor, textColor );
+	UIC_DEFINE_ACCESSORS( uint16_t, halign );
+	UIC_DEFINE_ACCESSORS( uint16_t, valign );
 	UIC_DEFINE_ACCESSORS2( sgsVariable, cursor );
 	UIC_DEFINE_ACCESSORS2( sgsString, font );
 	UIC_DEFINE_ACCESSORS2( sgsString, image );
@@ -750,6 +764,8 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ get_overflow WRITE set_overflow ) SGS_ALIAS( sgsMaybe<bool> overflow );
 	SGS_PROPERTY_FUNC( READ get_backgroundColor WRITE set_backgroundColor ) SGS_ALIAS( sgsMaybe<UIColor> backgroundColor );
 	SGS_PROPERTY_FUNC( READ get_textColor WRITE set_textColor ) SGS_ALIAS( sgsMaybe<UIColor> textColor );
+	SGS_PROPERTY_FUNC( READ get_halign WRITE set_halign ) SGS_ALIAS( sgsMaybe<uint16_t> halign );
+	SGS_PROPERTY_FUNC( READ get_valign WRITE set_valign ) SGS_ALIAS( sgsMaybe<uint16_t> valign );
 	SGS_PROPERTY_FUNC( READ get_cursor WRITE set_cursor ) SGS_ALIAS( sgsVariable cursor );
 	SGS_PROPERTY_FUNC( READ get_font WRITE set_font ) SGS_ALIAS( sgsString font );
 	SGS_PROPERTY_FUNC( READ get_image WRITE set_image ) SGS_ALIAS( sgsString image );

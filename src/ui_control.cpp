@@ -585,6 +585,8 @@ void UI_StyleMerge( UIStyle* style, UIStyle* add )
 	if( !style->backgroundColor.isset ) style->backgroundColor = add->backgroundColor;
 	if( !style->overflow.isset ) style->overflow = add->overflow;
 	if( !style->textColor.isset ) style->textColor = add->textColor;
+	if( !style->halign.isset ) style->halign = add->halign;
+	if( !style->valign.isset ) style->valign = add->valign;
 	if( !style->cursor.not_null() ) style->cursor = add->cursor;
 	if( !style->font.c_str() ) style->font = add->font;
 	if( !style->fontSize.isset ) style->fontSize = add->fontSize;
@@ -625,6 +627,8 @@ void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style )
 	cache->overflow = style->overflow.isset ? style->overflow.data : false;
 	cache->backgroundColor = style->backgroundColor.isset ? style->backgroundColor.data : UIColor();
 	cache->textColor = style->textColor.isset ? style->textColor.data : UIColor(0,0,0,1);
+	cache->halign = style->halign.isset ? style->halign.data : 0;
+	cache->valign = style->valign.isset ? style->valign.data : 0;
 	if( style->cursor.not_null() )
 		cache->cursor = style->cursor;
 	else
