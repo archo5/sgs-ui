@@ -912,7 +912,13 @@ function UI_CreateSwitchButton( parent, name, options, sidebuttons, defval )
 		getValue = function SwitchButton_data_getValue(){ return this.value; },
 	};
 	SwitchButton._interface = UI_SwitchButton;
-	SwitchButton.data.btn_main = UI_CreateButton( SwitchButton ).addClass( "main-button" ).bindEvent( "click", function(){ this.parent.setNext(); } );
+	SwitchButton.data.btn_main = UI_CreateButton( SwitchButton, true ).addClass( "main-button" ).bindEvent( "click", function( e )
+	{
+		if( e.button == Mouse_ButtonL )
+			this.parent.setNext();
+		else
+			this.parent.setPrev();
+	});
 	if( sidebuttons )
 	{
 		SwitchButton.addClass( "has-side-buttons" );
@@ -936,7 +942,7 @@ function UI_CreateSwitchButton( parent, name, options, sidebuttons, defval )
 		{
 			UIForm_Detach( this, event );
 		}
-		else if( event.type == EV_ButtonDown && event.button != 0 )
+		else if( event.type == EV_ButtonDown && event.button != Mouse_ButtonL )
 		{
 			this.frame.setFocus( this );
 			return;
@@ -1005,6 +1011,7 @@ function UI_CreateSelectBox( parent, name, items )
 	SelectBox._interface = UI_SelectBox;
 	SelectBox.data =
 	{
+		lbmenu = null,
 		items = [],
 	};
 	SelectBox.name = name;
@@ -1016,6 +1023,7 @@ function UI_CreateSelectBox( parent, name, items )
 	
 	function SelectBox.callback( event ) use( orig_callback )
 	{
+		data = this.data;
 		if( event.type == EV_NeedFocus )
 			return 1;
 		else if( event.type == EV_Attach )
@@ -1026,13 +1034,46 @@ function UI_CreateSelectBox( parent, name, items )
 		{
 			UIForm_Detach( this, event );
 		}
-		else if( event.type == EV_ButtonDown && event.button != 0 )
+		else if( event.type == EV_ButtonDown && event.button != Mouse_ButtonL )
 		{
 			this.frame.setFocus( this );
 			return;
 		}
 		return this!orig_callback( event );
 	}
+	
+	SelectBox.bindEvent( "click", function SelectBox_click_event()
+	{
+		data = this.data;
+		sbox = this;
+		
+		if( data.lbmenu )
+		{
+			data.lbmenu.destroy(true);
+			data.lbmenu = null;
+			return;
+		}
+		
+		function sb_popup_remove_cb() use( sbox ){ sbox.data.lbmenu = null; };
+		data.lbmenu = lbmenu = UI_CreateListBoxMenu( this.frame.root, sb_popup_remove_cb )[]
+		{
+			x = this.rx0,
+			y = this.ry1,
+			width = this.rx1 - this.rx0,
+		}
+		.addClass( "select-list" );
+		
+		function sb_lbfunc( e ) use( sbox )
+		{
+			sbox.selectItem( sbox.data.lbmenu.getIDFromControl( this ), e );
+			sbox.data.lbmenu.destroy(true);
+			sbox.data.lbmenu = null;
+		}
+		
+		foreach( item : data.items )
+			lbmenu.addOption( item, sb_lbfunc );
+		lbmenu.refit();
+	});
 	
 	SelectBox.setItems( items );
 	

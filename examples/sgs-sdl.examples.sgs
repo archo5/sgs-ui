@@ -81,7 +81,7 @@ function sgs_ui_example_default()
 	SCROLL = UI_CreateScrollable( STAT )[]{ x = 500, y = 100, width = 200, height = 300 };
 	text = string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] );
 	text = string_part( text, 0, 1024 );
-	UI_CreateStatic( SCROLL )[]{ width = 20, height = 500, anchorMode = UI_Anchor_Hor, backgroundColor = UIColor( 0.9, 1 ), caption = text, halign = UI_Align_Left, valign = UI_Align_Top };
+	UI_CreateStatic( SCROLL )[]{ width = 20, height = 500, anchorMode = UI_Anchor_Hor, backgroundColor = UIColor( 0.9, 1 ), caption = text, align = UI_Align_Left | UI_Align_Top };
 	
 	SELECT = UI_CreateSelectBox( STAT, "sBoX",
 		[

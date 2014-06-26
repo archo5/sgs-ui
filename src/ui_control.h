@@ -21,6 +21,9 @@
 #define UI_Anchor_Vert  (UI_Anchor_Top | UI_Anchor_Bottom)
 #define UI_Anchor_All   (UI_Anchor_Hor | UI_Anchor_Vert)
 
+#define _UI_Align_H      0x000f
+#define _UI_Align_V      0x00f0
+//      ---
 #define UI_Align_Left    0x0001
 #define UI_Align_Center  0x0002
 #define UI_Align_Right   0x0004
@@ -259,6 +262,8 @@ struct UIStyle /* style storage */
 	
 	int get_anchorMode();
 	void set_anchorMode( int mode );
+	uint16_t get_align();
+	void set_align( uint16_t mode );
 	
 	SGS_PROPERTY_FUNC( READ get_nonClientH WRITE set_nonClientH ) SGS_ALIAS( float nonClientH );
 	SGS_PROPERTY_FUNC( READ get_nonClientV WRITE set_nonClientV ) SGS_ALIAS( float nonClientV );
@@ -270,6 +275,7 @@ struct UIStyle /* style storage */
 	SGS_PROPERTY_FUNC( READ get_paddingV WRITE set_paddingV ) SGS_ALIAS( float paddingV );
 	SGS_PROPERTY_FUNC( READ get_padding WRITE set_padding ) SGS_ALIAS( float padding );
 	SGS_PROPERTY_FUNC( READ get_anchorMode WRITE set_anchorMode ) SGS_ALIAS( int anchorMode );
+	SGS_PROPERTY_FUNC( READ get_align WRITE set_align ) SGS_ALIAS( uint16_t align );
 	
 	void gcmark(){ cursor.gcmark(); renderfunc.gcmark(); }
 };
@@ -317,6 +323,7 @@ struct UIStyleCache /* computed style cache */
 	sgsVariable renderfunc;
 	
 	int get_anchorMode();
+	uint16_t get_align(){ return halign | valign; }
 };
 
 struct UIStyleSelector
@@ -724,6 +731,8 @@ struct UIControl
 	UIC_DEFINE_ACCESSORS_ADC( float, nonClient );
 	UIC_DEFINE_ACCESSORS_ADC( float, margin );
 	UIC_DEFINE_ACCESSORS_ADC( float, padding );
+	uint16_t get_align(){ return computedStyle.get_align(); }
+	void set_align( uint16_t mode ){ style.set_align( mode ); _remergeStyle(); }
 	
 	float get_offsetLeft(){ return get_x(); }
 	float get_offsetRight(){ return -get_width() - get_x(); }
@@ -783,6 +792,7 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ get_paddingV WRITE set_paddingV ) SGS_ALIAS( sgsMaybe<float> paddingV );
 	SGS_PROPERTY_FUNC( READ get_padding WRITE set_padding ) SGS_ALIAS( sgsMaybe<float> padding );
 	SGS_PROPERTY_FUNC( READ get_anchorMode WRITE set_anchorMode ) SGS_ALIAS( int anchorMode );
+	SGS_PROPERTY_FUNC( READ get_align WRITE set_align ) SGS_ALIAS( uint16_t align );
 	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_y;

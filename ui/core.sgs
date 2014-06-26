@@ -50,21 +50,22 @@ function UI_Controls.image( parent, params )
 }
 
 
-function UI_CreateButton( parent )
+function UI_CreateButton( parent, rclick )
 {
 	Button = parent.frame.createControl( "button" );
+	Button.data = { rclick = !!rclick };
 	
 	ocb = Button.callback;
 	function Button.callback( event ) use( ocb )
 	{
 		if( event.type == EV_NeedFocus )
 			return 1;
-		else if( event.type == EV_ButtonDown && event.button != Mouse_ButtonL )
+		else if( event.type == EV_ButtonDown && event.button != Mouse_ButtonL && ( !this.data.rclick || event.button != Mouse_ButtonR ) )
 		{
 			this.frame.setFocus( this );
 			return 0;
 		}
-		else if( event.type == EV_ButtonUp && event.button != Mouse_ButtonL )
+		else if( event.type == EV_ButtonUp && event.button != Mouse_ButtonL && ( !this.data.rclick || event.button != Mouse_ButtonR ) )
 			return 0;
 		return this!ocb( event );
 	}

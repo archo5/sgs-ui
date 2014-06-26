@@ -320,7 +320,8 @@ global SS_UI_Theme_Default =
 					cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
 					if( icon )
 					{
-						SS_Draw({ preset = "box", position = vec2( this.rx1 - icon.width, cy ), scale = vec2( icon.width, icon.height ), texture = icon });
+						cyi = cy + if( data.lbmenu, 1, 0 );
+						SS_Draw({ preset = "box", position = vec2( this.rx1 - icon.width, cyi ), scale = vec2( icon.width, icon.height ), texture = icon });
 					}
 					
 					if( text )
@@ -385,6 +386,8 @@ global SS_UI_Theme_Default =
 		{
 			height = 24,
 			q1x = 1,
+			backgroundColor = UIColor(0.9,1),
+			textColor = UIColor(0,1),
 			renderfunc = function SS_UI_Theme_Default_listboxmenu_button_renderfunc()
 			{
 				if( this.rx0 >= this.rx1 || this.ry0 >= this.ry1 )
@@ -394,9 +397,8 @@ global SS_UI_Theme_Default =
 				icon = @data.icon;
 				text = this.caption;
 				
-				caddt = if( this.clicked, 0.02, if( this.mouseOn, -0.05, 0.0 ) );
-				caddb = if( this.clicked, 0.09, if( this.mouseOn, 0.05, 0.0 ) );
-				SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.4-caddt, 0.6-caddt, 0.8-caddt, 1, 0.4+caddb, 0.5+caddb, 0.6+caddb, 1 );
+				c = SS_UI_ConvertColor( this.backgroundColor );
+				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, c.r, c.g, c.b, c.a );
 				
 				if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
 				{
@@ -408,13 +410,16 @@ global SS_UI_Theme_Default =
 					
 					if( text )
 					{
-						SS_DrawTextLine_VC( text, this._cachedFont, this.rx0 + 4, cy, color(1,1,1,1) );
+						SS_DrawTextLine_VC( text, this._cachedFont, this.rx0 + 4, cy, SS_UI_ConvertColor( this.textColor ) );
 					}
 					
 					this.frame.popScissorRect();
 				}
 			}
 		},
+		"listboxmenu autolayout button:hover" = { backgroundColor = UIColor(0.4,0.6,0.8,1), textColor = UIColor(1,1) },
+		"listboxmenu autolayout button:active" = { backgroundColor = UIColor(0.3,0.5,0.7,1), textColor = UIColor(1,1) },
+		"listboxmenu.select-list" = { maxHeight = 300 },
 		"propertygrid scrollable" = { anchorMode = UI_Anchor_All },
 		"propertygrid autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
 		"propertygrid .label" = { q1x = 0.5, height = 24, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },

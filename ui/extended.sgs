@@ -40,15 +40,43 @@ function UI_Controls.scrollingautolayout( parent, params )
 
 global UI_ListBoxMenu = {};
 
-function UI_ListBoxMenu.addOption( option )
+function UI_ListBoxMenu.addOption( option, func )
 {
 	data = this.data;
 	data.options.push( option );
 	
-	return UI_CreateButton( data.OpCont )[]{ caption = option.text, icon = @option.icon };
+	btn = UI_CreateButton( data.OpCont )[]{ caption = option.text, icon = @option.icon };
+	btn.name = data.options.size - 1;
+	fn = func || @option.func;
+	if( fn )
+		btn.bindEvent( "click", fn );
 }
 
-function UI_CreateListBoxMenu( parent )
+function UI_ListBoxMenu.removeOptions()
+{
+	this.data.options.clear();
+	this.OpCont.destroyChildren(true);
+}
+
+function UI_ListBoxMenu.refit()
+{
+	data = this.data;
+	real_height = data.AutoLayout.ry1 - data.AutoLayout.ry0;
+	real_height += data.Scrollable.paddingTop + data.Scrollable.paddingBottom;
+	real_height += data.Scrollable.nonClientTop + data.Scrollable.nonClientBottom;
+	real_height += this.paddingTop + this.paddingBottom;
+	real_height += this.nonClientTop + this.nonClientBottom;
+	if( real_height > this.maxHeight )
+		real_height = this.maxHeight;
+	this.height = real_height;
+}
+
+function UI_ListBoxMenu.getIDFromControl( ctrl )
+{
+	return toint( ctrl.name );
+}
+
+function UI_CreateListBoxMenu( parent, popup_remove_callback )
 {
 	ListBoxMenu = parent.frame.createControl( "listboxmenu" );
 	ListBoxMenu._interface = UI_ListBoxMenu;
@@ -56,6 +84,36 @@ function UI_CreateListBoxMenu( parent )
 	{
 		options = [],
 	};
+	if( popup_remove_callback )
+	{
+		orig_callback = ListBoxMenu.callback;
+		function ListBoxMenu.callback( event ) use( orig_callback, popup_remove_callback )
+		{
+			if( event.type == EV_HitTest )
+			{
+				if( this!orig_callback( event ) )
+					return Hit_Client;
+				if( this.parent && this.parent.callback( event ) )
+					return Hit_NonClient;
+				return Hit_None;
+			}
+			if( event.type == EV_ButtonDown )
+			{
+				hitevent = UI_CreateEvent();
+				hitevent.type = EV_HitTest;
+				hitevent.x = event.x;
+				hitevent.y = event.y;
+				if( this.callback( hitevent ) == Hit_NonClient )
+				{
+					this!popup_remove_callback();
+					this!orig_callback( event );
+					this.destroy( true );
+					return 0;
+				}
+			}
+			return this!orig_callback( event );
+		}
+	}
 	
 	Scrollable = UI_CreateScrollable( ListBoxMenu, "auto", false );
 	ListBoxMenu.data.Scrollable = Scrollable;

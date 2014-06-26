@@ -97,6 +97,17 @@ void UIStyle::set_anchorMode( int mode )
 	}
 }
 
+uint16_t UIStyle::get_align()
+{
+	return ( halign.isset ? halign.data : 0 ) | ( valign.isset ? valign.data : 0 );
+}
+
+void UIStyle::set_align( uint16_t mode )
+{
+	halign.set( mode & _UI_Align_H );
+	valign.set( mode & _UI_Align_V );
+}
+
 
 int UIStyleCache::get_anchorMode()
 {
@@ -142,7 +153,7 @@ const char* StyleArr_addSelector( StyleSelArray& selectors, sgsString sgsstr, co
 	}
 	
 	size_t selpos = selectors.size() - 1;
-	while( selpos > 0 && UI_CompareSelectors( &selectors[ selpos - 1 ], &selectors[ selpos ] ) < 0 )
+	while( selpos > 0 && UI_CompareSelectors( &selectors[ selpos - 1 ], &selectors[ selpos ] ) <= 0 )
 	{
 		VQSWAP( selectors, selpos - 1, selpos );
 		selpos--;
@@ -794,10 +805,14 @@ int UICFPNAME( SGS_CTX )
 	case EV_ButtonDown:
 		SGSFN( UNCFPNS "/buttondown" );
 		ctrl->clicked += ctrl->mouseOn;
+		SGSFN( UNCFPNS "/buttondown/layout" );
 		ctrl->frame->_updateStyles( ctrl );
+		SGSFN( UNCFPNS "/buttondown/event" );
 		ctrl->_callEvent( sgsString( C, "mousedown" ), event );
+		SGSFN( UNCFPNS "/buttondown/focus" );
 		if( ctrl->frame.object )
 			ctrl->frame->setFocus( ctrl );
+		SGSFN( UNCFPNS "/buttondown" );
 		return 1;
 	case EV_ButtonUp:
 		SGSFN( UNCFPNS "/buttonup" );
@@ -1606,7 +1621,7 @@ bool UIControl::removeChild( UIControl::Handle ch )
 		}
 	}
 	ch->parent = Handle();
-	if( ch->frame.object && ch->frame->m_hover == (UIControl*) ch )
+	if( ch->frame.not_null() )
 	{
 		ch->frame->handleMouseMove( false );
 		ch->frame->preRemoveControl( ch );
@@ -2234,7 +2249,7 @@ void UIControl::_refilterStyles( UIFilteredStyleArray& styles )
 					size_t fspos = styles.size() - 1;
 					while( fspos > 0 && UI_CompareSelectors(
 						&styles[ fspos - 1 ].rule->selectors[ styles[ fspos - 1 ].which_sel ],
-						&styles[ fspos ].rule->selectors[ styles[ fspos ].which_sel ] ) < 0 )
+						&styles[ fspos ].rule->selectors[ styles[ fspos ].which_sel ] ) <= 0 )
 					{
 						VSWAP( styles, fspos - 1, fspos );
 						fspos--;
