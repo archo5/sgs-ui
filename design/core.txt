@@ -42,8 +42,8 @@ basic:
 + textbox (single-line)
 extended:
 + scrollbar (H, V)
-- dropdown menu
-- listbox
++ dropdown menu
+/ listbox (scrollingautolayout + checkbox + static allows this quite easily)
 
 
 ==============
@@ -54,9 +54,11 @@ special exts..
 + scrollable panels -- contents are scrollable, can contain anything
 + multi-level menus -- same as everywhere else
 - possibly toolbars
-- different color themes
++ different color themes
 - tabbed panels (automatically assigning names to buttons)
 - autocomplete popups (relative non-constrained overlays)
+- slidable panel splits (table with draggable borders)
+- docking system (dockable window, docking hub)
 
 a very common need:
 DONE++> non-client areas for things like tabs and scrollbars
@@ -65,10 +67,10 @@ DONE++> non-client areas for things like tabs and scrollbars
 
 another need:
 DONE++> forms. otherwise unnoticeable hubs for field data (textboxes, checkboxes, radio buttons, listboxes etc.)
-- textboxes should store data directly mapped
++ textboxes should store data directly mapped
 + checkboxes should combine values into an array
 + radio buttons should clear other buttons with the same name, the value being the one picked
-- same goes for listboxes
+/ same goes for listboxes
 + combination of multiple values under the same name requires internal storage to be of array[string] type
 + requirement to retrieve different types of (possibly same) data means there must be the following functions to read it:
 	- getData() returns a dict with `name => value-list` mapping

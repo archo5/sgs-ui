@@ -745,6 +745,8 @@ int UICFPNAME( SGS_CTX )
 			ctrl->ry0 += lerpf( pr0y, pr1y, ctrl->get_q0y() );
 			ctrl->ry1 += lerpf( pr0y, pr1y, ctrl->get_q1y() );
 			ctrl->_changedFullRect();
+			if( frame )
+				frame->handleMouseMove( true );
 		}
 		for( UIControl::HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
 			if( (*it)->_parentAffectsLayout )
