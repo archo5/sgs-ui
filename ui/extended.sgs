@@ -139,8 +139,7 @@ global UI_PropertyGrid = {};
 
 function UI_PropertyGrid._create_label( text )
 {
-	data = this.data;
-	ctrl = UI_CreateStatic( data.OpCont )[]{ caption = text }.addClass( "label" );
+	ctrl = UI_CreateStatic( this.data.OpCont )[]{ caption = text }.addClass( "label" );
 	return ctrl;
 }
 
@@ -149,21 +148,22 @@ function UI_PropertyGrid._createDefaultLabel( name, option )
 	return this._create_label( @option.label || name );
 }
 
+function UI_PropertyGrid._create_separator( name, value, option )
+{
+	return UI_CreateStatic( this.data.OpCont )[]{ caption = @option.label || value || name }.addClass( "separator" );
+}
+
 function UI_PropertyGrid._create_checkbox( name, value, option )
 {
 	this._createDefaultLabel( name, option );
-	
-	data = this.data;
-	ctrl = UI_CreateCheckbox( data.OpCont, name, null, !!value ).addClass( "value" );
+	ctrl = UI_CreateCheckbox( this.data.OpCont, name, null, !!value ).addClass( "value" );
 	return ctrl;
 }
 
 function UI_PropertyGrid._create_slider( name, value, option )
 {
 	this._createDefaultLabel( name, option );
-	
-	data = this.data;
-	ctrl = UI_CreateSlider( data.OpCont, name, @option.min, @option.max, @option.stopsize ).addClass( "value" );
+	ctrl = UI_CreateSlider( this.data.OpCont, name, @option.min, @option.max, @option.stopsize ).addClass( "value" );
 	ctrl.setValue( value );
 	return ctrl;
 }
@@ -171,25 +171,27 @@ function UI_PropertyGrid._create_slider( name, value, option )
 function UI_PropertyGrid._create_textbox( name, value, option )
 {
 	this._createDefaultLabel( name, option );
-	
-	data = this.data;
-	ctrl = UI_CreateTextbox( data.OpCont, name, @option.textbox_caption, value ).addClass( "value" );
+	ctrl = UI_CreateTextbox( this.data.OpCont, name, @option.textbox_caption, value ).addClass( "value" );
 	return ctrl;
 }
 
 function UI_PropertyGrid._create_switchbutton( name, value, option )
 {
 	this._createDefaultLabel( name, option );
-	
-	data = this.data;
-	ctrl = UI_CreateSwitchButton( data.OpCont, name, @option.options, @option.sidebuttons, value ).addClass( "value" );
+	ctrl = UI_CreateSwitchButton( this.data.OpCont, name, @option.options, @option.sidebuttons, value ).addClass( "value" );
+	return ctrl;
+}
+
+function UI_PropertyGrid._create_selectbox( name, value, option )
+{
+	this._createDefaultLabel( name, option );
+	ctrl = UI_CreateSelectBox( this.data.OpCont, name, @option.items, value ).addClass( "value" );
 	return ctrl;
 }
 
 function UI_PropertyGrid._create_button( name, value, option )
 {
-	data = this.data;
-	ctrl = UI_CreateButton( data.OpCont )[]{ caption = @option.label || name, icon = @option.icon, class = "value" };
+	ctrl = UI_CreateButton( this.data.OpCont )[]{ caption = @option.label || name, icon = @option.icon, class = "value" };
 	ctrl.bindEvent( "click", value );
 	return ctrl;
 }
@@ -254,15 +256,10 @@ function UI_PropertyGrid._updateData()
 	}
 }
 
-function UI_PropertyGrid.getData()
-{
-	return this.data.values;
-}
-
-function UI_PropertyGrid.getValueOf( name )
-{
-	return @this.data.values[ name ];
-}
+function UI_PropertyGrid.getForm(){ return this.data.Form; }
+function UI_PropertyGrid.getData(){ return this.data.values; }
+function UI_PropertyGrid.getLastChange(){ (name,type) = this.data.Form.getLastChange(); return name, type; }
+function UI_PropertyGrid.getValueOf( name ){ return @this.data.values[ name ]; }
 
 function UI_CreatePropertyGrid( parent, seed, options )
 {
@@ -437,5 +434,77 @@ function UI_Controls.window( parent, params )
 {
 	ctrl = UI_CreateWindow( parent );
 	UI_ConfigControl( ctrl, params );
+}
+
+
+global UI_FileBrowser = {};
+
+function UI_FileBrowser.normalizePath( path )
+{
+	path = string_trim( string_replace( path, "\\", "/" ), "/", STRING_TRIM_RIGHT );
+	return path;
+}
+
+function UI_FileBrowser.addFile( entry )
+{
+	tgt = this.data.FileCont;
+	UI_CreateButton( tgt )[]{ class = "file-icon", caption = entry, name = this.data.path $ "/" $ entry };
+}
+
+function UI_FileBrowser.refillFileList()
+{
+	data = this.data;
+	data.FileCont.destroyAllChildren( true );
+	foreach( is_real, entry : io_dir( data.path ) )
+	{
+		if( !is_real )
+			continue;
+		this.addFile( entry );
+	}
+}
+
+function UI_FileBrowser.setPath( path )
+{
+	if( path === null )
+		path = io_getcwd();
+	path = this.normalizePath( path );
+	this.data.path = path;
+	this.data.PathText.setText( path );
+	this.refillFileList();
+}
+
+function UI_CreateFileBrowser( parent, commands )
+{
+	FileBrowser = parent.frame.createControl( "filebrowser" );
+	FileBrowser._interface = UI_FileBrowser;
+	FileBrowser.data = fbdata =
+	{
+		path = null,
+		
+		FileCont = null,
+	};
+	
+	// path block
+	PathBlock = UI_CreateStatic( FileBrowser )[]{ class = "path-block" };
+	BtnBack = UI_CreateButton( PathBlock )[]{ class = "btn-back" };
+	BtnFwd = UI_CreateButton( PathBlock )[]{ class = "btn-fwd" };
+	BtnUp = UI_CreateButton( PathBlock )[]{ class = "btn-up" };
+	fbdata.PathText = PathText = UI_CreateTextbox( PathBlock )[]{ class = "path-text" };
+	
+	// directory tree
+	// - TODO
+	
+	// quick access links
+	// - TODO
+	
+	// file list
+	FileScroll = UI_CreateScrollable( FileBrowser )[]{ class = "file-scroll" };
+	fbdata.FileCont = FileCont = UI_CreateAutoLayout( FileScroll )[]{ class = "file-cont" };
+	
+	FileBrowser.setPath( @commands.path );
+	
+	FileBrowser.updateTheme();
+	parent.addChild( FileBrowser );
+	return FileBrowser;
 }
 

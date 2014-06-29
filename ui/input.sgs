@@ -4,11 +4,17 @@ global UI_Form = {};
 function UI_Form.getData(){ return this.data.getData(); }
 function UI_Form.getList( name ){ return this.data.getList( name ); }
 function UI_Form.getString( name ){ return this.data.getString( name ); }
+function UI_Form.getLastChange(){ return this.data.changedItem, this.data.changeType; }
 
 function UI_CreateForm( parent )
 {
 	Form = parent.frame.createControl( "form" );
-	Form.data = { ctrls = map() };
+	Form.data =
+	{
+		ctrls = map(),
+		changedItem = null,
+		changeType = null,
+	};
 	
 	Form._interface = UI_Form;
 	
@@ -93,6 +99,8 @@ function UIForm_Attach( ctrl, event )
 	form = UIForm_GetFromCtrl( ctrl );
 	if( form )
 	{
+		form.data.changedItem = ctrl.name;
+		form.data.changeType = "add";
 		form.data.ctrls[ ctrl ] = true;
 		UIForm_ChangeEvent( form, event );
 	}
@@ -103,6 +111,8 @@ function UIForm_Detach( ctrl, event )
 	form = UIForm_GetFromCtrl( ctrl );
 	if( form )
 	{
+		form.data.changedItem = ctrl.name;
+		form.data.changeType = "remove";
 		unset( form.data.ctrls, ctrl );
 		UIForm_ChangeEvent( form, event );
 	}
@@ -112,7 +122,11 @@ function UIForm_CtrlChanged( ctrl, event )
 {
 	form = UIForm_GetFromCtrl( ctrl );
 	if( form )
+	{
+		form.data.changedItem = ctrl.name;
+		form.data.changeType = "edit";
 		UIForm_ChangeEvent( form, event );
+	}
 }
 
 function UIForm_ControlsByName( ctrl, name )
@@ -306,6 +320,25 @@ function UI_CreateRadioButton( parent, name, value, checked )
 }
 
 
+global UI_Textbox = {};
+
+function UI_Textbox.setText( text )
+{
+	data = this.data;
+	text ||= "";
+	text = tostring( text );
+	
+	data.sel_from = text.length;
+	data.sel_to = text.length;
+	data.offset = 0;
+	data.fsel_from = null;
+	data.fsel_to = null;
+	data.selecting = false;
+	data.chars = string_utf8_decode( text );
+	data.text = text;
+	data.prevtext = text;
+}
+
 function UI_CreateTextbox( parent, name, caption, text )
 {
 	caption ||= "";
@@ -314,7 +347,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 	
 	Textbox = parent.frame.createControl( "textbox" );
 	Textbox.name = name;
-	
+	Textbox._interface = UI_Textbox;
 	Textbox.data =
 	{
 		border = 1,
@@ -432,7 +465,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 			data.removeCursorTimer( this.frame );
 			if( data.prevtext != data.text )
 			{
-				this.callEvent( "commit", event );
+				this.callEvent( "change", event );
 				UIForm_CtrlChanged( this, event );
 			}
 		}
@@ -444,7 +477,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 				{
 					data.chars.insert( data.sel_from, event.uchar );
 					data.updateText();
-					this.callEvent( "change", event );
+					this.callEvent( "edit", event );
 					data.sel_from++;
 					data.sel_to++;
 				}
@@ -461,7 +494,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 					data.chars.insert( from, event.uchar );
 					from++;
 					data.updateText();
-					this.callEvent( "change", event );
+					this.callEvent( "edit", event );
 					data.sel_from = from;
 					data.sel_to = from;
 				}
@@ -539,7 +572,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 						data.chars.erase( data.sel_from );
 					}
 					data.updateText();
-					this.callEvent( "change", event );
+					this.callEvent( "edit", event );
 					data.updateSelOffsets( this );
 					data.resetCursorTimer( this.frame );
 				}
@@ -562,7 +595,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 							data.sel_to = from;
 						}
 						data.updateText();
-						this.callEvent( "change", event );
+						this.callEvent( "edit", event );
 						data.updateSelOffsets( this );
 						data.resetCursorTimer( this.frame );
 					}
@@ -591,7 +624,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 						data.chars = get_concat( data.chars.part( 0, at ), utext, data.chars.part( at ) );
 						data.sel_from = data.sel_to = at + utext.size;
 						data.updateText();
-						this.callEvent( "change", event );
+						this.callEvent( "edit", event );
 						data.updateSelOffsets( this );
 						data.resetCursorTimer( this.frame );
 					}
@@ -744,7 +777,7 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
 		this.dragging = false;
 		if( this.prev_position != this.position )
 		{
-			Slider.callEvent( "commit", event );
+			Slider.callEvent( "change", event );
 			UIForm_CtrlChanged( Slider, event );
 		}
 	}
@@ -795,139 +828,133 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
 }
 
 
-global UI_SwitchButton = {};
+global UI_GenericSelectionControl = {};
 
-function UI_SwitchButton.setOptions( items )
+function UI_GenericSelectionControl._initialize( items, value )
 {
+	this.data.selectedValue = value;
+	this.setOptions( items );
+}
+
+// supports array[string], array[{text,value}], {value=text}
+function UI_GenericSelectionControl.setOptions( items )
+{
+	options = [];
+	foreach( key, item : items )
+	{
+		if( is_array( items ) )
+		{
+			// array with string / dict keys
+			if( typeid( item ) == VT_STRING )
+				options.push({ value = item, text = item });
+			else if( @item.text )
+				options.push({ value = @item.value || item.text, text = item.text });
+		}
+		else
+		{
+			options.push({ value = key, text = tostring( item ) });
+		}
+	}
 	data = this.data;
-	data.options = items;
-	// unknown interface, must count manually
-	cnt = 0;
-	foreach( v : items )
-		cnt++;
+	data.options = options;
+	cnt = options.size;
 	this.addRemClass( "no-options", cnt == 0 );
 	this.addRemClass( "one-option", cnt == 1 );
 	this.addRemClass( "two-options", cnt == 2 );
 	this.addRemClass( "more-than-two-options", cnt > 2 );
-	this.setValue( data.value );
+	this.setValue( data.selectedValue );
 }
 
-function UI_SwitchButton.setValue( value, event )
+function UI_GenericSelectionControl.setValue( value, event )
 {
+	foreach( i, opt : this.data.options )
+	{
+		if( opt.value === value )
+			return this.selectIndex( i );
+	}
+	return this.selectIndex( 0 );
+}
+
+function UI_GenericSelectionControl.selectIndex( id, event )
+{
+	id = parseint( id );
+	if( id === null )
+		return WARNING( "ID must be an integer" );
+	
 	data = this.data;
-	pvalue = data.value;
-	chg = false;
-	foreach( k ,: data.options )
+	if( id < 0 || id >= data.options.size )
+		id = 0;
+	pvalue = data.selectedValue;
+	if( data.options.size )
 	{
-		if( k == value )
-		{
-			data.value = k;
-			chg = true;
-			break;
-		}
+		this._setCaption( data.options[ id ].text );
+		data.selectedIndex = id;
+		data.selectedValue = data.options[ id ].value;
 	}
-	if( !chg )
+	else
 	{
-		foreach( k ,: data.options )
-		{
-			data.value = k;
-			break;
-		}
+		this._setCaption( "" );
+		data.selectedIndex = -1;
+		data.selectedValue = null;
 	}
-	if( data.value !== pvalue )
+	
+	if( pvalue !== data.selectedValue )
 	{
-		capn = data.options[ data.value ];
-		if( capn === null )
-			capn = data.value;
-		data.btn_main.caption = capn;
 		if( event === null )
 			event = UI_CreateEvent();
-		this.callEvent( "change", event );
 		UIForm_CtrlChanged( this, event );
+		this.callEvent( "change", event );
 	}
 }
 
-function UI_SwitchButton.setPrev( event )
+function UI_GenericSelectionControl.selectPrev( event )
 {
 	data = this.data;
-	v = data.value;
-	pk = null;
-	set = false;
-	foreach( k ,: data.options )
-	{
-		if( k == v )
-		{
-			if( !set )
-				set = true; // do not break because value will be set on last iteration
-			else
-				break;
-		}
-		pk = k;
-		set = true;
-	}
-	this.setValue( pk, event );
+	return this.selectIndex( ( data.selectedIndex + data.options.size - 1 ) % data.options.size, event );
 }
 
-function UI_SwitchButton.setNext( event )
+function UI_GenericSelectionControl.selectNext( event )
 {
 	data = this.data;
-	v = data.value;
-	nk = null;
-	set = false;
-	tobeset = false;
-	foreach( k ,: data.options )
-	{
-		if( tobeset )
-		{
-			nk = k;
-			set = true;
-			break;
-		}
-		if( k == v )
-			tobeset = true;
-	}
-	if( tobeset && !set )
-	{
-		foreach( k ,: data.options )
-		{
-			nk = k;
-			break;
-		}
-	}
-	this.setValue( nk, event );
+	return this.selectIndex( ( data.selectedIndex + 1 ) % data.options.size, event );
 }
 
-function UI_CreateSwitchButton( parent, name, options, sidebuttons, defval )
+
+global UI_SwitchButton = clone( UI_GenericSelectionControl );
+
+function UI_SwitchButton._setCaption( text )
+{
+	this.data.btn_main.caption = text;
+}
+
+function UI_CreateSwitchButton( parent, name, options, sidebuttons, value )
 {
 	sidebuttons ||= false;
 	SwitchButton = parent.frame.createControl( "switchbutton" );
 	SwitchButton.name = name;
 	SwitchButton.data =
 	{
-		options = null,
-		value = null,
 		btn_main = null,
 		btn_prev = null,
 		btn_next = null,
-		getValue = function SwitchButton_data_getValue(){ return this.value; },
+		getValue = function SwitchButton_data_getValue(){ return this.selectedValue; },
 	};
 	SwitchButton._interface = UI_SwitchButton;
 	SwitchButton.data.btn_main = UI_CreateButton( SwitchButton, true ).addClass( "main-button" ).bindEvent( "click", function( e )
 	{
 		if( e.button == Mouse_ButtonL )
-			this.parent.setNext();
+			this.parent.selectNext();
 		else
-			this.parent.setPrev();
+			this.parent.selectPrev();
 	});
 	if( sidebuttons )
 	{
 		SwitchButton.addClass( "has-side-buttons" );
-		SwitchButton.data.btn_prev = UI_CreateButton( SwitchButton )[]{ caption = "<", class = "side-button prev" }.bindEvent( "click", function(){ this.parent.setPrev(); } );
-		SwitchButton.data.btn_next = UI_CreateButton( SwitchButton )[]{ caption = ">", class = "side-button next" }.bindEvent( "click", function(){ this.parent.setNext(); } );
+		SwitchButton.data.btn_prev = UI_CreateButton( SwitchButton )[]{ caption = "<", class = "side-button prev" }.bindEvent( "click", function(){ this.parent.selectPrev(); } );
+		SwitchButton.data.btn_next = UI_CreateButton( SwitchButton )[]{ caption = ">", class = "side-button next" }.bindEvent( "click", function(){ this.parent.selectNext(); } );
 	}
 	
-	SwitchButton.setOptions( options );
-	SwitchButton.setValue( defval );
+	SwitchButton._initialize( options, value );
 	
 	ocb = SwitchButton.callback;
 	function SwitchButton.callback( event ) use( ocb )
@@ -956,63 +983,20 @@ function UI_CreateSwitchButton( parent, name, options, sidebuttons, defval )
 }
 
 
-global UI_SelectBox = {};
-function UI_SelectBox.setItems( items )
+global UI_SelectBox = clone( UI_GenericSelectionControl );
+
+function UI_SelectBox._setCaption( text )
 {
-	// validate items
-	foreach( item : items )
-	{
-		if( typeof( item ) != "string" && typeof( @item.text ) != "string" )
-			return WARNING( "item must be string or { text, value } dict" );
-	}
-	// overwrite item array
-	data = this.data;
-	data.items.clear();
-	foreach( item : items )
-	{
-		oitem =
-		{
-			text = @item.text || item,
-			value = @item.value || @item.text || item,
-			group = @item.group,
-		};
-		data.items.push( oitem );
-	}
-	
-	this.selectItem( 0 );
-}
-function UI_SelectBox.selectItem( id, event )
-{
-	id = parseint( id );
-	if( id === null )
-		return WARNING( "ID must be an integer" );
-	
-	data = this.data;
-	if( id < 0 || id >= data.items.size )
-		id = 0;
-	if( data.items.size )
-	{
-		this.caption = data.items[ id ].text;
-		data.selectedIndex = id;
-		data.selectedValue = data.items[ id ].value;
-	}
-	else
-	{
-		this.caption = "";
-		data.selectedIndex = -1;
-		data.selectedValue = null;
-	}
-	this.callEvent( "change", event );
+	this.caption = text;
 }
 
-function UI_CreateSelectBox( parent, name, items )
+function UI_CreateSelectBox( parent, name, options, value )
 {
 	SelectBox = parent.frame.createControl( "selectbox" );
 	SelectBox._interface = UI_SelectBox;
 	SelectBox.data =
 	{
 		lbmenu = null,
-		items = [],
 	};
 	SelectBox.name = name;
 	
@@ -1065,17 +1049,17 @@ function UI_CreateSelectBox( parent, name, items )
 		
 		function sb_lbfunc( e ) use( sbox )
 		{
-			sbox.selectItem( sbox.data.lbmenu.getIDFromControl( this ), e );
+			sbox.selectIndex( sbox.data.lbmenu.getIDFromControl( this ), e );
 			sbox.data.lbmenu.destroy(true);
 			sbox.data.lbmenu = null;
 		}
 		
-		foreach( item : data.items )
+		foreach( item : data.options )
 			lbmenu.addOption( item, sb_lbfunc );
 		lbmenu.refit();
 	});
 	
-	SelectBox.setItems( items );
+	SelectBox._initialize( options, value );
 	
 	SelectBox.updateTheme();
 	parent.addChild( SelectBox );

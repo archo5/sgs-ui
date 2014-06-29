@@ -655,7 +655,7 @@ struct UIControl
 	SGS_METHOD UIControl::Handle addClass( const sgsString& ss ){ addClass( ss.c_str(), ss.size() ); return Handle( this ); }
 	SGS_METHOD UIControl::Handle removeClass( const sgsString& ss ){ removeClass( ss.c_str(), ss.size() ); return Handle( this ); }
 	SGS_METHOD UIControl::Handle addRemClass( const sgsString& ss, bool add ){ if( add ) return addClass( ss ); else return removeClass( ss ); }
-	SGS_METHOD UIControl::Handle hasClass( const sgsString& ss ){ hasClass( ss.c_str(), ss.size() ); return Handle( this ); }
+	SGS_METHOD bool hasClass( const sgsString& ss ){ return hasClass( ss.c_str(), ss.size() ); }
 	void _setClasses3( const char* str1, size_t size1, const char* str2, size_t size2, const char* str3, size_t size3 );
 	bool addClass( const char* str, size_t size );
 	bool removeClass( const char* str, size_t size );

@@ -37,7 +37,11 @@ function sgs_ui_example_default()
 	global FRAME;
 	
 	global FORM = UI_CreateForm( FRAME.root );
-//	FORM.bindEvent( "change", function(){ println("form changed."); } );
+	FORM.bindEvent( "change", function()
+	{
+		(name,type) = this.getLastChange();
+		println("form changed: "${name=name,type=type});
+	});
 	
 	function formdump()
 	{
@@ -67,9 +71,9 @@ function sgs_ui_example_default()
 	});
 	
 	tbKey = UI_CreateTextbox( STAT, "key", "Key" )[]{ x = 100, y = 50, width = 100, height = 24 };
-	tbKey.bindEvent( "change", function(){ println( "Updated key: " $ this.data.text ); } );
+	tbKey.bindEvent( "edit", function(){ println( "Updated key: " $ this.data.text ); } );
 	tbVal = UI_CreateTextbox( STAT, "value", "Value" )[]{ x = 220, y = 50, width = 100, height = 24 };
-	tbVal.bindEvent( "commit", function(){ println( "Committed value: " $ this.data.text ); } );
+	tbVal.bindEvent( "change", function(){ println( "Committed value: " $ this.data.text ); } );
 	
 	UI_CreateCheckbox( STAT, "cbox", "set" )[]{ x = 340, y = 50, width = 24, height = 24 };
 	UI_CreateRadioButton( STAT, "rbtn", "A" )[]{ x = 364, y = 50, width = 24, height = 24 };
@@ -113,12 +117,28 @@ function sgs_ui_example_default()
 		value1 = 35,
 		"text ctl" = "Text Here !",
 		Troolean = true,
+		"$0" = null,
+		selebox = 5,
+		selebox_map = 4,
 		"Dump ALL" = function(){ printvar( PGRID.getData() ); },
 	};
 	PGRID_options =
 	{
 		value1 = { type = "slider", min = 0, max = 50, stopsize = 5 },
 		Troolean = { type = "switchbutton", options = map( true, "True", false, "False", "FileNotFound", "File not found" ) },
+		"$0" = { type = "separator", label = "-- separator --" },
+		selebox = { type = "selectbox", items = [
+			{ value = "wat", text = "What?" },
+			{ value = "dat", text = "That!" },
+			{ value = "huh", text = "Really?" },
+			{ value = 5, text = "High five!" },
+		] },
+		selebox_map = { type = "selectbox", items = map(
+			"wat", "What?",
+			"dat", "That!",
+			"huh", "Really?",
+			4, "Fantastic four!"
+		) },
 	};
 	PGRID = UI_CreatePropertyGrid( STAT, PGRID_data, PGRID_options )[]{ x = 720, y = 180, width = 200, height = 300 };
 	
@@ -615,5 +635,16 @@ function sgs_ui_example_selectors()
 	stylerule = UI_CreateStyleRule();
 	stylerule.addSelector( "root > button.red.^re.$ed.~e@submit@^sub@$mit@~bmi" );
 	print "Match compatible button against complex multiselector 3: "; printvar( stylerule.checkMatch( button ) );
+}
+
+
+//
+// FILEBROWSER EXAMPLE
+// - tests file browser control
+//
+
+function sgs_ui_example_filebrowse()
+{
+	UI_CreateFileBrowser( FRAME.root )[]{ anchorMode = UI_Anchor_All };
 }
 

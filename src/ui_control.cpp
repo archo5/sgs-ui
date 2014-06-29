@@ -798,11 +798,13 @@ int UICFPNAME( SGS_CTX )
 		SGSFN( UNCFPNS "/mouseenter" );
 		ctrl->mouseOn = true;
 		ctrl->frame->_updateStyles( ctrl );
+		ctrl->_callEvent( sgsString( C, "mouseenter" ), event );
 		return 1;
 	case EV_MouseLeave:
 		SGSFN( UNCFPNS "/mouseleave" );
 		ctrl->mouseOn = false;
 		ctrl->frame->_updateStyles( ctrl );
+		ctrl->_callEvent( sgsString( C, "mouseleave" ), event );
 		return 1;
 	case EV_ButtonDown:
 		SGSFN( UNCFPNS "/buttondown" );

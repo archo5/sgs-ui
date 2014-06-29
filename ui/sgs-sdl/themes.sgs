@@ -424,6 +424,7 @@ global SS_UI_Theme_Default =
 		"propertygrid autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
 		"propertygrid .label" = { q1x = 0.5, height = 24, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
 		"propertygrid .value" = { q1x = 0.5, height = 24 },
+		"propertygrid .separator" = { anchorMode = UI_Anchor_Hor, height = 24, textColor = UIColor(1), backgroundColor = UIColor(0.6,1) },
 		"propertygrid button.value" = { q1x = 1 },
 		"window" =
 		{
@@ -442,6 +443,14 @@ global SS_UI_Theme_Default =
 			}
 		},
 		"window .close-button" = { anchorMode = UI_Anchor_Right, x = -20, y = -22, width = 20, height = 18, icon = "icons/cross.png" },
+		"filebrowser .path-block" = { height = 32, anchorMode = UI_Anchor_Hor },
+		"filebrowser .path-block .btn-back" = { width = 32, height = 32, icon = "icons/resultset_previous.png", nonClient = 2 },
+		"filebrowser .path-block .btn-fwd" = { x = 32, width = 32, height = 32, icon = "icons/resultset_next.png", nonClient = 2 },
+		"filebrowser .path-block .btn-up" = { x = 64, width = 32, height = 32, icon = "icons/arrow_up.png", nonClient = 2 },
+		"filebrowser .path-block .path-text" = { x = 96, width = -96, anchorMode = UI_Anchor_Hor, height = 32, nonClient = 2 },
+		"filebrowser .file-scroll" = { y = 32, height = -32, anchorMode = UI_Anchor_All },
+		"filebrowser .file-cont" = { anchorMode = UI_Anchor_All },
+		"filebrowser .file-cont .file-icon" = { width = 128, height = 24 },
 	}),
 	
 	// BUTTON
