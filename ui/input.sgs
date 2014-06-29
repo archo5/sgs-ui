@@ -650,7 +650,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 
 global UI_Slider = {};
 
-function UI_Slider.setValue( value, event )
+function UI_Slider._changeValue( value, event )
 {
 	data = this.data;
 	prev = data.value;
@@ -676,10 +676,78 @@ function UI_Slider.setValue( value, event )
 	else
 		data.position = ( value - data.vmin ) / ( data.vmax - data.vmin );
 	
+	if( !data.vertical )
+		data.Handle[]{ q0x = data.position, q1x = data.position };
+	else
+		data.Handle[]{ q0y = data.position, q1y = data.position };
+	
 	if( prev != value )
 	{
 		if( event === null )
 			event = UI_CreateEvent();
+		this.callEvent( "edit", event );
+	}
+}
+
+function UI_Slider._updatePosData( dx, dy, event )
+{
+	data = this.data;
+	Rail = data.Rail;
+	if( !data.vertical )
+	{
+		pmin = Rail.px0;
+		pmax = Rail.px1;
+		q = ( dx + data.dragoff_x - pmin ) / if( pmax > pmin + 0.0001, pmax - pmin, 0.0001 );
+	}
+	else
+	{
+		pmin = Rail.py0;
+		pmax = Rail.py1;
+		q = ( dy + data.dragoff_y - pmin ) / if( pmax > pmin + 0.0001, pmax - pmin, 0.0001 );
+	}
+	q = if( q < 0, 0, if( q > 1, 1, q ) );
+	this._changeValue( data.vmin * (1-q) + data.vmax * q, event );
+}
+
+function UI_Slider._startDragging( cx, cy, onrail )
+{
+	data = this.data;
+	data.dragging = true;
+	(px,py) = this.getMarkerPos();
+	data.dragoff_x = px - cx;
+	data.dragoff_y = py - cy;
+	if( onrail )
+	{
+		if( !data.vertical )
+			data.dragoff_x = 0;
+		else
+			data.dragoff_y = 0;
+	}
+	data.prev_value = data.value;
+	this._updatePosData( cx, cy );
+}
+
+function UI_Slider._stopDragging( event )
+{
+	data = this.data;
+	if( !data.dragging )
+		return;
+	data.dragging = false;
+	if( data.prev_value != data.value )
+	{
+		this.callEvent( "change", event );
+		UIForm_CtrlChanged( this, event );
+	}
+}
+
+function UI_Slider.getValue(){ return this.data.value; }
+
+function UI_Slider.setValue( value, event )
+{
+	prev = this.data.value;
+	this._changeValue( value, event );
+	if( prev !== this.data.value )
+	{
 		this.callEvent( "change", event );
 		UIForm_CtrlChanged( this, event );
 	}
@@ -698,23 +766,11 @@ function UI_Slider.setLimits( vmin, vmax, stopsize )
 
 function UI_Slider.getMarkerPos()
 {
-	data = this.data;
-	pos = data.position;
-	if( !data.vertical )
-	{
-		pmin = this.cx0 + data.mhs_x + this.paddingLeft;
-		pmax = this.cx1 - data.mhs_x - this.paddingRight;
-		return round(pmin*(1-pos) + pmax*pos), floor((this.cy0+this.cy1)*0.5);
-	}
-	else
-	{
-		pmin = this.cy0 + data.mhs_y + this.paddingTop;
-		pmax = this.cy1 - data.mhs_y - this.paddingBottom;
-		return floor((this.cx0+this.cx1)*0.5), round(pmin*(1-pos) + pmax*pos);
-	}
+	Handle = this.data.Handle;
+	return ( Handle.rx0 + Handle.rx1 ) * 0.5, ( Handle.ry0 + Handle.ry1 ) * 0.5;
 }
 
-function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
+function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical, value )
 {
 	vmin = if( vmin !== null, vmin, 0.0 );
 	vmax = if( vmax !== null, vmax, 1.0 );
@@ -722,65 +778,25 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
 	Slider = parent.frame.createControl( "slider" );
 	Slider.name = name;
 	Slider._interface = UI_Slider;
-	Slider.data =
+	Slider.class = if( vertical, "vertical", "horizontal" );
+	Slider.data = Slider_data =
 	{
-		mhs_x = if( !vertical, 6, 8 ), // marker half-size
-		mhs_y = if( !vertical, 8, 6 ),
-		
-		value = 0.0,
+		prev_value = null,
+		value = if( value !== null, value, vmin ),
 		vmin = 0.0,
 		vmax = 0.0,
 		stopsize = 0.0,
 		position = 0.0,
 		vertical = vertical,
 		
-		mouse_on = false,
 		dragging = false,
 		dragoff_x = 0,
 		dragoff_y = 0,
 	};
-	Slider_data = Slider.data;
 	function Slider_data.getValue(){ return this.value; }
 	
-	Slider.setLimits( vmin, vmax, stopsize );
-	Slider.setValue( vmin );
-	
-	function Slider_data.updatePosData( Slider, dx, dy, event )
-	{
-		if( !this.vertical )
-		{
-			pmin = Slider.cx0 + this.mhs_x + Slider.paddingLeft;
-			pmax = Slider.cx1 - this.mhs_x - Slider.paddingRight;
-			q = ( dx + this.dragoff_x - pmin ) / if( pmax > pmin + 0.0001, pmax - pmin, 0.0001 );
-		}
-		else
-		{
-			pmin = Slider.cy0 + this.mhs_y + Slider.paddingTop;
-			pmax = Slider.cy1 - this.mhs_y - Slider.paddingBottom;
-			q = ( dy + this.dragoff_y - pmin ) / if( pmax > pmin + 0.0001, pmax - pmin, 0.0001 );
-		}
-		q = if( q < 0, 0, if( q > 1, 1, q ) );
-		Slider.setValue( this.vmin * (1-q) + this.vmax * q );
-	}
-	function Slider_data.startDragging( Slider, cx, cy )
-	{
-		this.dragging = true;
-		(px,py) = Slider.getMarkerPos();
-		this.dragoff_x = px - cx;
-		this.dragoff_y = py - cy;
-		this.prev_position = this.position;
-	}
-	function Slider_data.stopDragging( Slider, event )
-	{
-		if( !this.dragging )
-			return;
-		this.dragging = false;
-		if( this.prev_position != this.position )
-		{
-			Slider.callEvent( "change", event );
-			UIForm_CtrlChanged( Slider, event );
-		}
-	}
+	Slider_data.Rail = Rail = UI_CreateStatic( Slider )[]{ class = "sdr-rail", _clientRectFromPadded = true };
+	Slider_data.Handle = Handle = UI_CreateButton( Rail )[]{ class = "sdr-handle" };
 	
 	ocb = Slider.callback;
 	function Slider.callback( event ) use( ocb )
@@ -798,29 +814,23 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical )
 		}
 		else if( event.type == EV_MouseMove )
 		{
-			if( !data.dragging )
-			{
-				(x,y) = this.getMarkerPos();
-				MX = data.mhs_x;
-				MY = data.mhs_y;
-				data.mouse_on = event.x >= x-MX && event.x <= x+MX && event.y >= y-MY && event.y <= y+MY;
-			}
-			else
-				data.updatePosData( this, event.x, event.y, event );
+			if( data.dragging )
+				this._updatePosData( event.x, event.y, event );
 		}
-		else if( event.type == EV_MouseLeave )
-			data.mouse_on = false;
 		else if( event.type == EV_ButtonDown )
 		{
-			if( event.button == Mouse_ButtonL && data.mouse_on )
-				data.startDragging( this, event.x, event.y );
+			if( event.button == Mouse_ButtonL && ( data.Rail.mouseOn || data.Handle.mouseOn ) )
+				this._startDragging( event.x, event.y, !data.Handle.mouseOn );
 		}
 		else if( event.type == EV_ButtonUp )
 		{
-			data.stopDragging( this, event );
+			if( event.button == Mouse_ButtonL )
+				this._stopDragging( event );
 		}
 		return this!ocb( event );
 	}
+	
+	Slider.setLimits( vmin, vmax, stopsize );
 	
 	Slider.updateTheme();
 	parent.addChild( Slider );

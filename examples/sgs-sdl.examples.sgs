@@ -243,8 +243,10 @@ function sgs_ui_example_menu()
 		"*scrollingautolayout button static" = { font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 },
 		"*scrollbar" = { renderfunc = DrawStaticControl, backgroundColor = UIColor(0.01,0.5) },
 		"*scrollbar button" = { backgroundColor = UIColor(0.8,0.3) },
-		"autolayout button" = { height = 36, anchorMode = UI_Anchor_Hor },
-		"autolayout button image" = { width = 36, anchorMode = UI_Anchor_Vert },
+		"****slider .sdr-rail" = { renderfunc = DrawStaticControl, backgroundColor = UIColor(0.4,0.2), nonClientV = 4, paddingV = 4, nonClientH = 8, paddingH = 2 },
+		"slider .sdr-handle" = { backgroundColor = UIColor(0.4,1) },
+		".auto-menu button" = { height = 36, anchorMode = UI_Anchor_Hor },
+		".auto-menu button image" = { width = 36, anchorMode = UI_Anchor_Vert },
 		// main menu
 		".main-menu-frame" = { anchorMode = UI_Anchor_All, renderfunc = function MAIN_MENU_Renderfunc(){ SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.5, 0.5, 0.5, 1, 0.2, 0.2, 0.2, 1 ); } },
 		".main-menu-frame .title" = { backgroundColor = UIColor( 0 ), anchorMode = UI_Anchor_Hor, font = "fonts/gauge-oblique.ttf", fontSize = 48, textColor = UIColor(0.3,0.7,0.9,1), q0y = 0, q1y = 0.5 },
@@ -357,7 +359,7 @@ function sgs_ui_example_menu()
 		{ type = "static", class = "main-menu-frame", children =
 		[
 			{ type = "static", class = "title", caption = "Example Menu" },
-			{ type = "autolayout", class = "main-menu", children =
+			{ type = "autolayout", class = "main-menu auto-menu", children =
 			[
 				{ type = "imagebutton", name = "start", caption = "Start", image = "icons/control_play.png", class = "act-close-info act-close-options act-open-start act-menu-shrink" },
 				{ type = "imagebutton", name = "info", caption = "Info", image = "icons/information.png", class = "act-close-start act-close-options act-open-info act-menu-shrink" },
@@ -394,7 +396,7 @@ function sgs_ui_example_menu()
 		[
 			{ type = "static", class = "framed title", caption = "Options" },
 			{ type = "imagebutton", class = "btn-back act-close-options act-menu-grow", caption = "Back", image = "icons/resultset_previous.png" },
-			{ type = "autolayout", class = "options-submenu", children =
+			{ type = "autolayout", class = "options-submenu auto-menu", children =
 			[
 				{ type = "imagebutton", name = "game", caption = "Game", image = "icons/lightning.png", class = "opt-sub-btn active" },
 				{ type = "imagebutton", name = "graphics", caption = "Graphics", image = "icons/monitor.png", class = "opt-sub-btn" },
@@ -555,7 +557,7 @@ function sgs_ui_example_menu()
 	};
 	options_graphics_spec =
 	{
-		resolution = { label = "Resolution", type = "switchbutton", options = { "1024x576" = null, "1280x720" = null, "1680x1020" = null }, sidebuttons = true },
+		resolution = { label = "Resolution", type = "switchbutton", options = [ "1024x576", "1280x720", "1680x1020" ], sidebuttons = true },
 		aspect_ratio = { label = "Aspect Ratio", type = "switchbutton", options = { "16:9" = "Wide (16:9)", "16:10" = "Wide (16:10)", "4:3" = "Normal (4:3)", "5:4" = "Normal (5:4)" }, sidebuttons = true },
 		refresh_rate = { label = "Screen Refresh Rate", type = "switchbutton", options = map( 60, "60Hz", 75, "75Hz" ), },
 		antialiasing = { label = "Anti-aliasing", type = "switchbutton", options = map( false, "None", 2, "2x", 4, "4x", 8, "8x", "FXAA", "FXAA" ), },

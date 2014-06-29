@@ -163,8 +163,7 @@ function UI_PropertyGrid._create_checkbox( name, value, option )
 function UI_PropertyGrid._create_slider( name, value, option )
 {
 	this._createDefaultLabel( name, option );
-	ctrl = UI_CreateSlider( this.data.OpCont, name, @option.min, @option.max, @option.stopsize ).addClass( "value" );
-	ctrl.setValue( value );
+	ctrl = UI_CreateSlider( this.data.OpCont, name, @option.min, @option.max, @option.stopsize, false, value ).addClass( "value" );
 	return ctrl;
 }
 

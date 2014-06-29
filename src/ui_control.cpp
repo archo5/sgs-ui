@@ -710,10 +710,20 @@ int UICFPNAME( SGS_CTX )
 			UIFrame* frame = ctrl->frame;
 			if( prt )
 			{
-				pr0x = prt->rx0 + prt->get_nonClientLeft();
-				pr0y = prt->ry0 + prt->get_nonClientTop();
-				pr1x = prt->rx1 - prt->get_nonClientRight();
-				pr1y = prt->ry1 - prt->get_nonClientBottom();
+				if( prt->_clientRectFromPadded )
+				{
+					pr0x = prt->px0;
+					pr0y = prt->py0;
+					pr1x = prt->px1;
+					pr1y = prt->py1;
+				}
+				else
+				{
+					pr0x = prt->cx0;
+					pr0y = prt->cy0;
+					pr1x = prt->cx1;
+					pr1y = prt->cy1;
+				}
 				if( !ctrl->nonclient )
 				{
 					pr0x += prt->scroll_x;
@@ -777,11 +787,14 @@ int UICFPNAME( SGS_CTX )
 		if( event->x >= ctrl->rx0 && event->x <= ctrl->rx1 &&
 			event->y >= ctrl->ry0 && event->y <= ctrl->ry1 )
 		{
-			if( event->x >= ctrl->rx0 + ctrl->get_nonClientLeft() && event->x <= ctrl->rx1 - ctrl->get_nonClientRight() &&
-				event->y >= ctrl->ry0 + ctrl->get_nonClientTop() && event->y <= ctrl->ry1 - ctrl->get_nonClientBottom() )
-				sgs_PushInt( C, Hit_Client );
+			int hit;
+			if( ctrl->get_overflow() )
+				hit = Hit_Client;
+			else if( event->x >= ctrl->cx0 && event->x <= ctrl->cx1 && event->y >= ctrl->cy0 && event->y <= ctrl->cy1 )
+				hit = Hit_Client;
 			else
-				sgs_PushInt( C, Hit_NonClient );
+				hit = Hit_NonClient;
+			sgs_PushInt( C, hit );
 		}
 		else
 			sgs_PushInt( C, Hit_None );
@@ -819,14 +832,17 @@ int UICFPNAME( SGS_CTX )
 		SGSFN( UNCFPNS "/buttondown" );
 		return 1;
 	case EV_ButtonUp:
-		SGSFN( UNCFPNS "/buttonup" );
+		SGSFN( UNCFPNS "/buttonup/event" );
 		ctrl->_callEvent( sgsString( C, "mouseup" ), event );
+		SGSFN( UNCFPNS "/buttonup/event-click" );
 		if( ctrl->clicked && ctrl->frame.object && ctrl->frame->isControlUnderCursor( UIControl::Handle( ctrl ) ) )
 			ctrl->_callEvent( sgsString( C, "click" ), event );
+		SGSFN( UNCFPNS "/buttonup/layout" );
 		ctrl->clicked--;
 		ctrl->frame->_updateStyles( ctrl );
 		if( ctrl->clicked < 0 )
 			ctrl->clicked = 0;
+		SGSFN( UNCFPNS "/buttonup" );
 		return 1;
 		
 	case EV_FocusEnter:
@@ -1386,6 +1402,7 @@ UIControl::UIControl() :
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
 	_updatingLayout(false), _roundedCoords(true),
 	_parentAffectsLayout(true), _childAffectsLayout(false),
+	_clientRectFromPadded(false),
 	mouseOn(false), keyboardFocus(false), clicked(0)
 {
 	sgs_PushCFunction( C, UIControl_CtrlProc );
@@ -1413,6 +1430,8 @@ UIControl::~UIControl()
 
 int UIControl::niEvent( UIEvent* e, bool only )
 {
+	if( !callback.not_null() )
+		return 0;
 	int orig = sgs_StackSize( C );
 	sgs_PushVar( C, Handle( C, m_sgsObject ) );
 	if( only )

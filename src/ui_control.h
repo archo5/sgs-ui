@@ -834,6 +834,7 @@ struct UIControl
 	SGS_PROPERTY bool _roundedCoords : 1; /* true if final coords (r[xy][01]) should be rounded */
 	SGS_PROPERTY bool _parentAffectsLayout : 1; /* true if parent has any influence over the layout and should be updated if parent is */
 	SGS_PROPERTY bool _childAffectsLayout : 1; /* true if child has any influence over the layout and should be updated if child is */
+	SGS_PROPERTY bool _clientRectFromPadded : 1; /* true to calculate relative position for child controls from the padded rect, not client rect */
 	SGS_PROPERTY READ bool mouseOn : 1;
 	SGS_PROPERTY READ bool keyboardFocus : 1;
 	SGS_PROPERTY READ int clicked;

@@ -16,7 +16,7 @@ global SS_UI_Theme_Default =
 				text = this.caption;
 				
 				c = this.backgroundColor;
-				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, c.r, c.g, c.b, c.a );
+				SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, c.r, c.g, c.b, c.a );
 				
 				if( text )
 				{
@@ -276,20 +276,102 @@ global SS_UI_Theme_Default =
 				}
 			},
 		},
-		"slider" =
+		"slider.horizontal .sdr-rail" =
 		{
-			padding = 2,
-			renderfunc = function SS_UI_Theme_Default_slider_renderfunc()
+			q0x = 0,
+			q1x = 1,
+			q0y = 0.5,
+			q1y = 0.5,
+			y = -8,
+			height = 16,
+			backgroundColor = UIColor(0.85,1),
+			nonClient = 5,
+			overflow = true,
+			padding = 3,
+			renderfunc = function SS_UI_Theme_Default_slider_horizontal_rail_renderfunc()
 			{
-				theme = this.frame.theme;
+				data = this.parent.data;
+				P1X = this.cx0;
+				P1Y = this.cy0;
+				P2X = this.cx1;
+				P2Y = this.cy1;
 				
-				slider_render_rail = theme.slider_render_rail;
-				slider_render_marker = theme.slider_render_marker;
+				c = this.backgroundColor;
+				SS_DrawColorRect( P1X, P1Y, P2X, P2Y, c.r, c.g, c.b, c.a );
+				SS_DrawColorRect( P1X+1, P1Y+1, P2X-1, P2Y-1, c.r - 0.2, c.g - 0.2, c.b - 0.2, c.a );
 				
-				this!slider_render_rail();
-				this!slider_render_marker();
-			},
+				NS = if( data.stopsize, floor( ( data.vmax - data.vmin ) / data.stopsize ), 0 );
+				if( NS )
+				{
+					vdist = data.vmax - data.vmin;
+					if( vdist < 0.001 )
+						vdist = 0.001;
+					
+					SRS = this.px0;
+					SRE = this.px1;
+					scaled_stopsize = data.stopsize / vdist;
+					if( NS * 2 < SRE - SRS )
+					{
+						for( q = 0; q <= 1.0; q += scaled_stopsize )
+						{
+							if( q > 1 )
+								q = 1;
+							spf = SRS * ( 1 - q ) + SRE * q;
+							SS_DrawColorRect( spf, P1Y + 1, spf + 1, P2Y - 1, 0.9, 0.9, 0.9, 0.5 );
+						}
+					}
+				}
+			}
 		},
+		"slider.horizontal .sdr-rail .sdr-handle" = { q0x = 0.5, q1x = 0.5, q0y = 0.5, q1y = 0.5, x = -6, y = -8, width = 12, height = 16 },
+		"slider.vertical .sdr-rail" =
+		{
+			q0x = 0.5,
+			q1x = 0.5,
+			q0y = 0,
+			q1y = 1,
+			x = -8,
+			width = 16,
+			backgroundColor = UIColor(0.85,1),
+			nonClient = 5,
+			overflow = true,
+			padding = 3,
+			renderfunc = function SS_UI_Theme_Default_slider_vertical_rail_renderfunc()
+			{
+				data = this.parent.data;
+				P1X = this.cx0;
+				P1Y = this.cy0;
+				P2X = this.cx1;
+				P2Y = this.cy1;
+				
+				c = this.backgroundColor;
+				SS_DrawColorRect( P1X, P1Y, P2X, P2Y, c.r, c.g, c.b, c.a );
+				SS_DrawColorRect( P1X+1, P1Y+1, P2X-1, P2Y-1, c.r - 0.2, c.g - 0.2, c.b - 0.2, c.a );
+				
+				NS = if( data.stopsize, floor( ( data.vmax - data.vmin ) / data.stopsize ), 0 );
+				if( NS )
+				{
+					vdist = data.vmax - data.vmin;
+					if( vdist < 0.001 )
+						vdist = 0.001;
+					
+					SRS = this.py0;
+					SRE = this.py1;
+					scaled_stopsize = data.stopsize / vdist;
+					if( NS * 2 < SRE - SRS )
+					{
+						for( q = 0; q <= 1.0; q += scaled_stopsize )
+						{
+							if( q > 1 )
+								q = 1;
+							spf = SRS * ( 1 - q ) + SRE * q;
+							SS_DrawColorRect( P1X + 1, spf, P2X - 1, spf + 1, 0.9, 0.9, 0.9, 0.5 );
+						}
+					}
+				}
+			}
+		},
+		"slider.vertical .sdr-rail .sdr-handle" = { q0x = 0.5, q1x = 0.5, q0y = 0.5, q1y = 0.5, x = -8, y = -6, width = 16, height = 12 },
 		"switchbutton button" = { height = 0 },
 		"switchbutton .main-button" = { anchorMode = UI_Anchor_All, width = 0 },
 		"switchbutton .side-button.prev" = { anchorMode = UI_Anchor_Vert | UI_Anchor_Left, x = 0, width = 24 },
@@ -520,81 +602,4 @@ global SS_UI_Theme_Default =
 	
 	// TEXTBOX
 	textbox_border = 1,
-	
-	// SLIDER
-	slider_render_rail = function SS_UI_Theme_Default_slider_render_rail()
-	{
-		data = this.data;
-		OFSX = data.mhs_x - 3;
-		OFSY = data.mhs_y - 3;
-		P1X = this.px0 + OFSX;
-		P1Y = this.py0 + OFSY;
-		P2X = this.px1 - OFSX;
-		P2Y = this.py1 - OFSY;
-		if( !data.vertical )
-		{
-			mp = round( ( P1Y + P2Y ) * 0.5 );
-			P1Y = mp - 3;
-			P2Y = mp + 3;
-		}
-		else
-		{
-			mp = round( ( P1X + P2X ) * 0.5 );
-			P1X = mp - 3;
-			P2X = mp + 3;
-		}
-		SS_DrawColorRect( P1X, P1Y, P2X, P2Y, 0.85, 0.85, 0.85, 1 );
-		SS_DrawColorRect( P1X+1, P1Y+1, P2X-1, P2Y-1, 0.65, 0.65, 0.65, 1 );
-		
-		NS = if( data.stopsize, floor( ( data.vmax - data.vmin ) / data.stopsize ), 0 );
-		if( NS )
-		{
-			vdist = data.vmax - data.vmin;
-			if( vdist < 0.001 )
-				vdist = 0.001;
-			if( !data.vertical )
-			{
-				SRS = this.px0 + data.mhs_x;
-				SRE = this.px1 - data.mhs_x;
-				scaled_stopsize = data.stopsize / vdist;
-				if( NS * 2 < SRE - SRS )
-				{
-					for( q = 0; q <= 1.0; q += scaled_stopsize )
-					{
-						if( q > 1 )
-							q = 1;
-						spf = SRS * ( 1 - q ) + SRE * q;
-						SS_DrawColorRect( spf, P1Y + 1, spf + 1, P2Y - 1, 0.9, 0.9, 0.9, 0.5 );
-					}
-				}
-			}
-			else
-			{
-				SRS = this.py0 + data.mhs_y;
-				SRE = this.py1 - data.mhs_y;
-				scaled_stopsize = data.stopsize / vdist;
-				if( NS * 2 < SRE - SRS )
-				{
-					for( q = 0; q <= 1.0; q += scaled_stopsize )
-					{
-						if( q > 1 )
-							q = 1;
-						spf = SRS * ( 1 - q ) + SRE * q;
-						SS_DrawColorRect( P1X + 1, spf, P2X - 1, spf + 1, 0.9, 0.9, 0.9, 0.5 );
-					}
-				}
-			}
-		}
-	},
-	
-	slider_render_marker = function SS_UI_Theme_Default_slider_render_marker()
-	{
-		data = this.data;
-		(x,y) = this.getMarkerPos();
-		MX = data.mhs_x;
-		MY = data.mhs_y;
-		mf = if( data.mouse_on, 0.1, 0.0 );
-		SS_DrawColorRect( x-MX, y-MY, x+MX, y+MY, 0.6, 0.7, 0.8, 1 );
-		SS_DrawColorRect( x-MX+1, y-MY+1, x+MX-1, y+MY-1, 0.3+mf, 0.5+mf, 0.7+mf, 1 );
-	},
 };
