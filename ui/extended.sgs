@@ -38,6 +38,81 @@ function UI_Controls.scrollingautolayout( parent, params )
 }
 
 
+global UI_GroupBlock = {};
+
+function UI_GroupBlock._getHeight()
+{
+	Title = this.data.Title;
+	totalheight = Title.ry1 - Title.ry0 + this.paddingTop + this.paddingBottom + this.nonClientTop + this.nonClientBottom;
+	if( this.hasClass( "groupblk-open" ) )
+	{
+		AutoLayout = this.data.AutoLayout;
+		totalheight += AutoLayout.ry1 - AutoLayout.ry0;
+	}
+	return totalheight;
+}
+
+function UI_GroupBlock.setOpen( is )
+{
+	if( is == this.isOpen() )
+		return;
+	
+	this.addRemClass( "groupblk-open", is );
+	this.addRemClass( "groupblk-closed", !is );
+	this.animate({ height = this._getHeight() }, this.data.time );
+}
+
+function UI_GroupBlock.isOpen(){ return this.hasClass( "groupblk-open" ); }
+function UI_GroupBlock.open(){ this.setOpen( true ); }
+function UI_GroupBlock.close(){ this.setOpen( false ); }
+function UI_GroupBlock.toggle(){ this.setOpen( !this.isOpen() ); }
+
+function UI_GroupBlock.getName(){ return this.data.Title.caption; }
+function UI_GroupBlock.setName( name ){ this.data.Title.caption = name; }
+function UI_GroupBlock.getContainer(){ return this.data.AutoLayout; }
+
+function UI_CreateGroupBlock( parent, name, time, closed )
+{
+	time ||= 0.2;
+	closed ||= false;
+	
+	GroupBlock = parent.frame.createControl( "groupblock" );
+	GroupBlock._interface = UI_GroupBlock;
+	GroupBlock.data = { time = time };
+	GroupBlock.class = if( closed, "groupblk-closed", "groupblk-open" );
+	
+	GroupBlock.data.Title = UI_CreateButton( GroupBlock )[]{ caption = name || "", class = "groupblk-title" }
+		.bindEvent( "click", function(){ this.parent.toggle(); } );
+	GroupBlock.data.AutoLayout = grpblk_auto = UI_CreateAutoLayout( GroupBlock )[]{ class = "groupblk-cont" };
+	
+	al_ocb = grpblk_auto.callback;
+	function grpblk_auto.callback( event ) use( al_ocb )
+	{
+		if( event.type == EV_Layout && !this.parent.queueSize() )
+		{
+			res = this!al_ocb( event );
+			this.parent.height = this.parent._getHeight();
+			return res;
+		}
+		return this!al_ocb( event );
+	}
+	
+	GroupBlock.updateTheme();
+	parent.addChild( GroupBlock );
+	
+	GroupBlock.height = GroupBlock._getHeight();
+	
+	return GroupBlock;
+}
+
+UI_Controls.groupblock_params = ["caption"];
+function UI_Controls.groupblock( parent, params )
+{
+	ctrl = UI_CreateGroupBlock( parent, @params.caption );
+	UI_ConfigControl( ctrl, params );
+}
+
+
 global UI_ListBoxMenu = {};
 
 function UI_ListBoxMenu.addOption( option, func )
@@ -143,98 +218,91 @@ function UI_PropertyGrid._create_label( text )
 	return ctrl;
 }
 
-function UI_PropertyGrid._createDefaultLabel( name, option )
+function UI_PropertyGrid._createDefaultLabel( option )
 {
-	return this._create_label( @option.label || name );
+	return this._create_label( @option.label || @option.name );
 }
 
-function UI_PropertyGrid._create_separator( name, value, option )
+function UI_PropertyGrid._create_separator( option, value )
 {
-	return UI_CreateStatic( this.data.OpCont )[]{ caption = @option.label || value || name }.addClass( "separator" );
+	return UI_CreateStatic( this.data.OpCont )[]{ caption = @option.label || value || @option.name }.addClass( "separator" );
 }
 
-function UI_PropertyGrid._create_checkbox( name, value, option )
+function UI_PropertyGrid._create_checkbox( option, value )
 {
-	this._createDefaultLabel( name, option );
-	ctrl = UI_CreateCheckbox( this.data.OpCont, name, null, !!value ).addClass( "value" );
+	this._createDefaultLabel( option );
+	ctrl = UI_CreateCheckbox( this.data.OpCont, option.name, null, !!value ).addClass( "value" );
 	return ctrl;
 }
 
-function UI_PropertyGrid._create_slider( name, value, option )
+function UI_PropertyGrid._create_slider( option, value )
 {
-	this._createDefaultLabel( name, option );
-	ctrl = UI_CreateSlider( this.data.OpCont, name, @option.min, @option.max, @option.stopsize, false, value ).addClass( "value" );
+	this._createDefaultLabel( option );
+	ctrl = UI_CreateSlider( this.data.OpCont, option.name, @option.min, @option.max, @option.stopsize, false, value ).addClass( "value" );
 	return ctrl;
 }
 
-function UI_PropertyGrid._create_textbox( name, value, option )
+function UI_PropertyGrid._create_textbox( option, value )
 {
-	this._createDefaultLabel( name, option );
-	ctrl = UI_CreateTextbox( this.data.OpCont, name, @option.textbox_caption, value ).addClass( "value" );
+	this._createDefaultLabel( option );
+	ctrl = UI_CreateTextbox( this.data.OpCont, option.name, @option.textbox_caption, value ).addClass( "value" );
 	return ctrl;
 }
 
-function UI_PropertyGrid._create_switchbutton( name, value, option )
+function UI_PropertyGrid._create_switchbutton( option, value )
 {
-	this._createDefaultLabel( name, option );
-	ctrl = UI_CreateSwitchButton( this.data.OpCont, name, @option.options, @option.sidebuttons, value ).addClass( "value" );
+	this._createDefaultLabel( option );
+	ctrl = UI_CreateSwitchButton( this.data.OpCont, option.name, @option.items, @option.sidebuttons, value ).addClass( "value" );
 	return ctrl;
 }
 
-function UI_PropertyGrid._create_selectbox( name, value, option )
+function UI_PropertyGrid._create_selectbox( option, value )
 {
-	this._createDefaultLabel( name, option );
-	ctrl = UI_CreateSelectBox( this.data.OpCont, name, @option.items, value ).addClass( "value" );
+	this._createDefaultLabel( option );
+	ctrl = UI_CreateSelectBox( this.data.OpCont, option.name, @option.items, value ).addClass( "value" );
 	return ctrl;
 }
 
-function UI_PropertyGrid._create_button( name, value, option )
+function UI_PropertyGrid._create_button( option, value )
 {
-	ctrl = UI_CreateButton( this.data.OpCont )[]{ caption = @option.label || name, icon = @option.icon, class = "value" };
-	ctrl.bindEvent( "click", value );
+	ctrl = UI_CreateButton( this.data.OpCont )[]{ caption = @option.label || option.name, icon = @option.icon, class = "value" };
+	ctrl.bindEvent( "click", @option.func || value );
 	return ctrl;
 }
 
-function UI_PropertyGrid.getType( value, option )
+function UI_PropertyGrid._setGroup( groupname )
 {
-	if( @option.type )
-		return option.type;
-	if( typeid( value ) == VT_BOOL ) return "checkbox", toint;
-	if( is_callable( value ) ) return "button", null;
-	return "textbox", tostring;
+	if( groupname === null )
+		this.data.OpCont = this.data.AutoLayout;
+	else
+		this.data.OpCont = UI_CreateGroupBlock( this.data.AutoLayout, groupname ).getContainer();
 }
 
 function UI_PropertyGrid.setData( input_values, options )
 {
-	if( input_values === null )
+	if( !options )
 		return;
+	group = null;
 	data = this.data;
-	all_values = {};
-	options ||= {};
 	data.options = options;
-	foreach( k, v : input_values )
-	{
-		if( is_callable( v ) )
-			continue;
-		all_values[ k ] = v;
-		if( !isset( options, k ) )
-			options[ k ] = {};
-		option = options[ k ];
-		if( !isset( option, "convert" ) )
-		{
-			(type,convfunc) = this.getType( v, option );
-			option.convert = convfunc;
-		}
-	}
-	data.values = all_values;
-	
-	// Rebuild options
+	data.values = all_values = {};
 	data.OpCont.removeAllChildren();
-	foreach( k, v : input_values )
+	foreach( option : options )
 	{
-		option = @options[ k ];
-		type = this.getType( v, option );
-		this.("_create_"$type)( k, v, option );
+		name = @option.name;
+		value = null;
+		if( name )
+		{
+			value = @input_values[ option.name ];
+			all_values[ option.name ] = value;
+		}
+		curgroup = @option.group;
+		if( group !== curgroup )
+		{
+			this._setGroup( curgroup );
+			group = curgroup;
+		}
+		this.( "_create_" $ option.type )( option, value );
 	}
 }
 
@@ -260,7 +328,7 @@ function UI_PropertyGrid.getData(){ return this.data.values; }
 function UI_PropertyGrid.getLastChange(){ (name,type) = this.data.Form.getLastChange(); return name, type; }
 function UI_PropertyGrid.getValueOf( name ){ return @this.data.values[ name ]; }
 
-function UI_CreatePropertyGrid( parent, seed, options )
+function UI_CreatePropertyGrid( parent, values, options )
 {
 	PropertyGrid = parent.frame.createControl( "propertygrid" );
 	PropertyGrid._interface = UI_PropertyGrid;
@@ -292,15 +360,15 @@ function UI_CreatePropertyGrid( parent, seed, options )
 	
 	parent.addChild( PropertyGrid );
 	
-	PropertyGrid.setData( seed, options );
+	PropertyGrid.setData( values, options );
 	
 	return PropertyGrid;
 }
 
-UI_Controls.propertygrid_params = ["seed","options"];
+UI_Controls.propertygrid_params = ["values","options"];
 function UI_Controls.propertygrid( parent, params )
 {
-	ctrl = UI_CreatePropertyGrid( parent, @params.seed, @params.options );
+	ctrl = UI_CreatePropertyGrid( parent, @params.values, @params.options );
 	UI_ConfigControl( ctrl, params );
 }
 

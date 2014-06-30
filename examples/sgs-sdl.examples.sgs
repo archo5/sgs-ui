@@ -117,29 +117,31 @@ function sgs_ui_example_default()
 		value1 = 35,
 		"text ctl" = "Text Here !",
 		Troolean = true,
-		"$0" = null,
 		selebox = 5,
 		selebox_map = 4,
-		"Dump ALL" = function(){ printvar( PGRID.getData() ); },
 	};
 	PGRID_options =
-	{
-		value1 = { type = "slider", min = 0, max = 50, stopsize = 5 },
-		Troolean = { type = "switchbutton", options = map( true, "True", false, "False", "FileNotFound", "File not found" ) },
-		"$0" = { type = "separator", label = "-- separator --" },
-		selebox = { type = "selectbox", items = [
+	[
+		{ name = "boolean1", type = "checkbox" },
+		{ name = "boolean2", type = "checkbox" },
+		{ name = "value1", group = "First group", type = "slider", min = 0, max = 50, stopsize = 5 },
+		{ name = "text ctl", group = "First group", type = "textbox" },
+		{ name = "Troolean", group = "Second group", type = "switchbutton", items = map( true, "True", false, "False", "FileNotFound", "File not found" ) },
+		{ type = "separator", label = "-- separator --" },
+		{ name = "selebox", type = "selectbox", items = [
 			{ value = "wat", text = "What?" },
 			{ value = "dat", text = "That!" },
 			{ value = "huh", text = "Really?" },
 			{ value = 5, text = "High five!" },
 		] },
-		selebox_map = { type = "selectbox", items = map(
+		{ name = "selebox_map", type = "selectbox", items = map(
 			"wat", "What?",
 			"dat", "That!",
 			"huh", "Really?",
 			4, "Fantastic four!"
 		) },
-	};
+		{ type = "button", label = "Dump ALL", func = function(){ printvar( PGRID.getData() ); } },
+	];
 	PGRID = UI_CreatePropertyGrid( STAT, PGRID_data, PGRID_options )[]{ x = 720, y = 180, width = 200, height = 300 };
 	
 	
@@ -537,10 +539,10 @@ function sgs_ui_example_menu()
 		show_subtitles = false,
 	};
 	options_game_spec =
-	{
-		show_blood = { label = "Show blood", type = "switchbutton", options = map( false, "No", true, "Yes" ) },
-		show_subtitles = { label = "Show subtitles", type = "switchbutton", options = map( false, "No", true, "Yes" ) },
-	};
+	[
+		{ name = "show_blood", label = "Show blood", type = "switchbutton", items = map( false, "No", true, "Yes" ) },
+		{ name = "show_subtitles", label = "Show subtitles", type = "switchbutton", items = map( false, "No", true, "Yes" ) },
+	];
 	FRAME.find( ".options-game" )[0].setData( options_game, options_game_spec );
 	
 	options_graphics =
@@ -556,17 +558,17 @@ function sgs_ui_example_menu()
 		model_lod = 2,
 	};
 	options_graphics_spec =
-	{
-		resolution = { label = "Resolution", type = "switchbutton", options = [ "1024x576", "1280x720", "1680x1020" ], sidebuttons = true },
-		aspect_ratio = { label = "Aspect Ratio", type = "switchbutton", options = { "16:9" = "Wide (16:9)", "16:10" = "Wide (16:10)", "4:3" = "Normal (4:3)", "5:4" = "Normal (5:4)" }, sidebuttons = true },
-		refresh_rate = { label = "Screen Refresh Rate", type = "switchbutton", options = map( 60, "60Hz", 75, "75Hz" ), },
-		antialiasing = { label = "Anti-aliasing", type = "switchbutton", options = map( false, "None", 2, "2x", 4, "4x", 8, "8x", "FXAA", "FXAA" ), },
-		brightness = { label = "Brightness", type = "slider", min = 0.2, max = 5 },
-		vsync = { label = "Sync Every Frame", type = "switchbutton", options = map( false, "No", true, "Yes" ) },
-		shadows = { label = "Shadows", type = "switchbutton", options = map( false, "No", true, "Yes" ) },
-		texture_lod = { label = "Texture Detail", type = "switchbutton", options = map( 0, "Very low", 1, "Low", 2, "Medium", 3, "High", 4, "Very high" ), sidebuttons = true },
-		model_lod = { label = "Model Detail", type = "switchbutton", options = map( 0, "Very low", 1, "Low", 2, "Medium", 3, "High", 4, "Very high" ), sidebuttons = true },
-	};
+	[
+		{ name = "resolution", label = "Resolution", type = "switchbutton", items = [ "1024x576", "1280x720", "1680x1020" ], sidebuttons = true },
+		{ name = "aspect_ratio", label = "Aspect Ratio", type = "switchbutton", items = { "16:9" = "Wide (16:9)", "16:10" = "Wide (16:10)", "4:3" = "Normal (4:3)", "5:4" = "Normal (5:4)" }, sidebuttons = true },
+		{ name = "refresh_rate", label = "Screen Refresh Rate", type = "switchbutton", items = map( 60, "60Hz", 75, "75Hz" ), },
+		{ name = "antialiasing", label = "Anti-aliasing", type = "switchbutton", items = map( false, "None", 2, "2x", 4, "4x", 8, "8x", "FXAA", "FXAA" ), },
+		{ name = "brightness", label = "Brightness", type = "slider", min = 0.2, max = 5 },
+		{ name = "vsync", label = "Sync Every Frame", type = "switchbutton", items = map( false, "No", true, "Yes" ) },
+		{ name = "shadows", label = "Shadows", type = "switchbutton", items = map( false, "No", true, "Yes" ) },
+		{ name = "texture_lod", label = "Texture Detail", type = "switchbutton", items = map( 0, "Very low", 1, "Low", 2, "Medium", 3, "High", 4, "Very high" ), sidebuttons = true },
+		{ name = "model_lod", label = "Model Detail", type = "switchbutton", items = map( 0, "Very low", 1, "Low", 2, "Medium", 3, "High", 4, "Very high" ), sidebuttons = true },
+	];
 	FRAME.find( ".options-graphics" )[0].setData( options_graphics, options_graphics_spec );
 	
 	options_audio =
@@ -577,12 +579,12 @@ function sgs_ui_example_menu()
 		voice_volume = 0.8,
 	};
 	options_audio_spec =
-	{
-		master_volume = { label = "Master Volume", type = "slider", min = 0.0, max = 1.0 },
-		fx_volume = { label = "Effect Volume", type = "slider", min = 0.0, max = 1.0 },
-		music_volume = { label = "Music Volume", type = "slider", min = 0.0, max = 1.0 },
-		voice_volume = { label = "Voice Volume", type = "slider", min = 0.0, max = 1.0 },
-	};
+	[
+		{ name = "master_volume", label = "Master Volume", type = "slider", min = 0.0, max = 1.0 },
+		{ name = "fx_volume", label = "Effect Volume", type = "slider", min = 0.0, max = 1.0 },
+		{ name = "music_volume", label = "Music Volume", type = "slider", min = 0.0, max = 1.0 },
+		{ name = "voice_volume", label = "Voice Volume", type = "slider", min = 0.0, max = 1.0 },
+	];
 	FRAME.find( ".options-audio" )[0].setData( options_audio, options_audio_spec );
 	
 	options_controls =
@@ -592,11 +594,11 @@ function sgs_ui_example_menu()
 		keyboard_mapping = function(){ println("TODO"); },
 	};
 	options_controls_spec =
-	{
-		invert_mouse = { label = "Invert Mouse Y", type = "switchbutton", options = map( false, "No", true, "Yes" ) },
-		mouse_sensitivity = { label = "Mouse Sensitivity", type = "slider", min = 0.1, max = 10.0 },
-		keyboard_mapping = { label = "Change Keyboard Mapping", type = "button" },
-	};
+	[
+		{ name = "invert_mouse", label = "Invert Mouse Y", type = "switchbutton", items = map( false, "No", true, "Yes" ) },
+		{ name = "mouse_sensitivity", label = "Mouse Sensitivity", type = "slider", min = 0.1, max = 10.0 },
+		{ name = "keyboard_mapping", label = "Change Keyboard Mapping", type = "button" },
+	];
 	FRAME.find( ".options-controls" )[0].setData( options_controls, options_controls_spec );
 }
 

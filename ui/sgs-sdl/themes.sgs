@@ -462,6 +462,53 @@ global SS_UI_Theme_Default =
 		// - extended
 		"scrollingautolayout scrollable" = { anchorMode = UI_Anchor_All },
 		"scrollingautolayout autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
+		"groupblock" = { anchorMode = UI_Anchor_Hor },
+		"groupblock .groupblk-title" =
+		{
+			anchorMode = UI_Anchor_Hor,
+			height = 24,
+			backgroundColor = UIColor(0.3,0.5,0.7,1),
+			textColor = UIColor(1,1),
+			renderfunc = function SS_UI_Theme_Default_groupblock_titlebutton_renderfunc()
+			{
+				data = this.data;
+				icon = this._cachedIcon;
+				text = this.caption;
+				
+				c = SS_UI_ConvertColor( this.backgroundColor );
+			//	cadd = if( this.clicked, -0.02, if( this.mouseOn, 0.02, 0.0 ) );
+				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, c.r, c.g, c.b, c.a ); // 0.6+cadd, 0.6+cadd, 0.6+cadd, 1 );
+			//	SS_DrawColorRect( this.rx0+1, this.ry0+1, this.rx1-1, this.ry1-1, 0.8+cadd, 0.8+cadd, 0.8+cadd, 1 );
+				
+				if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
+				{
+					fullwidth = 0;
+					if( text )
+					{
+						textlen = this._cachedFont.getTextLength( text );
+						fullwidth += textlen;
+					}
+					
+					cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
+					if( icon )
+					{
+						SS_Draw({ preset = "box", position = vec2( this.rx1 - icon.width, cy ), scale = vec2( icon.width, icon.height ), texture = icon });
+					}
+					
+					if( text )
+					{
+						SS_DrawTextLine_VC( text, this._cachedFont, this.rx0 + 4, cy, SS_UI_ConvertColor( this.textColor ) );
+					}
+					
+					this.frame.popScissorRect();
+				}
+			}
+		},
+		"groupblock .groupblk-title:hover" = { backgroundColor = UIColor(0.35,0.55,0.75,1) },
+		"groupblock .groupblk-title:active" = { backgroundColor = UIColor(0.25,0.45,0.65,1) },
+		"groupblock.groupblk-open .groupblk-title" = { icon = "icons/bullet_arrow_down.png" },
+		"groupblock.groupblk-closed .groupblk-title" = { icon = "icons/bullet_arrow_up.png" },
+		"groupblock .groupblk-cont" = { anchorMode = UI_Anchor_Hor, y = 24 },
 		"listboxmenu scrollable" = { anchorMode = UI_Anchor_All },
 		"listboxmenu autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
 		"listboxmenu autolayout button" =
