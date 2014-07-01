@@ -704,65 +704,23 @@ int UICFPNAME( SGS_CTX )
 	{
 	case EV_Layout:
 		SGSFN( UNCFPNS "/layout" );
-		{
-			float pr0x, pr0y, pr1x, pr1y;
-			UIControl* prt = ctrl->parent;
-			UIFrame* frame = ctrl->frame;
-			if( prt )
-			{
-				if( prt->_clientRectFromPadded )
-				{
-					pr0x = prt->px0;
-					pr0y = prt->py0;
-					pr1x = prt->px1;
-					pr1y = prt->py1;
-				}
-				else
-				{
-					pr0x = prt->cx0;
-					pr0y = prt->cy0;
-					pr1x = prt->cx1;
-					pr1y = prt->cy1;
-				}
-				if( !ctrl->nonclient )
-				{
-					pr0x += prt->scroll_x;
-					pr0y += prt->scroll_y;
-					pr1x += prt->scroll_x;
-					pr1y += prt->scroll_y;
-				}
-			}
-			else if( frame )
-			{
-				pr0x = frame->x;
-				pr0y = frame->y;
-				pr1x = pr0x + frame->width;
-				pr1y = pr0y + frame->height;
-			}
-			else
-			{
-				pr0x = 0;
-				pr0y = 0;
-				pr1x = 0;
-				pr1y = 0;
-			}
-			ctrl->rx0 = ctrl->get_x();
-			ctrl->ry0 = ctrl->get_y();
-			ctrl->rx1 = ctrl->rx0 + ctrl->get_width();
-			ctrl->ry1 = ctrl->ry0 + ctrl->get_height();
-			ctrl->rx0 += lerpf( pr0x, pr1x, ctrl->get_q0x() );
-			ctrl->rx1 += lerpf( pr0x, pr1x, ctrl->get_q1x() );
-			ctrl->ry0 += lerpf( pr0y, pr1y, ctrl->get_q0y() );
-			ctrl->ry1 += lerpf( pr0y, pr1y, ctrl->get_q1y() );
-			ctrl->_changedFullRect();
-			if( frame )
-				frame->handleMouseMove( true );
-		}
+		ctrl->_updateFullRect();
+		if( ctrl->frame )
+			ctrl->frame->handleMouseMove( true );
+		
 		for( UIControl::HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
 			if( (*it)->_parentAffectsLayout )
 				(*it)->updateLayout();
 		if( ctrl->parent.object && ctrl->parent->_childAffectsLayout )
 			ctrl->parent->updateLayout();
+		return 1;
+		
+	case EV_Scroll:
+		SGSFN( UNCFPNS "/scroll" );
+		ctrl->_updateFullRect();
+		ctrl->_updateChildRects();
+		if( ctrl->frame )
+			ctrl->frame->handleMouseMove( true );
 		return 1;
 		
 	case EV_Attach:
@@ -1487,6 +1445,18 @@ void UIControl::niRender()
 		if( (*it)->nonclient )
 			(*it)->niRender();
 	}
+}
+
+void UIControl::updateScroll()
+{
+	if( _updatingLayout )
+		return;
+	
+	_updatingLayout = true;
+	UIEvent e;
+	e.type = EV_Scroll;
+	niEvent( &e, true );
+	_updatingLayout = false;
 }
 
 void UIControl::updateLayout()
@@ -2334,6 +2304,71 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	if( updatedLayout ) updateLayout();
 	if( ( updatedBox || updatedOrder ) && frame.not_null() )
 		frame->handleMouseMove( true );
+}
+
+void UIControl::_updateFullRect()
+{
+	float pr0x, pr0y, pr1x, pr1y;
+	UIControl* prt = parent;
+	if( prt )
+	{
+		if( prt->_clientRectFromPadded )
+		{
+			pr0x = prt->px0;
+			pr0y = prt->py0;
+			pr1x = prt->px1;
+			pr1y = prt->py1;
+		}
+		else
+		{
+			pr0x = prt->cx0;
+			pr0y = prt->cy0;
+			pr1x = prt->cx1;
+			pr1y = prt->cy1;
+		}
+		if( !nonclient )
+		{
+			pr0x += prt->scroll_x;
+			pr0y += prt->scroll_y;
+			pr1x += prt->scroll_x;
+			pr1y += prt->scroll_y;
+		}
+	}
+	else if( frame )
+	{
+		pr0x = frame->x;
+		pr0y = frame->y;
+		pr1x = pr0x + frame->width;
+		pr1y = pr0y + frame->height;
+	}
+	else
+	{
+		pr0x = 0;
+		pr0y = 0;
+		pr1x = 0;
+		pr1y = 0;
+	}
+	rx0 = get_x();
+	ry0 = get_y();
+	rx1 = rx0 + get_width();
+	ry1 = ry0 + get_height();
+	rx0 += lerpf( pr0x, pr1x, get_q0x() );
+	rx1 += lerpf( pr0x, pr1x, get_q1x() );
+	ry0 += lerpf( pr0y, pr1y, get_q0y() );
+	ry1 += lerpf( pr0y, pr1y, get_q1y() );
+	_changedFullRect();
+}
+
+void UIControl::_updateChildRects()
+{
+	for( UIControl::HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+	{
+		if( (*it)->_parentAffectsLayout )
+		{
+			(*it)->_updateFullRect();
+			(*it)->_updateChildRects();
+		}
+	}
 }
 
 void UIControl::_changedFullRect()

@@ -35,6 +35,7 @@
 #define EV_Paint      1
 #define EV_Layout     2
 #define EV_ChgTheme   3
+#define EV_Scroll     4
 #define EV_KeyDown    10
 #define EV_KeyUp      11
 #define EV_Char       12
@@ -592,6 +593,7 @@ struct UIControl
 	int niEvent( UIEvent* event, bool only = false );
 	void niBubblingEvent( UIEvent* e );
 	void niRender();
+	SGS_METHOD void updateScroll();
 	SGS_METHOD void updateLayout();
 	SGS_METHOD void updateTheme();
 	void updateThemeRecursive();
@@ -794,8 +796,8 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ get_anchorMode WRITE set_anchorMode ) SGS_ALIAS( int anchorMode );
 	SGS_PROPERTY_FUNC( READ get_align WRITE set_align ) SGS_ALIAS( uint16_t align );
 	
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_x;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float scroll_y;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateScroll ) float scroll_x;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateScroll ) float scroll_y;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) bool nonclient;
 	SGS_PROPERTY_FUNC( READ get_offsetLeft WRITE set_offsetLeft ) SGS_ALIAS( float offsetLeft );
 	SGS_PROPERTY_FUNC( READ get_offsetRight WRITE set_offsetRight ) SGS_ALIAS( float offsetRight );
@@ -828,6 +830,8 @@ struct UIControl
 	SGS_PROPERTY float py0;
 	SGS_PROPERTY float py1;
 	
+	void _updateFullRect();
+	void _updateChildRects();
 	SGS_METHOD void _changedFullRect();
 	
 	SGS_PROPERTY bool _updatingLayout : 1; /* true if updating layout and don't want to trigger further layout changes */

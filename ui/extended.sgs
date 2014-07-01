@@ -286,7 +286,7 @@ function UI_PropertyGrid.setData( input_values, options )
 	data = this.data;
 	data.options = options;
 	data.values = all_values = {};
-	data.OpCont.removeAllChildren();
+	data.AutoLayout.removeAllChildren();
 	foreach( option : options )
 	{
 		name = @option.name;
@@ -310,15 +310,17 @@ function UI_PropertyGrid._updateData()
 {
 	data = this.data;
 	form = data.Form;
-	foreach( k, : data.values )
+	foreach( option : data.options )
 	{
-		fditem = form.getString( k );
+		name = @option.name;
+		if( !name )
+			continue;
+		fditem = form.getString( name );
 		if( fditem !== null )
 		{
-			option = @data.options.(k);
 			if( @option.convert )
 				fditem = option.convert( fditem );
-			data.values[ k ] = fditem;
+			data.values[ name ] = fditem;
 		}
 	}
 }

@@ -124,6 +124,7 @@ sgs_RegIntConst g_iconsts[] =
 	FN( EV_Paint      ),
 	FN( EV_Layout     ),
 	FN( EV_ChgTheme   ),
+	FN( EV_Scroll     ),
 	FN( EV_KeyDown    ),
 	FN( EV_KeyUp      ),
 	FN( EV_Char       ),
