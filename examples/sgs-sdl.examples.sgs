@@ -155,16 +155,18 @@ function sgs_ui_example_default()
 		minHeight = 80
 	}.adjustSize();
 	
-	WINSTAT = UI_CreateStatic( WINDOW )[]{
-		height = 32,
+	WINSPLIT = UI_CreateHSplitPane( WINDOW, 0.2 )[]{ anchorMode = UI_Anchor_All };
+	
+	WINSTAT = UI_CreateStatic( WINSPLIT.getPaneA() )[]{
+	//	height = 32,
 		caption = "The Options",
 		backgroundColor = UIColor( 0.9, 1 ),
-		anchorMode = UI_Anchor_Hor | UI_Anchor_Top,
+		anchorMode = UI_Anchor_All, //UI_Anchor_Hor | UI_Anchor_Top,
 		halign = UI_Align_Center,
 		valign = UI_Align_VCenter,
 	};
 	
-	LBMENU = UI_CreateListBoxMenu( WINDOW )[]{ y = 32, height = -32, anchorMode = UI_Anchor_All };
+	LBMENU = UI_CreateListBoxMenu( WINSPLIT.getPaneB() )[]{ /* y = 32, height = -32, */ anchorMode = UI_Anchor_All };
 	
 	LBMENU.addOption({ text = "Test option 1" });
 	LBMENU.addOption({ text = "Test/2", icon = "icons/book.png" });

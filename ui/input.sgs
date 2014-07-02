@@ -220,7 +220,7 @@ function UI_CreateCheckbox( parent, name, value, checked )
 		}
 		else if( event.type == EV_ButtonUp )
 		{
-			if( event.button == 0 && this.clicked && this == this.frame.getControlUnderCursor() )
+			if( event.button == Mouse_ButtonL && this.clicked && this == this.frame.getControlUnderCursor() )
 			{
 				data.checked = !data.checked;
 				UIForm_CtrlChanged( this, event );
@@ -288,7 +288,7 @@ function UI_CreateRadioButton( parent, name, value, checked )
 		}
 		else if( event.type == EV_ButtonUp )
 		{
-			if( event.button == 0 && this.clicked && this == this.frame.getControlUnderCursor() )
+			if( event.button == Mouse_ButtonL && this.clicked && this == this.frame.getControlUnderCursor() )
 			{
 				ctrls = UIForm_ControlsByName( this, this.name );
 				foreach( ctrl : ctrls )

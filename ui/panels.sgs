@@ -177,6 +177,115 @@ function UI_Controls.scrollable( parent, params )
 }
 
 
+global UI_SplitPane = {};
+function UI_SplitPane.getPaneA(){ return this.data.PaneA; }
+function UI_SplitPane.getPaneB(){ return this.data.PaneB; }
+function UI_SplitPane.getSplit(){ return this.data.Split; }
+function UI_SplitPane.getSplitFactor()
+{
+	data = this.data;
+	return if( data.vertical, data.Split.q0x, data.Split.q0y );
+}
+function UI_SplitPane.setSplitFactor( split )
+{
+	data = this.data;
+	if( !data.vertical )
+	{
+		data.PaneA.q1y = split;
+		data.PaneB.q0y = split;
+		data.Split[]{ q0y = split, q1y = split };
+	}
+	else
+	{
+		data.PaneA.q1x = split;
+		data.PaneB.q0x = split;
+		data.Split[]{ q0x = split, q1x = split };
+	}
+}
+
+function UI_CreateSplitPane( parent, vertical, defsplit )
+{
+	if( defsplit === null )
+		defsplit = 0.5;
+	SplitPane = parent.frame.createControl( "splitpane" );
+	SplitPane.class = if( vertical, "vertical", "horizontal" );
+	SplitPane.data = { vertical = vertical };
+	SplitPane._interface = UI_SplitPane;
+	
+	SplitPane.data.PaneA = PaneA = parent.frame.createControl( "pane" )[]{ class = "pane-a" };
+	SplitPane.data.PaneB = PaneB = parent.frame.createControl( "pane" )[]{ class = "pane-b" };
+	SplitPane.data.Split = Split = parent.frame.createControl( "split" );
+	
+	Split.data = { dragging = false, dragoff_x = null, dragoff_y = null };
+	ocb = Split.callback;
+	function Split.callback( event ) use( ocb )
+	{
+		data = this.data;
+		if( event.type == EV_ButtonDown )
+		{
+			if( event.button == Mouse_ButtonL )
+			{
+				data.dragoff_x = ( this.rx0 + this.rx1 ) / 2 - event.x;
+				data.dragoff_y = ( this.ry0 + this.ry1 ) / 2 - event.y;
+				data.dragging = true;
+			}
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			if( event.button == Mouse_ButtonL )
+			{
+				data.dragging = false;
+			}
+		}
+		else if( event.type == EV_MouseMove )
+		{
+			if( data.dragging )
+			{
+				if( this.parent.data.vertical )
+				{
+					rcx = event.x + data.dragoff_x;
+					pqx = this.q0x;
+					pw = max( this.parent.rx1 - this.parent.rx0, 1 );
+					cqx = ( rcx - this.parent.rx0 ) / pw;
+					if( cqx < -this.x / pw )
+						cqx = -this.x / pw;
+					if( cqx > 1 - ( this.x + this.width ) / pw )
+						cqx = 1 - ( this.x + this.width ) / pw;
+					if( pqx != cqx )
+						this.parent.setSplitFactor( cqx );
+				}
+				else
+				{
+					rcy = event.y + data.dragoff_y;
+					pqy = this.q0y;
+					ph = max( this.parent.ry1 - this.parent.ry0, 1 );
+					cqy = ( rcy - this.parent.ry0 ) / ph;
+					if( cqy < -this.y / ph )
+						cqy = -this.y / ph;
+					if( cqy > 1 - ( this.y + this.height ) / ph )
+						cqy = 1 - ( this.y + this.height ) / ph;
+					if( pqy != cqy )
+						this.parent.setSplitFactor( cqy );
+				}
+			}
+		}
+		return this!ocb( event );
+	}
+	
+	SplitPane.addChild( PaneA );
+	SplitPane.addChild( PaneB );
+	SplitPane.addChild( Split );
+	
+	SplitPane.updateTheme();
+	parent.addChild( SplitPane );
+	
+	SplitPane.setSplitFactor( defsplit );
+	return SplitPane;
+}
+function UI_CreateHSplitPane( parent, defsplit ){ return UI_CreateSplitPane( parent, false, defsplit ); }
+function UI_CreateVSplitPane( parent, defsplit ){ return UI_CreateSplitPane( parent, true, defsplit ); }
+
+
 function UI_CreateMenuPanel( parent, items )
 {
 	MenuPanel = parent.frame.createControl( "menupanel" );

@@ -283,6 +283,7 @@ function UI_PropertyGrid.setData( input_values, options )
 	if( !options )
 		return;
 	group = null;
+	this._setGroup( null );
 	data = this.data;
 	data.options = options;
 	data.values = all_values = {};
