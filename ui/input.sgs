@@ -636,6 +636,10 @@ function UI_CreateTextbox( parent, name, caption, text )
 					data.updateSelOffsets( this );
 					data.resetCursorTimer( this.frame );
 				}
+				else if( key == Key_Enter )
+				{
+					this.frame.setFocus( null );
+				}
 			}
 		}
 		

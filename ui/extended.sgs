@@ -88,7 +88,7 @@ function UI_CreateGroupBlock( parent, name, time, closed )
 	al_ocb = grpblk_auto.callback;
 	function grpblk_auto.callback( event ) use( al_ocb )
 	{
-		if( event.type == EV_Layout && !this.parent.queueSize() )
+		if( event.type == EV_Layout && this.parent && !this.parent.queueSize() )
 		{
 			res = this!al_ocb( event );
 			this.parent.height = this.parent._getHeight();
@@ -286,7 +286,7 @@ function UI_PropertyGrid.setData( input_values, options )
 	data = this.data;
 	data.options = options;
 	data.values = all_values = {};
-	data.AutoLayout.removeAllChildren();
+	data.AutoLayout.destroyAllChildren(true);
 	foreach( option : options )
 	{
 		name = @option.name;
@@ -346,7 +346,7 @@ function UI_CreatePropertyGrid( parent, values, options )
 		value_height = 24,
 		
 		values = {},
-		options = {},
+		options = [],
 	};
 	
 	Form = UI_CreateForm( PropertyGrid );

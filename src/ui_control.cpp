@@ -49,6 +49,17 @@ int UIColor::sgs_expr( SGS_CTX, sgs_VarObj* obj, sgs_Variable* A, sgs_Variable* 
 }
 
 
+UIEvent* UI_CreateEvent( SGS_CTX, sgsVariable& out, int type )
+{
+	UIEvent e;
+	e.type = type;
+	sgs_PushLiteClassFrom( C, &e );
+	out = sgsVariable( C, -1 );
+	sgs_Pop( C, 1 );
+	return out.get_object_data< UIEvent >();
+}
+
+
 int UIStyle::get_anchorMode()
 {
 	int out = 0;
@@ -694,6 +705,7 @@ int UICFPNAME( SGS_CTX )
 		return sgs_Msg( C, SGS_WARNING, "expected UIControl as argument 0 / this" );
 	UIControl* ctrl = sgs_GetVar<UIControl::Handle>()( C, 0 );
 	
+	sgsVariable ev( C, 1 );
 	UIEvent* event = sgs_GetVarObj<UIEvent>()( C, 1 );
 	if( !event )
 		return sgs_Msg( C, SGS_WARNING, "expected UIEvent as argument 1" );
@@ -769,13 +781,13 @@ int UICFPNAME( SGS_CTX )
 		SGSFN( UNCFPNS "/mouseenter" );
 		ctrl->mouseOn = true;
 		ctrl->frame->_updateStyles( ctrl );
-		ctrl->_callEvent( sgsString( C, "mouseenter" ), event );
+		ctrl->callEvent( sgsString( C, "mouseenter" ), ev );
 		return 1;
 	case EV_MouseLeave:
 		SGSFN( UNCFPNS "/mouseleave" );
 		ctrl->mouseOn = false;
 		ctrl->frame->_updateStyles( ctrl );
-		ctrl->_callEvent( sgsString( C, "mouseleave" ), event );
+		ctrl->callEvent( sgsString( C, "mouseleave" ), ev );
 		return 1;
 	case EV_ButtonDown:
 		SGSFN( UNCFPNS "/buttondown" );
@@ -783,7 +795,7 @@ int UICFPNAME( SGS_CTX )
 		SGSFN( UNCFPNS "/buttondown/layout" );
 		ctrl->frame->_updateStyles( ctrl );
 		SGSFN( UNCFPNS "/buttondown/event" );
-		ctrl->_callEvent( sgsString( C, "mousedown" ), event );
+		ctrl->callEvent( sgsString( C, "mousedown" ), ev );
 		SGSFN( UNCFPNS "/buttondown/focus" );
 		if( ctrl->frame.object )
 			ctrl->frame->setFocus( ctrl );
@@ -791,10 +803,10 @@ int UICFPNAME( SGS_CTX )
 		return 1;
 	case EV_ButtonUp:
 		SGSFN( UNCFPNS "/buttonup/event" );
-		ctrl->_callEvent( sgsString( C, "mouseup" ), event );
+		ctrl->callEvent( sgsString( C, "mouseup" ), ev );
 		SGSFN( UNCFPNS "/buttonup/event-click" );
 		if( ctrl->clicked && ctrl->frame.object && ctrl->frame->isControlUnderCursor( UIControl::Handle( ctrl ) ) )
-			ctrl->_callEvent( sgsString( C, "click" ), event );
+			ctrl->callEvent( sgsString( C, "click" ), ev );
 		SGSFN( UNCFPNS "/buttonup/layout" );
 		ctrl->clicked--;
 		ctrl->frame->_updateStyles( ctrl );
@@ -841,7 +853,7 @@ UIControl::Handle UIFrame::createControl( sgsString type )
 {
 	UIControl* ctrl = SGS_PUSHCLASS( C, UIControl, () );
 	ctrl->type = type;
-	ctrl->frame = Handle( C, m_sgsObject );
+	ctrl->frame = Handle( this );
 	ctrl->id = m_controlIDGen.GetID();
 	ctrl->updateFont();
 	UIFilteredStyleArray fsa;
@@ -853,14 +865,14 @@ UIControl::Handle UIFrame::createControl( sgsString type )
 
 sgsHandle<struct UIQuery> UIFrame::find( /* args */ )
 {
-	return UIQuery::Create( Handle( C, m_sgsObject ) );
+	return UIQuery::Create( Handle( this ) );
 }
 
 
-void UIFrame::event( UIEvent* e )
+void UIFrame::event( sgsVariable ev )
 {
 	if( root )
-		root->niEvent( e, true );
+		root->niEvent( ev, true );
 }
 
 void UIFrame::render()
@@ -871,10 +883,10 @@ void UIFrame::render()
 
 UIControl* UIFrame::_getControlAtPosition( float x, float y )
 {
-	UIEvent htev;
-	htev.type = EV_HitTest;
-	htev.x = x;
-	htev.y = y;
+	sgsVariable htev;
+	UIEvent* hte = UI_CreateEvent( C, htev, EV_HitTest );
+	hte->x = x;
+	hte->y = y;
 	
 	UIControl* ctrl = root, *atpos = NULL;
 	int nonclient = -1;
@@ -889,7 +901,7 @@ UIControl* UIFrame::_getControlAtPosition( float x, float y )
 				continue;
 			if( nonclient < 0 || nonclient == ( nc->nonclient ? 1 : 0 ) )
 			{
-				int hit = nc->niEvent( &htev, true );
+				int hit = nc->niEvent( htev, true );
 				if( hit != Hit_None )
 				{
 					ctrl = nc;
@@ -918,11 +930,26 @@ void UIFrame::handleMouseMove( bool optional )
 	
 	if( m_hover != prevhover )
 	{
-		UIEvent mev;
-		mev.x = mouseX;
-		mev.y = mouseY;
-		if( prevhover ){ mev.type = EV_MouseLeave; prevhover->niBubblingEvent( &mev ); }
-		if( m_hover ){ mev.type = EV_MouseEnter; m_hover->niBubblingEvent( &mev ); }
+		if( prevhover || m_hover )
+		{
+			sgsVariable mev;
+			UIEvent* me = UI_CreateEvent( C, mev );
+			
+			if( prevhover )
+			{
+				me->type = EV_MouseLeave;
+				me->x = mouseX;
+				me->y = mouseY;
+				prevhover->niBubblingEvent( mev );
+			}
+			if( m_hover )
+			{
+				me->type = EV_MouseEnter;
+				me->x = mouseX;
+				me->y = mouseY;
+				m_hover->niBubblingEvent( mev );
+			}
+		}
 		
 		// for cursor stability
 		for( int i = 0; i < Mouse_Button_Count; ++i )
@@ -937,27 +964,28 @@ void UIFrame::setFocus( UIControl* ctrl )
 	if( m_focus == ctrl )
 		return;
 	
-	UIEvent e;
-	e.type = EV_NeedFocus;
+	sgsVariable ev;
+	UIEvent* e = UI_CreateEvent( C, ev, EV_NeedFocus );
 	
-	if( ctrl->niEvent( &e, true ) )
+	if( !ctrl || ctrl->niEvent( ev, true ) )
 	{
-		if( m_focus ){ e.type = EV_FocusLeave; m_focus->niEvent( &e, true ); }
+		if( m_focus ){ e->type = EV_FocusLeave; m_focus->niEvent( ev, true ); }
 		m_focus = ctrl;
-		if( m_focus ){ e.type = EV_FocusEnter; m_focus->niEvent( &e, true ); }
+		if( m_focus ){ e->type = EV_FocusEnter; m_focus->niEvent( ev, true ); }
 	}
 }
 
 void UIFrame::doMouseMove( float x, float y )
 {
 	// send event
-	UIEvent e;
-	e.type = EV_MouseMove;
-	e.x = x;
-	e.y = y;
-	e.rx = x - mouseX;
-	e.ry = y - mouseY;
-	event( &e );
+	sgsVariable ev;
+	UIEvent* e = UI_CreateEvent( C, ev, EV_MouseMove );
+	e->x = x;
+	e->y = y;
+	e->rx = x - mouseX;
+	e->ry = y - mouseY;
+	UIEvent oe = *e;
+	event( ev );
 	mouseX = x;
 	mouseY = y;
 	
@@ -965,10 +993,12 @@ void UIFrame::doMouseMove( float x, float y )
 	
 	if( m_hover )
 	{
-		UIEvent mev;
-		mev.x = mouseX;
-		mev.y = mouseY;
-		if( m_hover ){ mev.type = EV_MouseMove; m_hover->niBubblingEvent( &mev ); }
+		e->type = EV_MouseMove; // need to refresh the type in case it's been changed
+		e->x = mouseX;
+		e->y = mouseY;
+		e->rx = 0;
+		e->ry = 0;
+		m_hover->niBubblingEvent( ev );
 	}
 	
 	for( int i = 0; i < Mouse_Button_Count; ++i )
@@ -988,12 +1018,14 @@ void UIFrame::doMouseMove( float x, float y )
 		if( already )
 			continue;
 		
-		m_clicktargets[ i ]->niBubblingEvent( &e );
+		*e = oe;
+		m_clicktargets[ i ]->niBubblingEvent( ev );
 	}
 	
 	if( root.object )
 	{
-		root->_callEvent( sgsString( C, "globalmousemove" ), &e );
+		*e = oe;
+		root->callEvent( sgsString( C, "globalmousemove" ), ev );
 	}
 }
 
@@ -1002,17 +1034,18 @@ void UIFrame::doMouseButton( int btn, bool down )
 	if( btn < 0 || btn >= Mouse_Button_Count )
 		return;
 	
-	UIEvent e;
-	e.type = down ? EV_ButtonDown : EV_ButtonUp;
-	e.button = btn;
-	e.x = mouseX;
-	e.y = mouseY;
+	sgsVariable ev;
+	UIEvent* e = UI_CreateEvent( C, ev, down ? EV_ButtonDown : EV_ButtonUp );
+	e->button = btn;
+	e->x = mouseX;
+	e->y = mouseY;
+	UIEvent oe = *e;
 	
 	if( !down )
 	{
 		if( m_clicktargets[ btn ] )
 		{
-			m_clicktargets[ btn ]->niBubblingEvent( &e );
+			m_clicktargets[ btn ]->niBubblingEvent( ev );
 			m_clicktargets[ btn ] = NULL;
 		}
 		handleMouseMove( true );
@@ -1022,51 +1055,59 @@ void UIFrame::doMouseButton( int btn, bool down )
 		m_clicktargets[ btn ] = m_hover;
 		m_clickoffsets[ btn ][0] = mouseX - m_hover->rx0;
 		m_clickoffsets[ btn ][1] = mouseY - m_hover->ry0;
-		m_hover->niBubblingEvent( &e );
+		m_hover->niBubblingEvent( ev );
 	}
 	
 	if( root.object )
 	{
-		root->_callEvent( sgsString( C, down ? "globalbuttondown" : "globalbuttonup" ), &e );
+		*e = oe;
+		root->callEvent( sgsString( C, down ? "globalbuttondown" : "globalbuttonup" ), ev );
 	}
 }
 
 void UIFrame::doMouseWheel( float x, float y )
 {
-	UIEvent e;
-	e.type = EV_MouseWheel;
-	e.x = x;
-	e.y = y;
+	sgsVariable ev;
+	UIEvent* e = UI_CreateEvent( C, ev, EV_MouseWheel );
+	e->x = x;
+	e->y = y;
+	UIEvent oe = *e;
 	
 	if( m_hover )
 	{
-		m_hover->niBubblingEvent( &e );
+		m_hover->niBubblingEvent( ev );
 	}
 	
 	if( root.object )
 	{
-		root->_callEvent( sgsString( C, "globalmousewheel" ), &e );
+		if( m_hover )
+			*e = oe; // needs refreshing
+		root->callEvent( sgsString( C, "globalmousewheel" ), ev );
 	}
 }
 
 void UIFrame::doKeyPress( int key, bool down )
 {
-	UIEvent e;
-	e.type = down ? EV_KeyDown : EV_KeyUp;
-	e.key = key;
-	
 	if( m_focus )
-		m_focus->niEvent( &e, true );
+	{
+		sgsVariable ev;
+		UIEvent* e = UI_CreateEvent( C, ev, down ? EV_KeyDown : EV_KeyUp );
+		e->key = key;
+		
+		m_focus->niEvent( ev, true );
+	}
 }
 
 void UIFrame::doPutChar( int chr )
 {
-	UIEvent e;
-	e.type = EV_Char;
-	e.uchar = chr;
-	
 	if( m_focus )
-		m_focus->niEvent( &e, true );
+	{
+		sgsVariable ev;
+		UIEvent* e = UI_CreateEvent( C, ev, EV_Char );
+		e->uchar = chr;
+		
+		m_focus->niEvent( ev, true );
+	}
 }
 
 int64_t UIFrame::_setTimer( float t, sgsVariable func, bool one_shot )
@@ -1386,29 +1427,43 @@ UIControl::~UIControl()
 	frame->m_controlIDGen.ReleaseID( id );
 }
 
-int UIControl::niEvent( UIEvent* e, bool only )
+int UIControl::niEvent( sgsVariable& ev, bool only )
 {
 	if( !callback.not_null() )
 		return 0;
+	
 	int orig = sgs_StackSize( C );
-	sgs_PushVar( C, Handle( C, m_sgsObject ) );
+	
+	sgs_PushVar( C, Handle( this ) );
 	if( only )
-		e->target = Handle( C, m_sgsObject );
-	UI_PushEvent( C, e );
+		ev.get_object_data< UIEvent >()->target = Handle( this );
+	
+	ev.push( C );
 	callback.push();
+	
 	sgs_ThisCall( C, 1, 1 );
+	
 	int ret = sgs_GetInt( C, -1 );
+	
 	sgs_SetStackSize( C, orig );
 	return ret;
 }
 
-void UIControl::niBubblingEvent( UIEvent* e )
+void UIControl::niDeepEvent( sgsVariable& ev )
+{
+	ev.get_object_data< UIEvent >()->target = Handle( this );
+	niEvent( ev );
+	for( HandleArray::iterator it = m_sorted.begin(), itend = m_sorted.end(); it != itend; ++it )
+		(*it)->niDeepEvent( ev );
+}
+
+void UIControl::niBubblingEvent( sgsVariable& ev )
 {
 	UIControl* cc = this;
-	e->target = Handle( C, m_sgsObject );
+	ev.get_object_data< UIEvent >()->target = Handle( this );
 	while( cc )
 	{
-		if( !cc->niEvent( e ) )
+		if( !cc->niEvent( ev ) )
 			break;
 		cc = cc->parent;
 	}
@@ -1422,7 +1477,7 @@ void UIControl::niRender()
 	if( get_renderfunc().not_null() )
 	{
 		sgs_StkIdx orig = sgs_StackSize( C );
-		sgs_PushVar( C, Handle( C, m_sgsObject ) );
+		sgs_PushVar( C, Handle( this ) );
 		get_renderfunc().push( C );
 		sgs_ThisCall( C, 0, 0 );
 		sgs_SetStackSize( C, orig );
@@ -1453,9 +1508,9 @@ void UIControl::updateScroll()
 		return;
 	
 	_updatingLayout = true;
-	UIEvent e;
-	e.type = EV_Scroll;
-	niEvent( &e, true );
+	sgsVariable ev;
+	UI_CreateEvent( C, ev, EV_Scroll );
+	niEvent( ev, true );
 	_updatingLayout = false;
 }
 
@@ -1465,17 +1520,17 @@ void UIControl::updateLayout()
 		return;
 	
 	_updatingLayout = true;
-	UIEvent e;
-	e.type = EV_Layout;
-	niEvent( &e, true );
+	sgsVariable ev;
+	UI_CreateEvent( C, ev, EV_Layout );
+	niEvent( ev, true );
 	_updatingLayout = false;
 }
 
 void UIControl::updateTheme()
 {
-	UIEvent e;
-	e.type = EV_ChgTheme;
-	niEvent( &e, true );
+	sgsVariable ev;
+	UI_CreateEvent( C, ev, EV_ChgTheme );
+	niEvent( ev, true );
 }
 
 void UIControl::updateThemeRecursive()
@@ -1572,27 +1627,27 @@ bool UIControl::addChild( UIControl::Handle ch )
 	}
 	m_children.push_back( ch );
 	m_sorted.push_back( ch );
-	ch->parent = Handle( C, m_sgsObject );
+	ch->parent = Handle( this );
 	sortChildren();
 	
-	UIEvent e;
-	e.type = EV_AddChild;
-	niEvent( &e, true );
+	sgsVariable ev;
+	UIEvent* e = UI_CreateEvent( C, ev, EV_AddChild );
+	niEvent( ev, true );
 	
-	e.type = EV_Attach;
-	ch->niEvent( &e, true );
+	e->type = EV_Attach;
+	ch->niDeepEvent( ev );
 	
 	return true;
 }
 
 bool UIControl::removeChild( UIControl::Handle ch )
 {
-	UIEvent e;
-	e.type = EV_Detach;
-	ch->niEvent( &e, true );
+	sgsVariable ev;
+	UIEvent* e = UI_CreateEvent( C, ev, EV_Detach );
+	ch->niDeepEvent( ev );
 	
-	e.type = EV_RemChild;
-	niEvent( &e, true );
+	e->type = EV_RemChild;
+	niEvent( ev, true );
 	
 	bool found = false;
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
@@ -1726,7 +1781,7 @@ UIControl* UIControl::_getPrev()
 {
 	if( !parent.object )
 		return NULL;
-	size_t pos = VFIND( parent->m_children, Handle( C, m_sgsObject ) );
+	size_t pos = VFIND( parent->m_children, Handle( this ) );
 	if( pos < 1 || pos >= parent->m_children.size() )
 		return NULL;
 	return parent->m_children[ pos ];
@@ -1736,7 +1791,7 @@ UIControl* UIControl::_getNext()
 {
 	if( !parent.object )
 		return NULL;
-	size_t pos = VFIND( parent->m_children, Handle( C, m_sgsObject ) );
+	size_t pos = VFIND( parent->m_children, Handle( this ) );
 	if( pos >= parent->m_children.size() - 1 )
 		return NULL;
 	return parent->m_children[ pos ];
@@ -1831,14 +1886,6 @@ bool UIControl::callEvent( sgsString name, sgsVariable data )
 	}
 	sgs_SetStackSize( C, orig );
 	return true;
-}
-
-bool UIControl::_callEvent( sgsString name, UIEvent* e )
-{
-	UI_PushEvent( C, e );
-	bool res = callEvent( name, sgsVariable( C, -1 ) );
-	sgs_Pop( C, 1 );
-	return res;
 }
 
 

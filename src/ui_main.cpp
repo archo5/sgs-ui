@@ -162,6 +162,7 @@ sgs_RegIntConst g_iconsts[] =
 	FN( Key_SelectAll ),
 	FN( Key_PageUp    ),
 	FN( Key_PageDown  ),
+	FN( Key_Enter     ),
 	
 	FN( Hit_Client    ),
 	FN( Hit_NonClient ),

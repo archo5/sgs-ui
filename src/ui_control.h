@@ -74,6 +74,7 @@
 #define Key_SelectAll 13
 #define Key_PageUp    14
 #define Key_PageDown  15
+#define Key_Enter     16
 
 #define Hit_Client    2
 #define Hit_NonClient 1
@@ -202,7 +203,7 @@ struct UIEvent
 	SGS_PROPERTY sgsHandle<struct UIControl> target;
 };
 
-inline void UI_PushEvent( SGS_CTX, UIEvent* e ){ sgs_PushLiteClassFrom( C, e ); }
+UIEvent* UI_CreateEvent( SGS_CTX, sgsVariable& out, int type = 0 );
 
 
 struct UIStyle /* style storage */
@@ -444,7 +445,7 @@ struct UIFrame
 	SGS_METHOD sgsHandle< UIControl > createControl( sgsString type );
 	SGS_METHOD sgsHandle<struct UIQuery> find( /* args */ );
 	
-	SGS_METHOD void event( UIEvent* e );
+	SGS_METHOD void event( sgsVariable ev );
 	SGS_METHOD void render();
 	UIControl* _getControlAtPosition( float x, float y );
 	SGS_METHOD void handleMouseMove( bool optional );
@@ -590,8 +591,9 @@ struct UIControl
 	UIControl();
 	~UIControl();
 	
-	int niEvent( UIEvent* event, bool only = false );
-	void niBubblingEvent( UIEvent* e );
+	int niEvent( sgsVariable& ev, bool only = false );
+	void niDeepEvent( sgsVariable& ev );
+	void niBubblingEvent( sgsVariable& ev );
 	void niRender();
 	SGS_METHOD void updateScroll();
 	SGS_METHOD void updateLayout();
@@ -628,7 +630,6 @@ struct UIControl
 	SGS_METHOD UIControl::Handle unbindEventAll( sgsString name );
 	SGS_METHOD void unbindEverything();
 	SGS_METHOD bool callEvent( sgsString name, sgsVariable data );
-	bool _callEvent( sgsString name, UIEvent* e );
 	
 	SGS_METHOD UIControl::Handle animate( sgsVariable state, float length, sgsVariable func, sgsVariable oncomplete );
 	SGS_METHOD UIControl::Handle stop( bool nofinish ); /* skip + dequeue */

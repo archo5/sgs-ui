@@ -100,6 +100,7 @@ function SS_UI_HandleEvent( frame, e )
 		else if( e.keycode == SDLK_A && e.mod & SDL_KMOD_CTRL ) key = Key_SelectAll;
 		else if( e.keycode == SDLK_PAGEUP ) key = Key_PageUp;
 		else if( e.keycode == SDLK_PAGEDOWN ) key = Key_PageDown;
+		else if( e.keycode == SDLK_RETURN ) key = Key_Enter;
 		if( key )
 		{
 			if( e.mod & SDL_KMOD_SHIFT ) key |= KeyMod_Shift;
