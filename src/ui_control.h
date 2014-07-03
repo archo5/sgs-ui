@@ -692,6 +692,7 @@ struct UIControl
 	void _refilterStyles( UIFilteredStyleArray& styles );
 	void _remergeStyle();
 	void _applyStyle( const UIStyleCache& nsc );
+	SGS_METHOD sgsVariable _getMatchedSelectors();
 	
 #define UIC_DEFINE_ACCESSORS( ty, nm ) \
 	ty get_##nm() const { return computedStyle.nm; } \
@@ -836,16 +837,28 @@ struct UIControl
 	SGS_PROPERTY float rx1;
 	SGS_PROPERTY float ry0;
 	SGS_PROPERTY float ry1;
+	float get_realWidth(){ return rx1 - rx0; }
+	SGS_PROPERTY_FUNC( READ get_realWidth ) float realWidth;
+	float get_realHeight(){ return ry1 - ry0; }
+	SGS_PROPERTY_FUNC( READ get_realHeight ) float realHeight;
 	// client rect
 	SGS_PROPERTY float cx0;
 	SGS_PROPERTY float cx1;
 	SGS_PROPERTY float cy0;
 	SGS_PROPERTY float cy1;
+	float get_clientWidth(){ return cx1 - cx0; }
+	SGS_PROPERTY_FUNC( READ get_clientWidth ) float clientWidth;
+	float get_clientHeight(){ return cy1 - cy0; }
+	SGS_PROPERTY_FUNC( READ get_clientHeight ) float clientHeight;
 	// padded rect
 	SGS_PROPERTY float px0;
 	SGS_PROPERTY float px1;
 	SGS_PROPERTY float py0;
 	SGS_PROPERTY float py1;
+	float get_paddedWidth(){ return px1 - px0; }
+	SGS_PROPERTY_FUNC( READ get_paddedWidth ) float paddedWidth;
+	float get_paddedHeight(){ return py1 - py0; }
+	SGS_PROPERTY_FUNC( READ get_paddedHeight ) float paddedHeight;
 	
 	void _updateFullRect();
 	void _updateChildRects();

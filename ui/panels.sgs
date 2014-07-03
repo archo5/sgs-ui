@@ -72,6 +72,40 @@ function UI_Controls.autolayout( parent, params )
 }
 
 
+global UI_Scrollable = {};
+
+function UI_Scrollable._doScrolling( factor )
+{
+	factor ||= 1;
+	data = this.data;
+	if( data.cursor_scroll )
+	{
+		curx = data.cursor_x;
+		cury = data.cursor_y;
+		if( data.scrV.visible && curx >= this.cx0 && curx < this.cx1 )
+		{
+			scrfac = 0;
+			if( cury >= this.cy0 && cury < this.py0 ) scrfac--;
+			if( cury >= this.py1 && cury < this.cy1 ) scrfac++;
+			if( scrfac )
+				data.scrV.moveRel( data.scrV.data.mousemove_step * scrfac * factor );
+		}
+		if( data.scrH.visible && cury >= this.cy0 && cury < this.cy1 )
+		{
+			scrfac = 0;
+			if( curx >= this.cx0 && curx < this.px0 ) scrfac--;
+			if( curx >= this.px1 && curx < this.cx1 ) scrfac++;
+			if( scrfac )
+				data.scrH.moveRel( data.scrH.data.mousemove_step * scrfac * factor );
+		}
+		
+		me = this;
+		this.frame.setTimeout( 1/60, function() use(me){ me._doScrolling(1/60); } );
+	}
+}
+
+function UI_Scrollable.enableCursorScroll( enable ){ this.data.cursor_scroll = enable; }
+
 function UI_CreateScrollable( parent, vscroll, hscroll )
 {
 	vscroll = if( vscroll === null, "auto", vscroll );
@@ -79,33 +113,34 @@ function UI_CreateScrollable( parent, vscroll, hscroll )
 	
 	Scrollable = parent.frame.createControl( "scrollable" );
 	Scrollable._childAffectsLayout = true;
+	Scrollable._interface = UI_Scrollable;
 	Scrollable.data =
 	{
-		padding = 1,
-		scroll_size = 12,
 		x0 = 0, x1 = 0, y0 = 0, y1 = 0,
 		hscroll = hscroll,
 		vscroll = vscroll,
+		
+		cursor_scroll = false,
+		cursor_x = null,
+		cursor_y = null,
 	};
 	
-	pad = Scrollable.data.padding;
-	ssize = Scrollable.data.scroll_size;
-	
-	scrV = UI_CreateVScrollbar( Scrollable )[]{ x = pad, y = -pad, width = ssize, height = pad * 2, nonclient = true, visible = false, q0x = 1, q1x = 1, q1y = 1 };
-	scrH = UI_CreateHScrollbar( Scrollable )[]{ x = -pad, y = pad, width = pad * 2, height = ssize, nonclient = true, visible = false, q0y = 1, q1y = 1, q1x = 1 };
+	Scrollable.data.scrV = scrV = UI_CreateVScrollbar( Scrollable )[]{ nonclient = true };
+	Scrollable.data.scrH = scrH = UI_CreateHScrollbar( Scrollable )[]{ nonclient = true };
+	scrV.addClass( "scroll-vertical" );
+	scrH.addClass( "scroll-horizontal" );
 	
 	Scrollable_data = Scrollable.data;
 	function Scrollable_data.recalc( Scrollable ) use( scrV, scrH )
 	{
-		pad = this.padding;
 		chlist = Scrollable.children();
 		x0 = x1 = y0 = y1 = 0;
 		foreach( ch : chlist )
 		{
-			p0x = ch.rx0 - Scrollable.rx0 - pad;
-			p0y = ch.ry0 - Scrollable.ry0 - pad;
-			p1x = ch.rx1 - Scrollable.rx0 - pad;
-			p1y = ch.ry1 - Scrollable.ry0 - pad;
+			p0x = ch.rx0 - Scrollable.cx0;
+			p0y = ch.ry0 - Scrollable.cy0;
+			p1x = ch.rx1 - Scrollable.cx0;
+			p1y = ch.ry1 - Scrollable.cy0;
 			
 			x0 = min( x0, min( p0x, p1x ) );
 			x1 = max( x1, max( p0x, p1x ) );
@@ -113,29 +148,22 @@ function UI_CreateScrollable( parent, vscroll, hscroll )
 			y1 = max( y1, max( p0y, p1y ) );
 		}
 		
-		x1 += pad * 2;
-		y1 += pad * 2;
-		
 		this.x0 = x0; this.x1 = x1;
 		this.y0 = y0; this.y1 = y1;
 		
 		iw = x1 - x0;
 		ih = y1 - y0;
 		
-		conth = Scrollable.ry1 - Scrollable.ry0;
-		contw = Scrollable.rx1 - Scrollable.rx0;
-		
-		showV = if( this.vscroll === "auto", ih > conth - this.scroll_size * scrH.visible, this.vscroll );
-		showH = if( this.hscroll === "auto", iw > contw - this.scroll_size * scrV.visible, this.hscroll );
+		showV = if( this.vscroll === "auto", ih > Scrollable.realHeight - scrV.realWidth * scrH.visible, this.vscroll );
+		showH = if( this.hscroll === "auto", iw > Scrollable.realWidth - scrH.realHeight * scrV.visible, this.hscroll );
 		
 		scrV.visible = showV;
 		scrH.visible = showH;
 		scrV.data.space = ih;
 		scrH.data.space = iw;
-		Scrollable.nonClientTop = pad;
-		Scrollable.nonClientLeft = pad;
-		Scrollable.nonClientRight = pad + if( showV, this.scroll_size, 0 );
-		Scrollable.nonClientBottom = pad + if( showH, this.scroll_size, 0 );
+		fs = Scrollable.filteredStyle;
+		Scrollable.nonClientRight = fs.nonClientRight + if( showV, scrV.realWidth, 0 );
+		Scrollable.nonClientBottom = fs.nonClientBottom + if( showH, scrH.realHeight, 0 );
 	}
 	
 	scrV.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_y = -this.data.position; } );
@@ -160,6 +188,12 @@ function UI_CreateScrollable( parent, vscroll, hscroll )
 				scrH.callback( event );
 			}
 			return 0; // stop bubbling
+		}
+		else if( event.type == EV_MouseMove )
+		{
+			data.cursor_x = event.x;
+			data.cursor_y = event.y;
+			this._doScrolling();
 		}
 		return this!ocb( event );
 	}

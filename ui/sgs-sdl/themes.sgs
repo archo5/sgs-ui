@@ -418,6 +418,8 @@ global SS_UI_Theme_Default =
 		// - panels
 		"scrollable" =
 		{
+			nonClient = 1,
+			padding = 20,
 			backgroundColor = UIColor( 0.8, 1 ),
 			renderfunc = function SS_UI_Theme_Default_scrollable_renderfunc()
 			{
@@ -426,6 +428,8 @@ global SS_UI_Theme_Default =
 				SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, c.r, c.g, c.b, c.a );
 			}
 		},
+		"scrollable > .scroll-vertical" = { x = 1, y = -1, width = 12, visible = false, anchorMode = UI_Anchor_Vert | UI_Anchor_Right },
+		"scrollable > .scroll-horizontal" = { x = -1, y = 1, height = 12, visible = false, anchorMode = UI_Anchor_Hor | UI_Anchor_Bottom },
 		"splitpane > pane" = { anchorMode = UI_Anchor_All },
 		"splitpane > split" = { anchorMode = UI_Anchor_All, nonClientV = 1, backgroundColor = UIColor( 0.8, 1 ) },
 		"splitpane.horizontal > .pane-a" = { y = 0, height = -3 },

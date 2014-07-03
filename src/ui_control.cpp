@@ -1131,9 +1131,16 @@ void UIFrame::_clearTimer( int64_t id )
 
 void UIFrame::processTimers( float t )
 {
+	int64_t maxid = m_timerAutoID;
 	UITimerMap::iterator it = m_timers.begin();
 	while( it != m_timers.end() )
 	{
+		if( maxid - it->first < 0 )
+		{
+			// do not process timers added during this call
+			++it;
+			continue;
+		}
 		UITimerData* td = &it->second;
 		td->timeout -= t;
 		if( td->timeout < 0 )
@@ -2410,6 +2417,19 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	if( updatedLayout ) updateLayout();
 	if( ( updatedBox || updatedOrder ) && frame.not_null() )
 		frame->handleMouseMove( true );
+}
+
+sgsVariable UIControl::_getMatchedSelectors()
+{
+	UIFilteredStyleArray fsa;
+	_refilterStyles( fsa );
+	
+	for( size_t i = 0; i < fsa.size(); ++i )
+	{
+		fsa[i].rule->selectors[ fsa[i].which_sel ].selector.push( C );
+	}
+	sgs_PushArray( C, fsa.size() );
+	return sgsVariable( C, -1 );
 }
 
 void UIControl::_updateFullRect()

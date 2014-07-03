@@ -75,6 +75,17 @@ function UI_Controls.scrollingautolayout( parent, params )
 
 global UI_EditableList = {};
 
+function UI_EditableList._notifyReorder( item )
+{
+	previndex = item.data.previndex;
+	curindex = item.getOrderIndex();
+	
+	if( previndex != curindex )
+	{
+		println( "TODO (order changed, "$previndex$" to "$curindex$")" );
+	}
+}
+
 function UI_EditableList._initItem( ELItem )
 {
 	ELItem.data =
@@ -84,7 +95,8 @@ function UI_EditableList._initItem( ELItem )
 		dragoff_x = null,
 		dragoff_y = null,
 		startcp_x = null,
-		startcp_y = null
+		startcp_y = null,
+		previndex = null,
 	};
 	ocb = ELItem.callback;
 	function ELItem.callback( event ) use( ocb )
@@ -113,6 +125,8 @@ function UI_EditableList._initItem( ELItem )
 					this.style = data.originalStyle;
 					this.styleParent = null;
 					this._neverHit = false;
+					this.parent.parent.enableCursorScroll( false );
+					this.parent.parent.parent._notifyReorder( this );
 				}
 				data.maydrag = false;
 			}
@@ -125,6 +139,8 @@ function UI_EditableList._initItem( ELItem )
 			{
 				data.dragging = true;
 				// D&D BEGINS
+				data.previndex = this.getOrderIndex();
+				this.parent.parent.enableCursorScroll( true );
 				data.dragoff_x = this.rx0 - data.startcp_x;
 				data.dragoff_y = this.ry0 - data.startcp_y;
 				data.originalStyle = this.style;

@@ -98,6 +98,61 @@ function UI_Controls.imagebutton( parent, params )
 }
 
 
+global UI_Scrollbar = {};
+
+function UI_Scrollbar.moveRel( dist )
+{
+	data = this.data;
+	opos = data.position;
+	data.position += dist;
+	maxpos = data.space - data.window;
+	if( maxpos < 0 ) maxpos = 0;
+	if( data.position < 0 ) data.position = 0;
+	if( data.position > maxpos ) data.position = maxpos;
+	
+	if( data.vertical )
+	{
+		scroll_length = this.ry1 - this.ry0 - data.button_size * 2;
+		data.btnCS.y = data.button_size + if( data.space, scroll_length * data.position / data.space, 0 );
+	}
+	else
+	{
+		scroll_length = this.rx1 - this.rx0 - data.button_size * 2;
+		data.btnCS.x = data.button_size + if( data.space, scroll_length * data.position / data.space, 0 );
+	}
+	
+	this.frame.handleMouseMove();
+	
+	if( opos != data.position )
+	{
+		e = UI_CreateEvent();
+		if( data.vertical )
+			e.y = data.position;
+		else
+			e.x = data.position;
+		this.callEvent( "change", e );
+	}
+}
+
+function UI_Scrollbar.moveToAbs( coord )
+{
+	data = this.data;
+	if( data.vertical )
+	{
+		rcoord = coord - this.ry0 - data.button_size;
+		movelen = this.realHeight - data.button_size * 2 - data.btnCS.height;
+	}
+	else
+	{
+		rcoord = coord - this.rx0 - data.button_size;
+		movelen = this.realWidth - data.button_size * 2 - data.btnCS.width;
+	}
+	np = 0;
+	if( movelen )
+		np = rcoord / movelen * ( data.space - data.window );
+	this.moveRel( np - data.position );
+}
+
 function UI_CreateScrollbar( parent, vertical, space, window, position )
 {
 	space ||= 0;
@@ -107,10 +162,12 @@ function UI_CreateScrollbar( parent, vertical, space, window, position )
 	
 	Scroll = parent.frame.createControl( "scrollbar" );
 	Scroll.addClass( if( vertical, "vertical", "horizontal" ) );
+	Scroll._interface = UI_Scrollbar;
 	Scroll.data =
 	{
 		button_size = 0,
 		move_step = 32,
+		mousemove_step = 4,
 		min_scroll_length = 16,
 		
 		vertical = vertical,
@@ -126,74 +183,23 @@ function UI_CreateScrollbar( parent, vertical, space, window, position )
 	bar_pos = if( space, scroll_length * position / space, 0 );
 	bar_length = if( space, scroll_length * window / space, scroll_length );
 	
-	btnUP = UI_CreateButton( Scroll )[]{ class = "btn-back" };
-	btnDN = UI_CreateButton( Scroll )[]{ class = "btn-fwd" };
-	btnCS = UI_CreateButton( Scroll )[]{ class = "btn-slider" };
-	
-	Scrollbar_data = Scroll.data;
-	function Scrollbar_data.moveRel( dist, Scroll, btnCS )
-	{
-		opos = this.position;
-		this.position += dist;
-		maxpos = this.space - this.window;
-		if( maxpos < 0 ) maxpos = 0;
-		if( this.position < 0 ) this.position = 0;
-		if( this.position > maxpos ) this.position = maxpos;
-		
-		if( this.vertical )
-		{
-			scroll_length = Scroll.ry1 - Scroll.ry0 - this.button_size * 2;
-			btnCS.y = this.button_size + if( this.space, scroll_length * this.position / this.space, 0 );
-		}
-		else
-		{
-			scroll_length = Scroll.rx1 - Scroll.rx0 - this.button_size * 2;
-			btnCS.x = this.button_size + if( this.space, scroll_length * this.position / this.space, 0 );
-		}
-		
-		Scroll.frame.handleMouseMove();
-		
-		if( opos != this.position )
-		{
-			e = UI_CreateEvent();
-			if( this.vertical )
-				e.y = this.position;
-			else
-				e.x = this.position;
-			Scroll.callEvent( "change", e );
-		}
-	}
-	function Scrollbar_data.moveToAbs( coord, Scroll, btnCS )
-	{
-		if( this.vertical )
-		{
-			rcoord = coord - Scroll.ry0 - this.button_size;
-			movelen = Scroll.ry1 - Scroll.ry0 - this.button_size * 2 - btnCS.height;
-		}
-		else
-		{
-			rcoord = coord - Scroll.rx0 - this.button_size;
-			movelen = Scroll.rx1 - Scroll.rx0 - this.button_size * 2 - btnCS.width;
-		}
-		np = 0;
-		if( movelen )
-			np = rcoord / movelen * ( this.space - this.window );
-		this.moveRel( np - this.position, Scroll, btnCS );
-	}
+	Scroll.data.btnUP = btnUP = UI_CreateButton( Scroll )[]{ class = "btn-back" };
+	Scroll.data.btnDN = btnDN = UI_CreateButton( Scroll )[]{ class = "btn-fwd" };
+	Scroll.data.btnCS = btnCS = UI_CreateButton( Scroll )[]{ class = "btn-slider" };
 	
 	/* parent = Scroll */
-	btnUP.bindEvent( "click", function() use( btnCS ){ parent.data.moveRel( -parent.data.move_step, parent, btnCS ); } );
-	btnDN.bindEvent( "click", function() use( btnCS ){ parent.data.moveRel( parent.data.move_step, parent, btnCS ); } );
+	btnUP.bindEvent( "click", function() use( btnCS ){ parent.moveRel( -parent.data.move_step ); } );
+	btnDN.bindEvent( "click", function() use( btnCS ){ parent.moveRel( parent.data.move_step ); } );
 	
-	scroll_orig_callback = Scroll.callback;
-	function Scroll.callback( event ) use( scroll_orig_callback, btnCS )
+	ocb = Scroll.callback;
+	function Scroll.callback( event ) use( ocb, btnCS )
 	{
 		data = this.data;
 		if( event.type == EV_Layout )
 		{
-			ret = this!scroll_orig_callback( event );
+			ret = this!ocb( event );
 			
-			scroll_length = if( data.vertical, this.ry1 - this.ry0, this.rx1 - this.rx0 );
+			scroll_length = if( data.vertical, this.realHeight, this.realWidth );
 			if( data.auto_window )
 				data.window = scroll_length;
 			
@@ -217,8 +223,8 @@ function UI_CreateScrollbar( parent, vertical, space, window, position )
 				if( bar_pos != orig_bar_pos )
 				{
 			//		println(bar_pos,",",orig_bar_pos);
-					data.moveRel( 0, this, btnCS );
-					ret = this!scroll_orig_callback( event );
+					this.moveRel( 0 );
+					ret = this!ocb( event );
 				}
 			}
 			
@@ -242,28 +248,26 @@ function UI_CreateScrollbar( parent, vertical, space, window, position )
 		else if( event.type == EV_ButtonDown )
 		{
 			if( event.button == Mouse_ButtonL && !btnCS.mouseOn )
-				data.moveToAbs( if( data.vertical, event.y - btnCS.height / 2, event.x - btnCS.width / 2 ), this, btnCS );
+				this.moveToAbs( if( data.vertical, event.y - btnCS.height / 2, event.x - btnCS.width / 2 ) );
 		}
 		else if( event.type == EV_MouseMove )
 		{
 			if( btnCS.clicked )
 			{
 				abspos = if( data.vertical, event.y - this.frame.getClickOffsetY( event.button ), event.x - this.frame.getClickOffsetX( event.button ) );
-				data.moveToAbs( abspos, this, btnCS );
+				this.moveToAbs( abspos );
 			}
 		}
 		else if( event.type == EV_MouseWheel )
 		{
-			data.moveRel( event.y * data.min_scroll_length, this, btnCS );
+			this.moveRel( event.y * data.min_scroll_length );
 			return 0; // stop bubbling
 		}
-		return this!scroll_orig_callback( event );
+		return this!ocb( event );
 	}
 	
 	Scroll.updateTheme();
-	
 	parent.addChild( Scroll );
-	
 	return Scroll;
 }
 
