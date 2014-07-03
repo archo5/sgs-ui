@@ -604,16 +604,30 @@ struct UIControl
 	void updateImage();
 	void updateIcon();
 	
-	SGS_METHOD bool addChild( UIControl::Handle ch );
+	SGS_METHOD bool insertChild( UIControl::Handle ch, ssize_t pos );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
 	SGS_METHOD bool removeAllChildren();
 	SGS_METHOD void detach();
 	SGS_METHOD void destroy( bool hard ); /* the goal here is to minimize the possibility of circular references */
 	SGS_METHOD void destroyAllChildren( bool hard );
+	SGS_METHOD bool swapChild( UIControl::Handle ch, UIControl::Handle nch );
 	SGS_METHOD UIControl::Handle findChild( sgsString name );
 	SGS_METHOD sgsVariable children( bool nonclient );
+	SGS_METHOD sgsVariable allChildren();
 	SGS_METHOD void sortChildren();
 	SGS_METHOD void sortSiblings();
+	SGS_METHOD int getChildIndex( UIControl::Handle ch );
+	SGS_METHOD int getChildCount( bool nonclient );
+	// child helper functions
+	SGS_METHOD bool prependChild( UIControl::Handle ch ){ return insertChild( ch, 0 ); }
+	SGS_METHOD bool appendChild( UIControl::Handle ch ){ return insertChild( ch, m_children.size() ); }
+	SGS_METHOD bool addChild( UIControl::Handle ch ){ return insertChild( ch, m_children.size() ); } // old name, =append
+	SGS_METHOD int getOrderIndex(){ if( parent.not_null() ) return parent->getChildIndex( Handle( this ) ); else return -1; }
+	SGS_METHOD int getAllChildCount(){ return m_children.size(); }
+	SGS_METHOD bool moveUp(){ int oi = getOrderIndex(); if( oi < 1 ) return false; return parent->insertChild( Handle( this ), oi - 1 ); }
+	SGS_METHOD bool moveDown(){ int oi = getOrderIndex(); if( oi < 0 || oi >= (int) m_children.size() ) return false; return parent->insertChild( Handle( this ), oi + 1 ); }
+	SGS_METHOD bool moveToIndex( int i ){ if( !parent.not_null() ) return false; return parent->insertChild( Handle( this ), i ); }
+	SGS_METHOD bool swapOutFor( UIControl::Handle nch ){ if( !parent.not_null() ) return false; else return parent->swapChild( Handle( this ), nch ); }
 	
 	int get_anchorMode(){ return computedStyle.get_anchorMode(); }
 	void set_anchorMode( int mode ){ style.set_anchorMode( mode ); _remergeStyle(); }
@@ -670,9 +684,11 @@ struct UIControl
 	static void _trimClass( const char** str, size_t* size );
 	
 	/// STYLES
+	SGS_PROPERTY Handle styleParent;
+	UIControl* getStyleParentPtr(){ return styleParent.not_null() ? styleParent : parent; }
 	UIStyleCache computedStyle; // active style data (after merging rule style and local override, on applying changes)
-	UIStyle filteredStyle; // calculated from style rules
-	UIStyle style; // local override
+	SGS_PROPERTY UIStyle filteredStyle; // calculated from style rules
+	SGS_PROPERTY UIStyle style; // local override
 	void _refilterStyles( UIFilteredStyleArray& styles );
 	void _remergeStyle();
 	void _applyStyle( const UIStyleCache& nsc );
@@ -840,6 +856,7 @@ struct UIControl
 	SGS_PROPERTY bool _parentAffectsLayout : 1; /* true if parent has any influence over the layout and should be updated if parent is */
 	SGS_PROPERTY bool _childAffectsLayout : 1; /* true if child has any influence over the layout and should be updated if child is */
 	SGS_PROPERTY bool _clientRectFromPadded : 1; /* true to calculate relative position for child controls from the padded rect, not client rect */
+	SGS_PROPERTY bool _neverHit : 1; /* true if cannot hit (regardless of hit test) */
 	SGS_PROPERTY READ bool mouseOn : 1;
 	SGS_PROPERTY READ bool keyboardFocus : 1;
 	SGS_PROPERTY READ int clicked;

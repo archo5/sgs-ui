@@ -464,14 +464,14 @@ bool UI_SelectorTestControl( const UIStyleSelector* sel, UIControl* ctrl )
 		{
 			moveonfail = true;
 			begfrag = --curfrag;
-			ctrl = ctrl->parent;
+			ctrl = ctrl->getStyleParentPtr();
 			continue;
 		}
 		else if( F.type == UIS_FRAG::T_ReqNext )
 		{
 			moveonfail = false;
 			begfrag = --curfrag;
-			ctrl = ctrl->parent;
+			ctrl = ctrl->getStyleParentPtr();
 			continue;
 		}
 		// matching
@@ -544,6 +544,7 @@ bool UI_SelectorTestControl( const UIStyleSelector* sel, UIControl* ctrl )
 		}
 		else if( F.type == UIS_FRAG::T_MatchPosFirstChild )
 		{
+			
 			if( !ctrl->parent.object || ctrl->parent->m_children[0] != ctrl )
 				goto matchfail;
 		}
@@ -559,7 +560,7 @@ bool UI_SelectorTestControl( const UIStyleSelector* sel, UIControl* ctrl )
 		if( moveonfail )
 		{
 			curfrag = begfrag;
-			ctrl = ctrl->parent;
+			ctrl = ctrl->getStyleParentPtr();
 		}
 		else
 			return false;
@@ -897,7 +898,7 @@ UIControl* UIFrame::_getControlAtPosition( float x, float y )
 		for( UIControl::HandleArray::reverse_iterator it = ctrl->m_sorted.rbegin(), itend = ctrl->m_sorted.rend(); it != itend; ++it )
 		{
 			UIControl* nc = *it;
-			if( !nc->get_visible() )
+			if( !nc->get_visible() || nc->_neverHit )
 				continue;
 			if( nonclient < 0 || nonclient == ( nc->nonclient ? 1 : 0 ) )
 			{
@@ -1401,7 +1402,7 @@ UIControl::UIControl() :
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
 	_updatingLayout(false), _roundedCoords(true),
 	_parentAffectsLayout(true), _childAffectsLayout(false),
-	_clientRectFromPadded(false),
+	_clientRectFromPadded(false), _neverHit(false),
 	mouseOn(false), keyboardFocus(false), clicked(0)
 {
 	sgs_PushCFunction( C, UIControl_CtrlProc );
@@ -1415,6 +1416,7 @@ UIControl::UIControl() :
 
 UIControl::~UIControl()
 {
+	frame->preRemoveControl( this );
 	size_t sz = frame->m_animatedControls.size();
 	for( size_t i = 0; i < sz; ++i )
 	{
@@ -1597,11 +1599,17 @@ void UIControl::updateIcon()
 	}
 }
 
-bool UIControl::addChild( UIControl::Handle ch )
+bool UIControl::insertChild( UIControl::Handle ch, ssize_t pos )
 {
+	if( pos < 0 || pos > (ssize_t) m_children.size() )
+	{
+		sgs_Msg( C, SGS_WARNING, "position out of bounds (expected between %d and %d)", 0, (int) m_children.size() );
+		return false;
+	}
+	
 	if( !ch.object )
 	{
-		sgs_Msg( C, SGS_WARNING, "cannot add null" );
+		sgs_Msg( C, SGS_WARNING, "expected UIControl as argument 1" );
 		return false;
 	}
 	
@@ -1623,9 +1631,16 @@ bool UIControl::addChild( UIControl::Handle ch )
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
 		if( *it == ch )
-			return false;
+		{
+			ssize_t oldpos = it - m_children.begin();
+			if( oldpos < pos )
+				pos--;
+			m_children.erase( it );
+			m_children.insert( m_children.begin() + pos, ch );
+			return true;
+		}
 	}
-	m_children.push_back( ch );
+	m_children.insert( m_children.begin() + pos, ch );
 	m_sorted.push_back( ch );
 	ch->parent = Handle( this );
 	sortChildren();
@@ -1672,7 +1687,7 @@ bool UIControl::removeChild( UIControl::Handle ch )
 	if( ch->frame.not_null() )
 	{
 		ch->frame->handleMouseMove( false );
-		ch->frame->preRemoveControl( ch );
+//		ch->frame->preRemoveControl( ch );
 	}
 	sortChildren();
 	
@@ -1723,6 +1738,21 @@ void UIControl::destroyAllChildren( bool hard )
 		m_children[0]->destroy( hard );
 }
 
+bool UIControl::swapChild( UIControl::Handle ch, UIControl::Handle nch )
+{
+	for( size_t i = 0; i < m_children.size(); ++i )
+	{
+		if( m_children[i] == ch )
+		{
+			if( !removeChild( ch ) )
+				return false;
+			return insertChild( nch, i );
+		}
+	}
+	// was not found
+	return false;
+}
+
 UIControl::Handle UIControl::findChild( sgsString name )
 {
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
@@ -1746,6 +1776,14 @@ sgsVariable UIControl::children( bool nonclient )
 	return sgsVariable( C, -1 );
 }
 
+sgsVariable UIControl::allChildren()
+{
+	sgs_SetStackSize( C, 0 );
+	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+		it->push( C );
+	sgs_PushArray( C, sgs_StackSize( C ) );
+	return sgsVariable( C, -1 );
+}
 
 bool UIControl_chSortCmpFunc( const UIControl::Handle& h1, const UIControl::Handle& h2 )
 {
@@ -1765,6 +1803,27 @@ void UIControl::sortSiblings()
 {
 	if( parent.object )
 		parent->sortChildren();
+}
+
+int UIControl::getChildIndex( UIControl::Handle ch )
+{
+	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+	{
+		if( *it == ch )
+			return it - m_children.begin();
+	}
+	return -1;
+}
+
+int UIControl::getChildCount( bool nonclient )
+{
+	int cc = 0;
+	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+	{
+		if( (*it)->nonclient == nonclient )
+			cc++;
+	}
+	return cc;
 }
 
 void UIControl::setAnchorRect( float x0, float y0, float x1, float y1 )
@@ -2525,9 +2584,9 @@ bool UIQuery::_parseArgs( sgs_StkIdx stacksize )
 bool UIQuery::_checkCtrl( UIControl* ctrl )
 {
 	for( size_t i = 0; i < m_selectors.size(); ++i )
-		if( !UI_SelectorTestControl( &m_selectors[ i ], ctrl ) )
-			return false;
-	return true;
+		if( UI_SelectorTestControl( &m_selectors[ i ], ctrl ) )
+			return true;
+	return false;
 }
 
 bool UIQuery::_hasCtrl( UIControl* ctrl )
@@ -2548,19 +2607,22 @@ UIQuery::Handle UIQuery::Create( /* args, */ UIFrame::Handle frame )
 	if( !Q->_parseArgs( ssz ) )
 		return UIQuery::Handle();
 	
-	// ITERATE ALL CONTROLS
-	std::vector< UIControl* > controls;
-	controls.push_back( frame->root );
-	while( controls.size() )
+	if( Q->m_selectors.size() )
 	{
-		UIControl* ctrl = controls[0];
-		VREMOVEAT( controls, 0 );
-		
-		if( Q->_checkCtrl( ctrl ) && !Q->_hasCtrl( ctrl ) )
-			Q->m_items.push_back( UIControl::Handle( ctrl ) );
-		
-		for( size_t i = 0; i < ctrl->m_children.size(); ++i )
-			controls.push_back( ctrl->m_children[ i ] );
+		// ITERATE ALL CONTROLS
+		std::vector< UIControl* > controls;
+		controls.push_back( frame->root );
+		while( controls.size() )
+		{
+			UIControl* ctrl = controls[0];
+			VREMOVEAT( controls, 0 );
+			
+			if( Q->_checkCtrl( ctrl ) && !Q->_hasCtrl( ctrl ) )
+				Q->m_items.push_back( UIControl::Handle( ctrl ) );
+			
+			for( size_t i = 0; i < ctrl->m_children.size(); ++i )
+				controls.push_back( ctrl->m_children[ i ] );
+		}
 	}
 	
 	return Handle( Q );
@@ -2650,8 +2712,8 @@ UIQuery::Handle UIQuery::closest( /* args */ )
 		{
 			if( Q->_checkCtrl( ctrl ) )
 			{
-				if( !Q->_hasCtrl( m_items[i] ) )
-					Q->m_items.push_back( m_items[i] );
+				if( !Q->_hasCtrl( ctrl ) )
+					Q->m_items.push_back( UIControl::Handle( ctrl ) );
 				break;
 			}
 			ctrl = ctrl->parent;

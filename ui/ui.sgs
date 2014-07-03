@@ -20,10 +20,15 @@ function UI_ConfigControl( control, params )
 	}
 }
 
+function UI_BuildControl( parent, control )
+{
+	UI_Controls[ control.type ]( parent, control );
+}
+
 function UI_BuildControls( parent, controls )
 {
 	foreach( control : controls )
-		UI_Controls[ control.type ]( parent, control );
+		UI_BuildControl( parent, control );
 }
 
 

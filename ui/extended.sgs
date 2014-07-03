@@ -1,5 +1,40 @@
 
 
+// D&D kit
+function UI_CreatePlaceholder( src )
+{
+	Pch = src.frame.createControl( "placeholder" );
+	Pch[]
+	{
+		x = src.x,
+		y = src.y,
+		width = src.width,
+		height = src.height,
+		q0x = src.q0x,
+		q0y = src.q0y,
+		q1x = src.q1x,
+		q1y = src.q1y,
+	};
+	
+	Pch.updateTheme();
+	return Pch;
+}
+
+function UI_PreDetachPreserveControl( ctrl )
+{
+	x = ctrl.rx0;
+	y = ctrl.ry0;
+	w = ctrl.rx1 - x;
+	h = ctrl.ry1 - y;
+	ctrl[]
+	{
+		x = x, y = y, width = w, height = h,
+		q0x = 0, q1x = 0, q0y = 0, q1y = 0,
+		styleParent = ctrl.parent,
+	};
+}
+
+
 global UI_ScrollingAutoLayout = {};
 
 function UI_ScrollingAutoLayout.getContainer()
@@ -35,6 +70,145 @@ function UI_Controls.scrollingautolayout( parent, params )
 	UI_ConfigControl( ctrl, params );
 	if( @params.children )
 		UI_BuildControls( ctrl.getContainer(), params.children );
+}
+
+
+global UI_EditableList = {};
+
+function UI_EditableList._initItem( ELItem )
+{
+	ELItem.data =
+	{
+		maydrag = false,
+		dragging = false,
+		dragoff_x = null,
+		dragoff_y = null,
+		startcp_x = null,
+		startcp_y = null
+	};
+	ocb = ELItem.callback;
+	function ELItem.callback( event ) use( ocb )
+	{
+		data = this.data;
+		if( event.type == EV_ButtonDown )
+		{
+			if( event.button == Mouse_ButtonL )
+			{
+				data.maydrag = true;
+				data.startcp_x = event.x;
+				data.startcp_y = event.y;
+			}
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			if( event.button == Mouse_ButtonL )
+			{
+				if( data.dragging )
+				{
+					data.dragging = false;
+					// D&D ENDS
+					data.placeholder.swapOutFor( this );
+					data.placeholder.destroy(true);
+					data.placeholder = null;
+					this.style = data.originalStyle;
+					this.styleParent = null;
+					this._neverHit = false;
+				}
+				data.maydrag = false;
+			}
+		}
+		if( event.type == EV_MouseMove )
+		{
+			function sqr(x) = x * x;
+			if( data.maydrag && !data.dragging &&
+				sqr( event.x - data.startcp_x ) + sqr( event.y - data.startcp_y ) > 3 * 3 )
+			{
+				data.dragging = true;
+				// D&D BEGINS
+				data.dragoff_x = this.rx0 - data.startcp_x;
+				data.dragoff_y = this.ry0 - data.startcp_y;
+				data.originalStyle = this.style;
+				data.placeholder = UI_CreatePlaceholder( this );
+				UI_PreDetachPreserveControl( this );
+				this.swapOutFor( data.placeholder );
+				this.frame.root.addChild( this );
+				this._neverHit = true;
+			}
+			if( data.dragging )
+			{
+				this.x = data.dragoff_x + event.x;
+				this.y = data.dragoff_y + event.y;
+				
+				cuc = this.frame.getControlUnderCursor();
+				item = this.frame.find( cuc ).closest( "editablelist > scrollable > autolayout > item" );
+				if( item.size && item[0].parent == this.styleParent )
+				{
+					data.placeholder.moveToIndex( item[0].getOrderIndex() );
+				}
+			}
+		}
+		return this!ocb( event );
+	}
+}
+
+function UI_EditableList.getContainer(){ return this.data.OpCont; }
+function UI_EditableList.getItemCount(){ return this.data.OpCont.getAllChildCount(); }
+function UI_EditableList.insertAt( pos )
+{
+	item = this.frame.createControl( "item" );
+	this._initItem( item );
+	if( !this.data.OpCont.insertChild( item, pos ) )
+		return null;
+	return item;
+}
+function UI_EditableList.removeAt( pos )
+{
+	if( pos < 0 || pos >= this.getItemCount() )
+		return WARNING( "item index out of bounds" ) || false;
+	Cont = this.data.OpCont;
+	Cont.removeChild( Cont.children()[ pos ] );
+	return true;
+}
+function UI_EditableList.removeItem( ch )
+{
+	if( this.data.OpCont.removeChild( ch ) )
+	{
+		ch.destroy(true);
+		return true;
+	}
+	return false;
+}
+function UI_EditableList.prependItem(){ return this.insertAt( 0 ); }
+function UI_EditableList.appendItem(){ return this.insertAt( this.getItemCount() ); }
+
+function UI_CreateEditableList( parent )
+{
+	EditableList = parent.frame.createControl( "editablelist" );
+	EditableList._interface = UI_EditableList;
+	EditableList.data = {};
+	
+	Scrollable = UI_CreateScrollable( EditableList, "auto", false );
+	EditableList.data.Scrollable = Scrollable;
+	
+	AutoLayout = UI_CreateAutoLayout( Scrollable );
+	EditableList.data.AutoLayout = AutoLayout;
+	EditableList.data.OpCont = AutoLayout;
+	
+	EditableList.updateTheme();
+	parent.addChild( EditableList );
+	return EditableList;
+}
+
+UI_Controls.editablelist_params = ["children","items"];
+function UI_Controls.editablelist( parent, params )
+{
+	ctrl = UI_CreateEditableList( parent );
+	UI_ConfigControl( ctrl, params );
+	if( @params.items )
+	{
+		foreach( item : params.items )
+			UI_BuildControl( ctrl.appendItem(), item );
+	}
 }
 
 
