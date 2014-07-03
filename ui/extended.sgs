@@ -75,6 +75,13 @@ function UI_Controls.scrollingautolayout( parent, params )
 
 global UI_EditableList = {};
 
+function UI_EditableList._notifyChange()
+{
+	ev = UI_CreateEvent();
+	this.callEvent( "change", ev );
+	UIForm_CtrlChanged( this, ev );
+}
+
 function UI_EditableList._notifyReorder( item )
 {
 	previndex = item.data.previndex;
@@ -82,7 +89,11 @@ function UI_EditableList._notifyReorder( item )
 	
 	if( previndex != curindex )
 	{
-		println( "TODO (order changed, "$previndex$" to "$curindex$")" );
+		tdv = this.data.value;
+		name = tdv[ previndex ];
+		tdv.erase( previndex );
+		tdv.insert( curindex, name );
+		this._notifyChange();
 	}
 }
 
@@ -169,39 +180,61 @@ function UI_EditableList._initItem( ELItem )
 
 function UI_EditableList.getContainer(){ return this.data.OpCont; }
 function UI_EditableList.getItemCount(){ return this.data.OpCont.getAllChildCount(); }
-function UI_EditableList.insertAt( pos )
+function UI_EditableList.insertAt( pos, name )
 {
 	item = this.frame.createControl( "item" );
 	this._initItem( item );
+	if( name !== null )
+		item.name = name;
 	if( !this.data.OpCont.insertChild( item, pos ) )
 		return null;
+	this.data.value.insert( pos, item.name );
+	this._notifyChange();
 	return item;
 }
 function UI_EditableList.removeAt( pos )
 {
 	if( pos < 0 || pos >= this.getItemCount() )
 		return WARNING( "item index out of bounds" ) || false;
-	Cont = this.data.OpCont;
-	Cont.removeChild( Cont.children()[ pos ] );
+	this.removeItem( this.data.OpCont.allChildren()[ pos ] );
 	return true;
 }
 function UI_EditableList.removeItem( ch )
 {
+	oi = ch.getOrderIndex();
 	if( this.data.OpCont.removeChild( ch ) )
 	{
 		ch.destroy(true);
+		this.data.value.erase( oi );
+		this._notifyChange();
 		return true;
 	}
 	return false;
 }
-function UI_EditableList.prependItem(){ return this.insertAt( 0 ); }
-function UI_EditableList.appendItem(){ return this.insertAt( this.getItemCount() ); }
+function UI_EditableList.prependItem( name ){ return this.insertAt( 0, name ); }
+function UI_EditableList.appendItem( name ){ return this.insertAt( this.getItemCount(), name ); }
 
-function UI_CreateEditableList( parent )
+function UI_EditableList.changeName( pos, name )
+{
+	if( pos < 0 || pos >= this.getItemCount() )
+		return WARNING( "item index out of bounds" ) || false;
+	prevname = this.data.value[ pos ];
+	this.data.value[ pos ] = name;
+	if( name !== prevname )
+		this._notifyChange();
+	return true;
+}
+
+function UI_CreateEditableList( parent, name )
 {
 	EditableList = parent.frame.createControl( "editablelist" );
 	EditableList._interface = UI_EditableList;
-	EditableList.data = {};
+	EditableList.data =
+	{
+		value = [],
+		getValue = function(){ return this.value; },
+	};
+	EditableList.name = name;
 	
 	Scrollable = UI_CreateScrollable( EditableList, "auto", false );
 	EditableList.data.Scrollable = Scrollable;
@@ -209,6 +242,16 @@ function UI_CreateEditableList( parent )
 	AutoLayout = UI_CreateAutoLayout( Scrollable );
 	EditableList.data.AutoLayout = AutoLayout;
 	EditableList.data.OpCont = AutoLayout;
+	
+	ocb = EditableList.callback;
+	function EditableList.callback( event ) use( ocb )
+	{
+		if( event.type == EV_Attach )
+			UIForm_Attach( this, event );
+		else if( event.type == EV_Detach )
+			UIForm_Detach( this, event );
+		return this!ocb( event );
+	}
 	
 	EditableList.updateTheme();
 	parent.addChild( EditableList );

@@ -145,7 +145,7 @@ function sgs_ui_example_default()
 	PGRID = UI_CreatePropertyGrid( STAT, PGRID_data, PGRID_options )[]{ x = 720, y = 180, width = 200, height = 300 };
 	
 	
-	WINDOW = UI_CreateWindow( FRAME.root )[]{
+	WINDOW = UI_CreateWindow( FORM )[]{
 		x = 300,
 		y = 300,
 		width = 300,
@@ -167,16 +167,16 @@ function sgs_ui_example_default()
 		valign = UI_Align_VCenter,
 	};
 	
-	WINELI = UI_CreateEditableList( WINSPLIT2.getPaneB() )[]{ anchorMode = UI_Anchor_All };
-	UI_CreateImage( WINELI.appendItem()[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
-	UI_CreateImage( WINELI.appendItem()[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_double.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
-	UI_CreateImage( WINELI.appendItem()[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_cascade.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
-	UI_CreateImage( WINELI.appendItem()[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_add.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
-	UI_CreateImage( WINELI.appendItem()[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_delete.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
-	UI_CreateImage( WINELI.appendItem()[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_edit.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
-	UI_CreateImage( WINELI.appendItem()[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_error.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
-	UI_CreateImage( WINELI.appendItem()[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_form.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
-	UI_CreateImage( WINELI.appendItem()[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_side_boxes.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
+	WINELI = UI_CreateEditableList( WINSPLIT2.getPaneB(), "edlist" )[]{ anchorMode = UI_Anchor_All };
+	UI_CreateImage( WINELI.appendItem( "app" )[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
+	UI_CreateImage( WINELI.appendItem( "dbl" )[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_double.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
+	UI_CreateImage( WINELI.appendItem( "csc" )[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_cascade.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
+	UI_CreateImage( WINELI.appendItem( "add" )[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_add.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
+	UI_CreateImage( WINELI.appendItem( "del" )[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_delete.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
+	UI_CreateImage( WINELI.appendItem( "edt" )[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_edit.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
+	UI_CreateImage( WINELI.appendItem( "err" )[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_error.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
+	UI_CreateImage( WINELI.appendItem( "frm" )[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_form.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
+	UI_CreateImage( WINELI.appendItem( "asb" )[]{ anchorMode = UI_Anchor_Hor, height = 32 }, "icons/application_side_boxes.png" )[]{ anchorMode = UI_Anchor_All, q1x = 0.5 };
 	
 	LBMENU = UI_CreateListBoxMenu( WINSPLIT2.getPaneA() )[]{ /* y = 32, height = -32, */ anchorMode = UI_Anchor_All };
 	
