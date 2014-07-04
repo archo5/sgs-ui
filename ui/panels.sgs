@@ -1,62 +1,66 @@
 
 
+global UI_AutoLayout = {};
+
+function UI_AutoLayout._recalc()
+{
+	maxwidth = this.clientWidth;
+	x = 0;
+	y = 0;
+	mostwidth_total = 0;
+	mostheight_line = 0;
+	rounded = this._roundedCoords;
+	
+	children = this.children();
+	foreach( ch : children )
+	{
+		ch._updatingLayout = true;
+		chwidth = max( ch.realWidth, ch.minWidth );
+		chheight = max( ch.realHeight, ch.minHeight );
+		if( x > 0 && x + chwidth - toint(rounded || ch._roundedCoords) > maxwidth ) /* compensate for rounding errors with offset=1 */
+		{
+			y += mostheight_line;
+			mostwidth_total = max( mostwidth_total, x );
+			x = 0;
+			mostheight_line = 0;
+		}
+		
+		ch.x = x;
+		ch.y = y;
+		
+		x += chwidth;
+		mostheight_line = max( mostheight_line, chheight );
+	}
+	foreach( ch : children )
+	{
+		ch._updatingLayout = false;
+		ch.updateLayout();
+	}
+	y += mostheight_line;
+	mostwidth_total = max( mostwidth_total, x );
+	
+//	if( this.q1x == 0 ) this.width = mostwidth_total;
+	if( this.q1y == 0 ) this.height = y;
+}
+
 function UI_CreateAutoLayout( parent, hexpand )
 {
 	AutoLayout = parent.frame.createControl( "autolayout" );
 	AutoLayout._childAffectsLayout = true;
 	AutoLayout.data = { hexpand = hexpand };
+	AutoLayout._interface = UI_AutoLayout;
 	
-	AutoLayout_data = AutoLayout.data;
-	function AutoLayout_data.recalc( AutoLayout )
-	{
-		maxwidth = AutoLayout.rx1 - AutoLayout.rx0;
-		x = 0;
-		y = 0;
-		mostwidth_total = 0;
-		mostheight_line = 0;
-		
-		children = AutoLayout.children();
-		foreach( ch : children )
-		{
-			ch._updatingLayout = true;
-			chwidth = max( ch.rx1 - ch.rx0, ch.minWidth );
-			chheight = max( ch.height, ch.minHeight );
-			if( x > 0 && x + chwidth - toint(AutoLayout._roundedCoords || ch._roundedCoords) > maxwidth ) /* compensate for rounding errors with offset=1 */
-			{
-				y += mostheight_line;
-				mostwidth_total = max( mostwidth_total, x );
-				x = 0;
-				mostheight_line = 0;
-			}
-			
-			ch.x = x;
-			ch.y = y;
-			
-			x += chwidth;
-			mostheight_line = max( mostheight_line, chheight );
-		}
-		foreach( ch : children )
-		{
-			ch._updatingLayout = false;
-			ch.updateLayout();
-		}
-		y += mostheight_line;
-		mostwidth_total = max( mostwidth_total, x );
-		
-	//	if( AutoLayout.q1x == 0 ) AutoLayout.width = mostwidth_total;
-		if( AutoLayout.q1y == 0 ) AutoLayout.height = y;
-	}
-	
-	orig_callback = AutoLayout.callback;
-	function AutoLayout.callback( event ) use( orig_callback )
+	ocb = AutoLayout.callback;
+	function AutoLayout.callback( event ) use( ocb )
 	{
 		data = this.data;
 		if( event.type == EV_Layout )
 		{
-			this!orig_callback( event );
-			data.recalc( this );
+			this!ocb( event );
+			this._recalc();
+			this._updateFullRect();
 		}
-		return this!orig_callback( event );
+		return this!ocb( event );
 	}
 	
 	parent.addChild( AutoLayout );
@@ -104,6 +108,28 @@ function UI_Scrollable._doScrolling( factor )
 	}
 }
 
+function UI_Scrollable._recalc()
+{
+	data = this.data;
+	scrV = data.scrV;
+	scrH = data.scrH;
+	(x0,y0,x1,y1) = this.getChildAABB( false );
+	
+	iw = x1 - x0;
+	ih = y1 - y0;
+	
+	showV = if( data.vscroll === "auto", ih > this.clientHeight - scrV.realWidth * scrH.visible, data.vscroll );
+	showH = if( data.hscroll === "auto", iw > this.clientWidth - scrH.realHeight * scrV.visible, data.hscroll );
+	
+	scrV.visible = showV;
+	scrH.visible = showH;
+	scrV.data.space = ih;
+	scrH.data.space = iw;
+	fs = this.filteredStyle;
+	this.nonClientRight = fs.nonClientRight + if( showV, scrV.realWidth, 0 );
+	this.nonClientBottom = fs.nonClientBottom + if( showH, scrH.realHeight, 0 );
+}
+
 function UI_Scrollable.enableCursorScroll( enable ){ this.data.cursor_scroll = enable; }
 
 function UI_CreateScrollable( parent, vscroll, hscroll )
@@ -116,7 +142,6 @@ function UI_CreateScrollable( parent, vscroll, hscroll )
 	Scrollable._interface = UI_Scrollable;
 	Scrollable.data =
 	{
-		x0 = 0, x1 = 0, y0 = 0, y1 = 0,
 		hscroll = hscroll,
 		vscroll = vscroll,
 		
@@ -130,42 +155,6 @@ function UI_CreateScrollable( parent, vscroll, hscroll )
 	scrV.addClass( "scroll-vertical" );
 	scrH.addClass( "scroll-horizontal" );
 	
-	Scrollable_data = Scrollable.data;
-	function Scrollable_data.recalc( Scrollable ) use( scrV, scrH )
-	{
-		chlist = Scrollable.children();
-		x0 = x1 = y0 = y1 = 0;
-		foreach( ch : chlist )
-		{
-			p0x = ch.rx0 - Scrollable.cx0;
-			p0y = ch.ry0 - Scrollable.cy0;
-			p1x = ch.rx1 - Scrollable.cx0;
-			p1y = ch.ry1 - Scrollable.cy0;
-			
-			x0 = min( x0, min( p0x, p1x ) );
-			x1 = max( x1, max( p0x, p1x ) );
-			y0 = min( y0, min( p0y, p1y ) );
-			y1 = max( y1, max( p0y, p1y ) );
-		}
-		
-		this.x0 = x0; this.x1 = x1;
-		this.y0 = y0; this.y1 = y1;
-		
-		iw = x1 - x0;
-		ih = y1 - y0;
-		
-		showV = if( this.vscroll === "auto", ih > Scrollable.realHeight - scrV.realWidth * scrH.visible, this.vscroll );
-		showH = if( this.hscroll === "auto", iw > Scrollable.realWidth - scrH.realHeight * scrV.visible, this.hscroll );
-		
-		scrV.visible = showV;
-		scrH.visible = showH;
-		scrV.data.space = ih;
-		scrH.data.space = iw;
-		fs = Scrollable.filteredStyle;
-		Scrollable.nonClientRight = fs.nonClientRight + if( showV, scrV.realWidth, 0 );
-		Scrollable.nonClientBottom = fs.nonClientBottom + if( showH, scrH.realHeight, 0 );
-	}
-	
 	scrV.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_y = -this.data.position; } );
 	scrH.bindEvent( "change", function() use( Scrollable ){ Scrollable.scroll_x = -this.data.position; } );
 	
@@ -176,7 +165,8 @@ function UI_CreateScrollable( parent, vscroll, hscroll )
 		if( event.type == EV_Layout )
 		{
 			this!ocb( event );
-			data.recalc( this );
+			this._recalc();
+			this._updateFullRect();
 		}
 		else if( event.type == EV_MouseWheel )
 		{
@@ -318,6 +308,15 @@ function UI_CreateSplitPane( parent, vertical, defsplit )
 }
 function UI_CreateHSplitPane( parent, defsplit ){ return UI_CreateSplitPane( parent, false, defsplit ); }
 function UI_CreateVSplitPane( parent, defsplit ){ return UI_CreateSplitPane( parent, true, defsplit ); }
+
+UI_Controls.splitpane_params = ["vertical","defsplit","children_a","children_b"];
+function UI_Controls.splitpane( parent, params )
+{
+	ctrl = UI_CreateSplitPane( parent, @params.vertical, @params.defsplit );
+	UI_ConfigControl( ctrl, params );
+	if( @params.children_a ) UI_BuildControls( ctrl.getPaneA(), params.children_a );
+	if( @params.children_b ) UI_BuildControls( ctrl.getPaneB(), params.children_b );
+}
 
 
 function UI_CreateMenuPanel( parent, items )

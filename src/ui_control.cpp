@@ -721,17 +721,22 @@ int UICFPNAME( SGS_CTX )
 		if( ctrl->frame )
 			ctrl->frame->handleMouseMove( true );
 		
+		if( ctrl->parent.object && ctrl->parent->_childAffectsLayout )
+			ctrl->parent->updateLayout();
 		for( UIControl::HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
 			if( (*it)->_parentAffectsLayout )
 				(*it)->updateLayout();
-		if( ctrl->parent.object && ctrl->parent->_childAffectsLayout )
-			ctrl->parent->updateLayout();
 		return 1;
 		
 	case EV_Scroll:
 		SGSFN( UNCFPNS "/scroll" );
-		ctrl->_updateFullRect();
-		ctrl->_updateChildRects();
+		if( ctrl->_layoutRectOverride )
+			ctrl->updateLayout();
+		else
+		{
+			ctrl->_updateFullRect();
+			ctrl->_updateChildRects();
+		}
 		if( ctrl->frame )
 			ctrl->frame->handleMouseMove( true );
 		return 1;
@@ -1409,7 +1414,7 @@ UIControl::UIControl() :
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
 	_updatingLayout(false), _roundedCoords(true),
 	_parentAffectsLayout(true), _childAffectsLayout(false),
-	_clientRectFromPadded(false), _neverHit(false),
+	_clientRectFromPadded(false), _neverHit(false), _layoutRectOverride(false),
 	mouseOn(false), keyboardFocus(false), clicked(0)
 {
 	sgs_PushCFunction( C, UIControl_CtrlProc );
@@ -1831,6 +1836,31 @@ int UIControl::getChildCount( bool nonclient )
 			cc++;
 	}
 	return cc;
+}
+
+SGS_MULTRET UIControl::getChildAABB( int clientness )
+{
+	float x0 = 0, x1 = 0, y0 = 0, y1 = 0;
+	float cx = _clientRectFromPadded ? px0 : cx0;
+	float cy = _clientRectFromPadded ? py0 : cy0;
+	
+	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+	{
+		UIControl* ctrl = *it;
+		if( clientness < 0 || ctrl->nonclient == clientness )
+		{
+			x0 = TMIN( x0, ctrl->rx0 - cx );
+			y0 = TMIN( y0, ctrl->ry0 - cy );
+			x1 = TMAX( x1, ctrl->rx1 - cx );
+			y1 = TMAX( y1, ctrl->ry1 - cy );
+		}
+	}
+	
+	sgs_PushReal( C, x0 );
+	sgs_PushReal( C, y0 );
+	sgs_PushReal( C, x1 );
+	sgs_PushReal( C, y1 );
+	return 4;
 }
 
 void UIControl::setAnchorRect( float x0, float y0, float x1, float y1 )
@@ -2491,8 +2521,13 @@ void UIControl::_updateChildRects()
 	{
 		if( (*it)->_parentAffectsLayout )
 		{
-			(*it)->_updateFullRect();
-			(*it)->_updateChildRects();
+			if( (*it)->_layoutRectOverride )
+				(*it)->updateLayout();
+			else
+			{
+				(*it)->_updateFullRect();
+				(*it)->_updateChildRects();
+			}
 		}
 	}
 }

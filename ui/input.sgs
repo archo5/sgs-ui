@@ -171,6 +171,7 @@ function UI_CreateCheckbox( parent, name, value, checked )
 {
 	Checkbox = parent.frame.createControl( "checkbox" );
 	Checkbox.name = name;
+	Checkbox._layoutRectOverride = true;
 	Checkbox.data =
 	{
 		checked = checked || false,
@@ -239,6 +240,7 @@ function UI_CreateRadioButton( parent, name, value, checked )
 {
 	RadioBtn = parent.frame.createControl( "radiobutton" );
 	RadioBtn.name = name;
+	RadioBtn._layoutRectOverride = true;
 	RadioBtn.data =
 	{
 		checked = checked || false,

@@ -628,6 +628,8 @@ struct UIControl
 	SGS_METHOD bool moveDown(){ int oi = getOrderIndex(); if( oi < 0 || oi >= (int) m_children.size() ) return false; return parent->insertChild( Handle( this ), oi + 1 ); }
 	SGS_METHOD bool moveToIndex( int i ){ if( !parent.not_null() ) return false; return parent->insertChild( Handle( this ), i ); }
 	SGS_METHOD bool swapOutFor( UIControl::Handle nch ){ if( !parent.not_null() ) return false; else return parent->swapChild( Handle( this ), nch ); }
+	// child metrics
+	SGS_METHOD SGS_MULTRET getChildAABB( int clientness );
 	
 	int get_anchorMode(){ return computedStyle.get_anchorMode(); }
 	void set_anchorMode( int mode ){ style.set_anchorMode( mode ); _remergeStyle(); }
@@ -860,8 +862,8 @@ struct UIControl
 	float get_paddedHeight(){ return py1 - py0; }
 	SGS_PROPERTY_FUNC( READ get_paddedHeight ) float paddedHeight;
 	
-	void _updateFullRect();
-	void _updateChildRects();
+	SGS_METHOD void _updateFullRect();
+	SGS_METHOD void _updateChildRects();
 	SGS_METHOD void _changedFullRect();
 	
 	SGS_PROPERTY bool _updatingLayout : 1; /* true if updating layout and don't want to trigger further layout changes */
@@ -870,6 +872,7 @@ struct UIControl
 	SGS_PROPERTY bool _childAffectsLayout : 1; /* true if child has any influence over the layout and should be updated if child is */
 	SGS_PROPERTY bool _clientRectFromPadded : 1; /* true to calculate relative position for child controls from the padded rect, not client rect */
 	SGS_PROPERTY bool _neverHit : 1; /* true if cannot hit (regardless of hit test) */
+	SGS_PROPERTY bool _layoutRectOverride : 1; /* true if EV_Layout overrides rect placement and default scrolling optimization would not work here */
 	SGS_PROPERTY READ bool mouseOn : 1;
 	SGS_PROPERTY READ bool keyboardFocus : 1;
 	SGS_PROPERTY READ int clicked;
