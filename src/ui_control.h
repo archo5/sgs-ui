@@ -538,16 +538,16 @@ struct UIFrame
 	SGS_METHOD void setTheme( sgsVariable newtheme );
 	
 	
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float x;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float y;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float width;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) float height;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK onLayoutChange ) float x;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK onLayoutChange ) float y;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK onLayoutChange ) float width;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK onLayoutChange ) float height;
 	SGS_PROPERTY READ sgsHandle< UIControl > root;
 	
 	SGS_PROPERTY READ float mouseX;
 	SGS_PROPERTY READ float mouseY;
 	
-	void updateLayout();
+	void onLayoutChange();
 	void updateTheme();
 	void forceUpdateCursor( UIControl* ctrl );
 	void preRemoveControl( UIControl* ctrl );
@@ -596,13 +596,15 @@ struct UIControl
 	void niBubblingEvent( sgsVariable& ev );
 	void niRender();
 	SGS_METHOD void updateScroll();
-	SGS_METHOD void updateLayout();
 	SGS_METHOD void updateTheme();
 	void updateThemeRecursive();
 	void updateCursor();
 	void updateFont();
 	void updateImage();
 	void updateIcon();
+	
+	void ppgLayoutChange( sgsVariable& ev );
+	SGS_METHOD void onLayoutChange();
 	
 	SGS_METHOD bool insertChild( UIControl::Handle ch, ssize_t pos );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
@@ -658,6 +660,7 @@ struct UIControl
 	void _startCurAnim();
 	
 	SGS_IFUNC(GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop );
+	SGS_IFUNC(SETINDEX) int sgs_setindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, sgs_Variable* val, int isprop );
 	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
 	
 	/// PRIMARY DATA
@@ -689,8 +692,8 @@ struct UIControl
 	SGS_PROPERTY Handle styleParent;
 	UIControl* getStyleParentPtr(){ return styleParent.not_null() ? styleParent : parent; }
 	UIStyleCache computedStyle; // active style data (after merging rule style and local override, on applying changes)
-	SGS_PROPERTY UIStyle filteredStyle; // calculated from style rules
-	SGS_PROPERTY UIStyle style; // local override
+	SGS_PROPERTY READ UIStyle filteredStyle; // calculated from style rules
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK _remergeStyle ) UIStyle style; // local override
 	void _refilterStyles( UIFilteredStyleArray& styles );
 	void _remergeStyle();
 	void _applyStyle( const UIStyleCache& nsc );
@@ -818,7 +821,7 @@ struct UIControl
 	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateScroll ) float scroll_x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateScroll ) float scroll_y;
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK updateLayout ) bool nonclient;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK onLayoutChange ) bool nonclient;
 	SGS_PROPERTY_FUNC( READ get_offsetLeft WRITE set_offsetLeft ) SGS_ALIAS( float offsetLeft );
 	SGS_PROPERTY_FUNC( READ get_offsetRight WRITE set_offsetRight ) SGS_ALIAS( float offsetRight );
 	SGS_PROPERTY_FUNC( READ get_offsetTop WRITE set_offsetTop ) SGS_ALIAS( float offsetTop );

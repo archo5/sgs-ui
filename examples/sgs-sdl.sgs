@@ -94,7 +94,9 @@ function update()
 		hctrl = FRAME.getHoverControl();
 		if( hctrl )
 		{
-			SS_DrawColorRect( hctrl.rx0, hctrl.ry0, hctrl.rx1, hctrl.ry1, 0.2, 0.8, 0.1, 0.5 );
+			SS_DrawColorRect( hctrl.rx0, hctrl.ry0, hctrl.rx1, hctrl.ry1, 0.2, 0.8, 0.1, 0.1 );
+			SS_DrawColorRect( hctrl.cx0, hctrl.cy0, hctrl.cx1, hctrl.cy1, 0.1, 0.2, 0.8, 0.1 );
+			SS_DrawColorRect( hctrl.px0, hctrl.py0, hctrl.px1, hctrl.py1, 0.8, 0.1, 0.2, 0.1 );
 		}
 		
 		tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";

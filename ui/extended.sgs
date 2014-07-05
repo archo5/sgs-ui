@@ -275,13 +275,10 @@ global UI_GroupBlock = {};
 
 function UI_GroupBlock._getHeight()
 {
-	Title = this.data.Title;
-	totalheight = Title.ry1 - Title.ry0 + this.paddingTop + this.paddingBottom + this.nonClientTop + this.nonClientBottom;
+	data = this.data;
+	totalheight = data.Title.realHeight + this.paddingTop + this.paddingBottom + this.nonClientTop + this.nonClientBottom;
 	if( this.hasClass( "groupblk-open" ) )
-	{
-		AutoLayout = this.data.AutoLayout;
-		totalheight += AutoLayout.ry1 - AutoLayout.ry0;
-	}
+		totalheight += data.AutoLayout.realHeight;
 	return totalheight;
 }
 
@@ -370,7 +367,6 @@ function UI_ListBoxMenu.refit()
 {
 	data = this.data;
 	real_height = data.AutoLayout.ry1 - data.AutoLayout.ry0;
-	real_height += data.Scrollable.paddingTop + data.Scrollable.paddingBottom;
 	real_height += data.Scrollable.nonClientTop + data.Scrollable.nonClientBottom;
 	real_height += this.paddingTop + this.paddingBottom;
 	real_height += this.nonClientTop + this.nonClientBottom;

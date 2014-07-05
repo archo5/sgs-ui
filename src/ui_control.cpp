@@ -718,20 +718,12 @@ int UICFPNAME( SGS_CTX )
 	case EV_Layout:
 		SGSFN( UNCFPNS "/layout" );
 		ctrl->_updateFullRect();
-		if( ctrl->frame )
-			ctrl->frame->handleMouseMove( true );
-		
-		if( ctrl->parent.object && ctrl->parent->_childAffectsLayout )
-			ctrl->parent->updateLayout();
-		for( UIControl::HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
-			if( (*it)->_parentAffectsLayout )
-				(*it)->updateLayout();
 		return 1;
 		
 	case EV_Scroll:
 		SGSFN( UNCFPNS "/scroll" );
 		if( ctrl->_layoutRectOverride )
-			ctrl->updateLayout();
+			ctrl->onLayoutChange();
 		else
 		{
 			ctrl->_updateFullRect();
@@ -746,7 +738,7 @@ int UICFPNAME( SGS_CTX )
 		SGSFN( UNCFPNS "/childevent" );
 		ctrl->frame->_updateStyles( ctrl );
 		if( ctrl->_parentAffectsLayout )
-			ctrl->updateLayout();
+			ctrl->onLayoutChange();
 		sgs_PushInt( C, 1 );
 		return 1;
 		
@@ -754,7 +746,7 @@ int UICFPNAME( SGS_CTX )
 	case EV_RemChild:
 		SGSFN( UNCFPNS "/parentevent" );
 		if( ctrl->_childAffectsLayout )
-			ctrl->updateLayout();
+			ctrl->onLayoutChange();
 		sgs_PushInt( C, 1 );
 		return 1;
 		
@@ -1270,15 +1262,15 @@ void UIFrame::setTheme( sgsVariable newtheme )
 	updateTheme();
 }
 
-void UIFrame::updateLayout()
+void UIFrame::onLayoutChange()
 {
-	root->updateLayout();
+	root->onLayoutChange();
 }
 
 void UIFrame::updateTheme()
 {
 	root->updateThemeRecursive();
-	updateLayout();
+	onLayoutChange();
 }
 
 void UIFrame::forceUpdateCursor( UIControl* ctrl )
@@ -1528,18 +1520,6 @@ void UIControl::updateScroll()
 	_updatingLayout = false;
 }
 
-void UIControl::updateLayout()
-{
-	if( _updatingLayout )
-		return;
-	
-	_updatingLayout = true;
-	sgsVariable ev;
-	UI_CreateEvent( C, ev, EV_Layout );
-	niEvent( ev, true );
-	_updatingLayout = false;
-}
-
 void UIControl::updateTheme()
 {
 	sgsVariable ev;
@@ -1610,6 +1590,40 @@ void UIControl::updateIcon()
 		sgs_SetStackSize( C, orig );
 	}
 }
+
+
+void UIControl::ppgLayoutChange( sgsVariable& ev )
+{
+	if( _updatingLayout )
+		return;
+	
+	_updatingLayout = true;
+	if( _childAffectsLayout )
+	{
+		niEvent( ev, true );
+		for( UIControl::HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+			(*it)->ppgLayoutChange( ev );
+	}
+	if( parent.not_null() && parent->_childAffectsLayout && !parent->_updatingLayout )
+	{
+		niEvent( ev, true );
+		parent->ppgLayoutChange( ev );
+	}
+	niEvent( ev, true );
+	for( UIControl::HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+		if( (*it)->_parentAffectsLayout )
+			(*it)->ppgLayoutChange( ev );
+	_updatingLayout = false;
+}
+
+void UIControl::onLayoutChange()
+{
+	sgsVariable ev;
+	UI_CreateEvent( C, ev, EV_Layout )->target = Handle( this );
+	ppgLayoutChange( ev );
+	frame->handleMouseMove( true );
+}
+
 
 bool UIControl::insertChild( UIControl::Handle ch, ssize_t pos )
 {
@@ -2228,6 +2242,14 @@ int UIControl::sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int is
 	return UIControl::_sgs_getindex( C, obj, key, isprop );
 }
 
+int UIControl::sgs_setindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, sgs_Variable* val, int isprop )
+{
+	int32_t el = sgs_Cntl( C, SGS_CNTL_APILEV, SGS_ERROR );
+	SGSRESULT ret = UIControl::_sgs_setindex( C, obj, key, val, isprop );
+	sgs_Cntl( C, SGS_CNTL_APILEV, el );
+	return ret;
+}
+
 int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
 {
 	UIControl* ctrl = static_cast<UIControl*>(obj->data);
@@ -2432,7 +2454,7 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	;
 	// TODO: event-based rendering
 //	bool updatedRenderFunc = NEQ( renderfunc );
-	bool updatedLayout = updatedFont || updatedCursor || updatedOrder || updatedBox;
+	bool updatedLayout = updatedFont || updatedOrder || updatedBox;
 #undef NEQ
 	
 	// apply new style
@@ -2444,7 +2466,7 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	if( updatedIcon ) updateIcon();
 	if( updatedCursor ) updateCursor();
 	if( updatedOrder ) sortSiblings();
-	if( updatedLayout ) updateLayout();
+	if( updatedLayout ) onLayoutChange();
 	if( ( updatedBox || updatedOrder ) && frame.not_null() )
 		frame->handleMouseMove( true );
 }
@@ -2522,7 +2544,7 @@ void UIControl::_updateChildRects()
 		if( (*it)->_parentAffectsLayout )
 		{
 			if( (*it)->_layoutRectOverride )
-				(*it)->updateLayout();
+				(*it)->onLayoutChange();
 			else
 			{
 				(*it)->_updateFullRect();
