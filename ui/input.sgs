@@ -167,11 +167,41 @@ function UI_CreateHidden( parent, name, value )
 	return Hidden;
 }
 
+
+global UI_GenericToggleControl = {};
+
+function UI_GenericToggleControl._notifyChange( event )
+{
+	if( event === null )
+		event = UI_CreateEvent();
+	this.callEvent( "change", event );
+	UIForm_CtrlChanged( this, event );
+}
+function UI_GenericToggleControl.getChecked(){ return this.data.checked; }
+function UI_GenericToggleControl.setChecked( c )
+{
+	c = tobool( c );
+	pc = this.data.checked;
+	this.data.checked = c;
+	if( pc !== c )
+		this._notifyChange();
+}
+function UI_GenericToggleControl.getValue(){ return this.data.value; }
+function UI_GenericToggleControl.setValue( v )
+{
+	pv = this.data.value;
+	this.data.value = v;
+	if( pv !== v && this.data.checked )
+		this._notifyChange();
+}
+
 function UI_CreateCheckbox( parent, name, value, checked )
 {
 	Checkbox = parent.frame.createControl( "checkbox" );
 	Checkbox.name = name;
+	Checkbox._interface = UI_GenericToggleControl;
 	Checkbox._layoutRectOverride = true;
+	Checkbox._disableClickBubbling = true;
 	Checkbox.data =
 	{
 		checked = checked || false,
@@ -224,8 +254,7 @@ function UI_CreateCheckbox( parent, name, value, checked )
 			if( event.button == Mouse_ButtonL && this.clicked && this == this.frame.getControlUnderCursor() )
 			{
 				data.checked = !data.checked;
-				UIForm_CtrlChanged( this, event );
-				this.callEvent( "change", event );
+				this._notifyChange( event );
 			}
 		}
 		return this!orig_callback( event );
@@ -240,7 +269,9 @@ function UI_CreateRadioButton( parent, name, value, checked )
 {
 	RadioBtn = parent.frame.createControl( "radiobutton" );
 	RadioBtn.name = name;
+	RadioBtn._interface = UI_GenericToggleControl;
 	RadioBtn._layoutRectOverride = true;
+	RadioBtn._disableClickBubbling = true;
 	RadioBtn.data =
 	{
 		checked = checked || false,
@@ -300,16 +331,14 @@ function UI_CreateRadioButton( parent, name, value, checked )
 						if( ctrl.data.checked != false )
 						{
 							ctrl.data.checked = false;
-							ctrl.callEvent( "change", event );
-							UIForm_CtrlChanged( this, event );
+							this._notifyChange( event );
 						}
 					}
 				}
 				if( data.checked != true )
 				{
 					data.checked = true;
-					this.callEvent( "change", event );
-					UIForm_CtrlChanged( this, event );
+					this._notifyChange( event );
 				}
 			}
 		}
@@ -324,6 +353,14 @@ function UI_CreateRadioButton( parent, name, value, checked )
 
 global UI_Textbox = {};
 
+function UI_Textbox._notifyChange( event )
+{
+	if( event === null )
+		event = UI_CreateEvent();
+	this.callEvent( "change", event );
+	UIForm_CtrlChanged( this, event );
+}
+function UI_Textbox.getText(){ return this.data.text; }
 function UI_Textbox.setText( text )
 {
 	data = this.data;
@@ -337,8 +374,11 @@ function UI_Textbox.setText( text )
 	data.fsel_to = null;
 	data.selecting = false;
 	data.chars = string_utf8_decode( text );
+	pt = data.text;
 	data.text = text;
 	data.prevtext = text;
+	if( pt !== text )
+		this._notifyChange();
 }
 
 function UI_CreateTextbox( parent, name, caption, text )
@@ -350,6 +390,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 	Textbox = parent.frame.createControl( "textbox" );
 	Textbox.name = name;
 	Textbox._interface = UI_Textbox;
+	Textbox._disableClickBubbling = true;
 	Textbox.data =
 	{
 		border = 1,
@@ -466,10 +507,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 		{
 			data.removeCursorTimer( this.frame );
 			if( data.prevtext != data.text )
-			{
-				this.callEvent( "change", event );
-				UIForm_CtrlChanged( this, event );
-			}
+				this._notifyChange( event );
 		}
 		else if( event.type == EV_Char )
 		{
@@ -656,6 +694,14 @@ function UI_CreateTextbox( parent, name, caption, text )
 
 global UI_Slider = {};
 
+function UI_Slider._notifyChange( event )
+{
+	if( event === null )
+		event = UI_CreateEvent();
+	this.callEvent( "change", event );
+	UIForm_CtrlChanged( this, event );
+}
+
 function UI_Slider._changeValue( value, event )
 {
 	data = this.data;
@@ -740,10 +786,7 @@ function UI_Slider._stopDragging( event )
 		return;
 	data.dragging = false;
 	if( data.prev_value != data.value )
-	{
-		this.callEvent( "change", event );
-		UIForm_CtrlChanged( this, event );
-	}
+		this._notifyChange( event );
 }
 
 function UI_Slider.getValue(){ return this.data.value; }
@@ -753,10 +796,7 @@ function UI_Slider.setValue( value, event )
 	prev = this.data.value;
 	this._changeValue( value, event );
 	if( prev !== this.data.value )
-	{
-		this.callEvent( "change", event );
-		UIForm_CtrlChanged( this, event );
-	}
+		this._notifyChange( event );
 }
 
 function UI_Slider.setLimits( vmin, vmax, stopsize )
@@ -784,6 +824,7 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical, value )
 	Slider = parent.frame.createControl( "slider" );
 	Slider.name = name;
 	Slider._interface = UI_Slider;
+	Slider._disableClickBubbling = true;
 	Slider.class = if( vertical, "vertical", "horizontal" );
 	Slider.data = Slider_data =
 	{
@@ -802,7 +843,7 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical, value )
 	function Slider_data.getValue(){ return this.value; }
 	
 	Slider_data.Rail = Rail = UI_CreateStatic( Slider )[]{ class = "sdr-rail", _clientRectFromPadded = true };
-	Slider_data.Handle = Handle = UI_CreateButton( Rail )[]{ class = "sdr-handle" };
+	Slider_data.Handle = Handle = UI_CreateButton( Rail )[]{ class = "sdr-handle", _disableClickBubbling = false };
 	
 	ocb = Slider.callback;
 	function Slider.callback( event ) use( ocb )
@@ -956,6 +997,7 @@ function UI_CreateSwitchButton( parent, name, options, sidebuttons, value )
 		getValue = function SwitchButton_data_getValue(){ return this.selectedValue; },
 	};
 	SwitchButton._interface = UI_SwitchButton;
+	SwitchButton._disableClickBubbling = true;
 	SwitchButton.data.btn_main = UI_CreateButton( SwitchButton, true ).addClass( "main-button" ).bindEvent( "click", function( e )
 	{
 		if( e.button == Mouse_ButtonL )
@@ -1015,6 +1057,7 @@ function UI_CreateSelectBox( parent, name, options, value )
 		lbmenu = null,
 	};
 	SelectBox.name = name;
+	SelectBox._disableClickBubbling = true;
 	
 	orig_callback = SelectBox.callback;
 	SelectBoxData = SelectBox.data;

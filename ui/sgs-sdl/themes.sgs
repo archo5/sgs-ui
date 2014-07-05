@@ -235,14 +235,14 @@ global SS_UI_Theme_Default =
 				data = this.data;
 				
 				border = data.border;
-				W = this.rx1 - this.rx0;
-				H = this.ry1 - this.ry0;
-				BW = this.rx1 - this.rx0 - border * 2;
-				BH = this.ry1 - this.ry0 - border * 2;
+				W = this.cx1 - this.cx0;
+				H = this.cy1 - this.cy0;
+				BW = this.cx1 - this.cx0 - border * 2;
+				BH = this.cy1 - this.cy0 - border * 2;
 				PH = this.py1 - this.py0;
 				
-				SS_Draw({ preset = "tile", position = vec2(this.rx0,this.ry0), scale = vec2(W,H), color = if(this.keyboardFocus,color(0.9,0.6,0.3,1),color(0.6,0.6,0.6,1)) });
-				SS_Draw({ preset = "tile", position = vec2(this.rx0+border,this.ry0+border), scale = vec2(BW,BH), color = color(0.9,0.9,0.9,1) });
+				SS_Draw({ preset = "tile", position = vec2(this.cx0,this.cy0), scale = vec2(W,H), color = if(this.keyboardFocus,color(0.9,0.6,0.3,1),color(0.6,0.6,0.6,1)) });
+				SS_Draw({ preset = "tile", position = vec2(this.cx0+border,this.cy0+border), scale = vec2(BW,BH), color = color(0.9,0.9,0.9,1) });
 				
 				x0 = this.px0 - data.offset;
 				y0 = this.py0;

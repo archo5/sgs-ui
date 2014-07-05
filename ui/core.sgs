@@ -54,6 +54,7 @@ function UI_CreateButton( parent, rclick )
 {
 	Button = parent.frame.createControl( "button" );
 	Button.data = { rclick = !!rclick };
+	Button._disableClickBubbling = true;
 	
 	ocb = Button.callback;
 	function Button.callback( event ) use( ocb )
@@ -163,6 +164,7 @@ function UI_CreateScrollbar( parent, vertical, space, window, position )
 	Scroll = parent.frame.createControl( "scrollbar" );
 	Scroll.addClass( if( vertical, "vertical", "horizontal" ) );
 	Scroll._interface = UI_Scrollbar;
+	Scroll._disableClickBubbling = true;
 	Scroll.data =
 	{
 		button_size = 0,

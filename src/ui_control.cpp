@@ -798,7 +798,7 @@ int UICFPNAME( SGS_CTX )
 		if( ctrl->frame.object )
 			ctrl->frame->setFocus( ctrl );
 		SGSFN( UNCFPNS "/buttondown" );
-		return 1;
+		return ctrl->_disableClickBubbling ? 0 : 1;
 	case EV_ButtonUp:
 		SGSFN( UNCFPNS "/buttonup/event" );
 		ctrl->callEvent( sgsString( C, "mouseup" ), ev );
@@ -811,7 +811,7 @@ int UICFPNAME( SGS_CTX )
 		if( ctrl->clicked < 0 )
 			ctrl->clicked = 0;
 		SGSFN( UNCFPNS "/buttonup" );
-		return 1;
+		return ctrl->_disableClickBubbling ? 0 : 1;
 		
 	case EV_FocusEnter:
 		ctrl->keyboardFocus = true;
@@ -1407,6 +1407,7 @@ UIControl::UIControl() :
 	_updatingLayout(false), _roundedCoords(true),
 	_parentAffectsLayout(true), _childAffectsLayout(false),
 	_clientRectFromPadded(false), _neverHit(false), _layoutRectOverride(false),
+	_disableClickBubbling(false),
 	mouseOn(false), keyboardFocus(false), clicked(0)
 {
 	sgs_PushCFunction( C, UIControl_CtrlProc );
@@ -1783,9 +1784,8 @@ UIControl::Handle UIControl::findChild( sgsString name )
 {
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
-		if( (*it)->name != name )
-			continue;
-		return *it;
+		if( (*it)->name == name )
+			return *it;
 	}
 	return UIControl::Handle();
 }

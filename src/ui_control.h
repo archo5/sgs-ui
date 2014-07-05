@@ -876,6 +876,7 @@ struct UIControl
 	SGS_PROPERTY bool _clientRectFromPadded : 1; /* true to calculate relative position for child controls from the padded rect, not client rect */
 	SGS_PROPERTY bool _neverHit : 1; /* true if cannot hit (regardless of hit test) */
 	SGS_PROPERTY bool _layoutRectOverride : 1; /* true if EV_Layout overrides rect placement and default scrolling optimization would not work here */
+	SGS_PROPERTY bool _disableClickBubbling : 1; /* true if button events (button up/down) should not bubble, impl = return 0 on default handler */
 	SGS_PROPERTY READ bool mouseOn : 1;
 	SGS_PROPERTY READ bool keyboardFocus : 1;
 	SGS_PROPERTY READ int clicked;
