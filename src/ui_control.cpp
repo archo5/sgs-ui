@@ -1646,15 +1646,6 @@ bool UIControl::insertChild( UIControl::Handle ch, ssize_t pos )
 		return false;
 	}
 	
-	if( ch->parent.object )
-	{
-		if( !ch->parent->removeChild( ch ) )
-		{
-			sgs_Msg( C, SGS_WARNING, "failed to remove child from previous parent" );
-			return false;
-		}
-	}
-	
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
 		if( *it == ch )
@@ -1664,9 +1655,21 @@ bool UIControl::insertChild( UIControl::Handle ch, ssize_t pos )
 				pos--;
 			m_children.erase( it );
 			m_children.insert( m_children.begin() + pos, ch );
+			
+			onLayoutChange();
 			return true;
 		}
 	}
+	
+	if( ch->parent.object )
+	{
+		if( !ch->parent->removeChild( ch ) )
+		{
+			sgs_Msg( C, SGS_WARNING, "failed to remove child from previous parent" );
+			return false;
+		}
+	}
+	
 	m_children.insert( m_children.begin() + pos, ch );
 	m_sorted.push_back( ch );
 	ch->parent = Handle( this );
@@ -1684,20 +1687,27 @@ bool UIControl::insertChild( UIControl::Handle ch, ssize_t pos )
 
 bool UIControl::removeChild( UIControl::Handle ch )
 {
-	sgsVariable ev;
-	UIEvent* e = UI_CreateEvent( C, ev, EV_Detach );
-	ch->niDeepEvent( ev );
-	
-	e->type = EV_RemChild;
-	niEvent( ev, true );
-	
 	bool found = false;
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
 		if( *it == ch )
 		{
-			m_children.erase( it );
 			found = true;
+			break;
+		}
+	}
+	if( !found )
+		return false;
+	
+	sgsVariable ev;
+	UIEvent* e = UI_CreateEvent( C, ev, EV_Detach );
+	ch->niDeepEvent( ev );
+	
+	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+	{
+		if( *it == ch )
+		{
+			m_children.erase( it );
 			break;
 		}
 	}
@@ -1706,19 +1716,15 @@ bool UIControl::removeChild( UIControl::Handle ch )
 		if( *it == ch )
 		{
 			m_sorted.erase( it );
-			found = true;
 			break;
 		}
 	}
 	ch->parent = Handle();
-	if( ch->frame.not_null() )
-	{
-		ch->frame->handleMouseMove( false );
-//		ch->frame->preRemoveControl( ch );
-	}
-	sortChildren();
 	
-	return found;
+	e->type = EV_RemChild;
+	niEvent( ev, true );
+	
+	return true;
 }
 
 bool UIControl::removeAllChildren()

@@ -628,7 +628,10 @@ struct UIControl
 	SGS_METHOD int getAllChildCount(){ return m_children.size(); }
 	SGS_METHOD bool moveUp(){ int oi = getOrderIndex(); if( oi < 1 ) return false; return parent->insertChild( Handle( this ), oi - 1 ); }
 	SGS_METHOD bool moveDown(){ int oi = getOrderIndex(); if( oi < 0 || oi >= (int) m_children.size() ) return false; return parent->insertChild( Handle( this ), oi + 1 ); }
-	SGS_METHOD bool moveToIndex( int i ){ if( !parent.not_null() ) return false; return parent->insertChild( Handle( this ), i ); }
+	SGS_METHOD bool moveToIndex( int i ){
+		if( !parent.not_null() ) return false;
+		if( i < (int) parent->m_children.size() && getOrderIndex() < i ) i++;
+		return parent->insertChild( Handle( this ), i ); }
 	SGS_METHOD bool swapOutFor( UIControl::Handle nch ){ if( !parent.not_null() ) return false; else return parent->swapChild( Handle( this ), nch ); }
 	// child metrics
 	SGS_METHOD SGS_MULTRET getChildAABB( int clientness );

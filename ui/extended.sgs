@@ -75,6 +75,8 @@ function UI_Controls.scrollingautolayout( parent, params )
 
 global UI_EditableList = {};
 
+function UI_EditableList.getValue(){ return this.data.value; }
+
 function UI_EditableList._notifyChange()
 {
 	ev = UI_CreateEvent();
