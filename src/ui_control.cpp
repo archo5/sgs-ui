@@ -1773,13 +1773,21 @@ void UIControl::destroyAllChildren( bool hard )
 
 bool UIControl::swapChild( UIControl::Handle ch, UIControl::Handle nch )
 {
+	if( ch == nch )
+		return true;
 	for( size_t i = 0; i < m_children.size(); ++i )
 	{
 		if( m_children[i] == ch )
 		{
+			_updatingLayout = true; // do not want scrollbars to act on it prematurely, scrolling away the view
 			if( !removeChild( ch ) )
+			{
+				_updatingLayout = false;
 				return false;
-			return insertChild( nch, i );
+			}
+			bool ret = insertChild( nch, i );
+			_updatingLayout = false;
+			return ret;
 		}
 	}
 	// was not found

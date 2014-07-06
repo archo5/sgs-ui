@@ -120,8 +120,8 @@ function UI_Scrollable._recalc()
 	iw = x1 - x0;
 	ih = y1 - y0;
 	
-	showV = if( data.vscroll === "auto", ih > this.clientHeight - scrV.realWidth * scrH.visible, data.vscroll );
-	showH = if( data.hscroll === "auto", iw > this.clientWidth - scrH.realHeight * scrV.visible, data.hscroll );
+	showV = if( data.vscroll === "auto", ih > this.clientHeight, data.vscroll );
+	showH = if( data.hscroll === "auto", iw > this.clientWidth, data.hscroll );
 	
 	scrV.visible = showV;
 	scrH.visible = showH;

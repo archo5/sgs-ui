@@ -162,6 +162,7 @@ function UI_EditableList._initItem( ELItem )
 				this.swapOutFor( data.placeholder );
 				this.frame.root.addChild( this );
 				this._neverHit = true;
+				this.frame.handleMouseMove();
 			}
 			if( data.dragging )
 			{
@@ -738,6 +739,177 @@ function UI_Controls.window( parent, params )
 }
 
 
+/*
+	FILESYSTEM interface
+	
+	- create() : stateobj      // creates the state object
+	- ignore_list() : array    // returns a list of items that can be safely ignored if they appear ("." and "..", usually)
+	- common_list() : array    // returns a list of common paths
+	- default_path() : string  // returns a path to go to in case some other path is unreachable
+	- initial_path() : string  // returns a path that can be safely set initially
+	+ get_path() : string      // returns the current directory
+	+ goto( fullpath ) : bool  // try to change current directory to specified path
+	+ advance( item ) : bool   // try to change current directory to a one level deeper one (returns false if item was not found or it was not a directory)
+	+ goback() : bool          // try to change current directory to a one level higher one (returns false if inside a top-level directory)
+	+ enum_items() : iterator  // returns an iterator that can return a list of item names
+	+ item_info( item ) : dict // returns basic info about item (size, whether is a directory, ACM times: atime,ctime,mtime,is_dir,is_file,size)
+	+ item_ext_normalized( item ) : array  // returns normalized item types, extensions or whatever - it will be added as classes, for the theme to pick an appropriate icon
+*/
+global UI_FSDN_Images = ["png","jpg","jpeg","bmp","dds","gif","ico","tga","tiff"];
+global UI_FSDN_Audio = ["wav","mp3","ogg","wma","flac","aac","m4a","mid"];
+global UI_FSDN_Video = ["avi","wmv","flv","mkv","mpeg","mpg"];
+global UI_FSDN_Documents = ["doc","docx","odt","ppt","pptx","odp","xls","xlsx","ods","pdf","rtf","txt","htm","html","xhtml"];
+global UI_FSDN_Data = ["xml","json","csv"];
+global UI_FSDN_Code = ["c","cpp","cxx","h","hpp","hxx","sgs","asm","py","go","js","php","rb","cs","java","m","sh","vb"];
+global UI_FSDN_Archives = ["zip","7z","rar","gz","tar","bz2","cab","dmg","iso"];
+function UI_FSDN_CouldAdd( arr, ext, typename, out )
+{
+	pos = arr.find( ext );
+	if( pos !== null )
+	{
+		out.push( typename );
+		return true;
+	}
+	return false;
+}
+function UI_FileSystem_DefaultNormalizer( item )
+{
+	out = [];
+	pos = string_find_rev( item, "." );
+	if( pos === null )
+		return out;
+	ext = string_tolower( string_part( item, pos + 1 ) );
+	if( UI_FSDN_CouldAdd( UI_FSDN_Images, ext, "image", out ) )
+	{
+		if( ext == "jpeg" ) out.push( "jpg" );
+	}
+	if( UI_FSDN_CouldAdd( UI_FSDN_Audio, ext, "audio", out ) );
+	if( UI_FSDN_CouldAdd( UI_FSDN_Video, ext, "video", out ) )
+	{
+		if( ext == "mpeg" ) out.push( "mpg" );
+	}
+	if( UI_FSDN_CouldAdd( UI_FSDN_Documents, ext, "document", out ) )
+	{
+		if( ext == "docx" || ext == "odt" ) out.push( "doc" );
+		if( ext == "pptx" || ext == "odp" ) out.push( "ppt" );
+		if( ext == "xlsx" || ext == "ods" ) out.push( "xls" );
+		if( ext == "html" || ext == "xhtml" ) out.push( "htm" );
+	}
+	if( UI_FSDN_CouldAdd( UI_FSDN_Data, ext, "data", out ) );
+	if( UI_FSDN_CouldAdd( UI_FSDN_Code, ext, "code", out ) )
+	{
+		if( ext == "cxx" ) out.push( "cpp" );
+		if( ext == "hxx" ) out.push( "hpp" );
+	}
+	if( UI_FSDN_CouldAdd( UI_FSDN_Archives, ext, "archive", out ) );
+	out.push( ext );
+	return out;
+}
+
+global UI_DefaultFileSystem = {};
+
+function UI_DefaultFileSystem.create()
+{
+	data =
+	{
+		path = null,
+	};
+	return class( data, UI_DefaultFileSystem );
+}
+
+function UI_DefaultFileSystem.ignore_list()
+{
+	return [".",".."];
+}
+
+function UI_DefaultFileSystem.default_path()
+{
+	cd = io_getcwd();
+	foreach( dir : [ "~/Documents", "~/My Documents", "~" ] )
+	{
+		if( io_setcwd( dir ) )
+		{
+			io_setcwd( cd );
+			return dir;
+		}
+	}
+	io_setcwd( cd );
+	return cd;
+}
+
+function UI_DefaultFileSystem.initial_path()
+{
+	return this.default_path();
+}
+
+function UI_DefaultFileSystem.get_path()
+{
+	return this.path;
+}
+
+function UI_DefaultFileSystem.goto( fullpath )
+{
+	fullpath = tostring(fullpath);
+	cd = io_getcwd();
+	if( io_setcwd( fullpath ) )
+		this.path = fullpath;
+	io_setcwd( cd );
+	return fullpath === this.path;
+}
+
+function UI_DefaultFileSystem.advance( item )
+{
+	if( !this.path )
+		return false;
+	oldpath = this.path;
+	this.goto( item );
+	return oldpath !== this.path;
+}
+
+function UI_DefaultFileSystem.goback()
+{
+	if( !this.path )
+		return false;
+	oldpath = this.path;
+	this.goto( ".." );
+	return oldpath !== this.path;
+}
+
+function UI_DefaultFileSystem.enum_items()
+{
+	if( !this.path )
+		return false;
+	cd = io_getcwd();
+	io_setcwd( this.path );
+	iterator = io_dir( "." );
+	io_setcwd( cd );
+	return iterator;
+}
+
+function UI_DefaultFileSystem.item_info( item )
+{
+	cd = io_getcwd();
+	io_setcwd( this.path );
+	data = io_stat( item );
+	if( data )
+	{
+		data.is_dir = data.type == FST_DIR;
+		data.is_file = data.type == FST_FILE;
+	}
+	else
+	{
+		data = { atime = 0, ctime = 0, mtime = 0, is_dir = false, is_file = false, size = 0 };
+	}
+	io_setcwd( cd );
+	return data;
+}
+
+function UI_DefaultFileSystem.item_ext_normalized( item )
+{
+	return UI_FileSystem_DefaultNormalizer( item );
+}
+
+
 global UI_FileBrowser = {};
 
 function UI_FileBrowser.normalizePath( path )
@@ -746,41 +918,81 @@ function UI_FileBrowser.normalizePath( path )
 	return path;
 }
 
-function UI_FileBrowser.addFile( entry )
+function UI_FileBrowser.addFile( info )
 {
-	tgt = this.data.FileCont;
-	UI_CreateButton( tgt )[]{ class = "file-icon", caption = entry, name = this.data.path $ "/" $ entry };
+	data = this.data;
+	tgt = data.FileCont;
+	ctrl = tgt.frame.createControl( "fbentry" );
+	ctrl.data = { info = info };
+	ctrl.caption = info.name;
+	ctrl.updateTheme();
+	extclasses = data.filesystem.item_ext_normalized( info.name );
+	if( info.is_file ) ctrl.addClass( "file" );
+	if( info.is_dir ) ctrl.addClass( "dir" );
+	if( extclasses )
+	{
+		foreach( cls : extclasses )
+			ctrl.addClass( "type-" $ cls );
+	}
+	tgt.addChild( ctrl );
 }
 
 function UI_FileBrowser.refillFileList()
 {
 	data = this.data;
-	data.FileCont.destroyAllChildren( true );
-	foreach( is_real, entry : io_dir( data.path ) )
+	iter = data.filesystem.enum_items();
+	if( iter )
 	{
-		if( !is_real )
-			continue;
-		this.addFile( entry );
+		filelist = [];
+		foreach( is_real, entry : iter )
+		{
+			if( !is_real )
+				continue;
+			info = data.filesystem.item_info( entry );
+			if( !info.is_file && !info.is_dir )
+				continue;
+			info.name = entry;
+			filelist.push( info );
+		}
+		filelist.sort_custom(function(a,b)
+		{
+			if( a.is_file != b.is_file ) return a.is_file <=> b.is_file;
+			if( a.name != b.name ) return a.name <=> b.name;
+			return 0;
+		});
+		data.FileCont.destroyAllChildren( true );
+		foreach( info : filelist )
+		{
+			if( !is_real )
+				continue;
+			this.addFile( info );
+		}
 	}
+	return !!iter;
 }
 
 function UI_FileBrowser.setPath( path )
 {
+	data = this.data;
 	if( path === null )
-		path = io_getcwd();
-	path = this.normalizePath( path );
-	this.data.path = path;
-	this.data.PathText.setText( path );
+		path = data.filesystem.default_path();
+	if( !data.filesystem.goto( path ) )
+		return false;
+	this.data.PathText.setText( data.filesystem.get_path() );
 	this.refillFileList();
+	return true;
 }
 
-function UI_CreateFileBrowser( parent, commands )
+function UI_CreateFileBrowser( parent, defpath, filesystem )
 {
+	if( filesystem === null ) filesystem = UI_DefaultFileSystem.create();
+	if( defpath === null ) defpath = filesystem.initial_path();
+	
 	FileBrowser = parent.frame.createControl( "filebrowser" );
 	FileBrowser._interface = UI_FileBrowser;
 	FileBrowser.data = fbdata =
 	{
-		path = null,
+		filesystem = filesystem,
 		
 		FileCont = null,
 	};
@@ -802,7 +1014,7 @@ function UI_CreateFileBrowser( parent, commands )
 	FileScroll = UI_CreateScrollable( FileBrowser )[]{ class = "file-scroll" };
 	fbdata.FileCont = FileCont = UI_CreateAutoLayout( FileScroll )[]{ class = "file-cont" };
 	
-	FileBrowser.setPath( @commands.path );
+	FileBrowser.setPath( defpath );
 	
 	FileBrowser.updateTheme();
 	parent.addChild( FileBrowser );

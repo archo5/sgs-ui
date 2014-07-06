@@ -641,9 +641,31 @@ global SS_UI_Theme_Default =
 		"filebrowser .path-block .btn-fwd" = { x = 32, width = 32, height = 32, icon = "icons/resultset_next.png", nonClient = 2 },
 		"filebrowser .path-block .btn-up" = { x = 64, width = 32, height = 32, icon = "icons/arrow_up.png", nonClient = 2 },
 		"filebrowser .path-block .path-text" = { x = 96, width = -96, anchorMode = UI_Anchor_Hor, height = 32, nonClient = 2 },
-		"filebrowser .file-scroll" = { y = 32, height = -32, anchorMode = UI_Anchor_All },
-		"filebrowser .file-cont" = { anchorMode = UI_Anchor_All },
-		"filebrowser .file-cont .file-icon" = { width = 128, height = 24 },
+		"filebrowser .file-scroll" = { y = 32, height = -32, anchorMode = UI_Anchor_All, backgroundColor = UIColor(0.95,1) },
+		"filebrowser .file-cont" = { anchorMode = UI_Anchor_Hor },
+		"filebrowser .file-cont fbentry" =
+		{
+			width = 128,
+			height = 24,
+			backgroundColor = UIColor(0),
+			icon = "icons/page_white.png",
+			renderfunc = function SS_UI_Theme_Default_fbentry_renderfunc()
+			{
+				icon = this._cachedIcon;
+				c = this.backgroundColor;
+				SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, c.r, c.g, c.b, c.a );
+				if( icon )
+					SS_DrawFitted( icon, this.cx0, this.cy0, this.cx0 + this.clientHeight, this.cy1 );
+				SS_DrawTextLine_VC( this.caption, this._cachedFont, this.cx0 + this.clientHeight, this.cy0 + this.clientHeight * 0.5, SS_UI_ConvertColor( this.textColor ) );
+			},
+		},
+		"filebrowser .file-cont fbentry:hover" = { backgroundColor = UIColor(0.4,0.6,0.8,0.3) },
+		"filebrowser .file-cont fbentry.selected" = { backgroundColor = UIColor(0.4,0.6,0.8,0.7), textColor = UIColor(1) },
+		// type icons -- begin --
+		"filebrowser .file-cont fbentry.dir" = { icon = "icons/folder.png" },
+		"filebrowser .file-cont fbentry.type-code" = { icon = "icons/page_white_text.png" },
+		"filebrowser .file-cont fbentry.type-document" = { icon = "icons/page_white_text.png" },
+		// type icons -- end --
 	}),
 	
 	// BUTTON
