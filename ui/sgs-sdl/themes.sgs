@@ -663,8 +663,13 @@ global SS_UI_Theme_Default =
 		"filebrowser .file-cont fbentry.selected" = { backgroundColor = UIColor(0.4,0.6,0.8,0.7), textColor = UIColor(1) },
 		// type icons -- begin --
 		"filebrowser .file-cont fbentry.dir" = { icon = "icons/folder.png" },
-		"filebrowser .file-cont fbentry.type-code" = { icon = "icons/page_white_text.png" },
+		"filebrowser .file-cont fbentry.type-image" = { icon = "icons/page_white_picture.png" },
+		"filebrowser .file-cont fbentry.type-audio" = { icon = "icons/page_white_cd.png" },
+		"filebrowser .file-cont fbentry.type-video" = { icon = "icons/page_white_camera.png" },
 		"filebrowser .file-cont fbentry.type-document" = { icon = "icons/page_white_text.png" },
+		"filebrowser .file-cont fbentry.type-data" = { icon = "icons/page_white_database.png" },
+		"filebrowser .file-cont fbentry.type-code" = { icon = "icons/page_white_text.png" },
+		"filebrowser .file-cont fbentry.type-archive" = { icon = "icons/page_white_zip.png" },
 		// type icons -- end --
 	}),
 	

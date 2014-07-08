@@ -57,6 +57,7 @@ function sgs_ui_example_default()
 		{ text = "Help", menu = sub3menu },
 	];
 	global STAT = UI_CreateMenuPanel( STATCORE, mpitems );
+	STAT.bindEvent( "click", function(e){ println("static.click #"$e.clicks); });
 	
 	global TOPBAR = UI_CreateStatic( STAT )[]{ height = 24, backgroundColor = UIColor( 0.8, 1 ), anchorMode = UI_Anchor_Hor };
 	

@@ -830,8 +830,8 @@ int UICFPNAME( SGS_CTX )
 
 
 
-UIFrame::UIFrame() : x(0), y(0), width(9999), height(9999), mouseX(0), mouseY(0),
-	m_hover(NULL), m_focus(NULL), m_timerAutoID(1)
+UIFrame::UIFrame() : clickTime(0.5f), x(0), y(0), width(9999), height(9999), mouseX(-FLT_MAX), mouseY(-FLT_MAX),
+	m_hover(NULL), m_focus(NULL), m_lastClickedButton(-1), m_lastClickTime(0), m_clickCount(0), m_lastClickItem(NULL), m_timerAutoID(1)
 {
 	memset( m_clicktargets, 0, sizeof(m_clicktargets) );
 	memset( m_clickoffsets, 0, sizeof(m_clickoffsets) );
@@ -1034,13 +1034,24 @@ void UIFrame::doMouseButton( int btn, bool down )
 	
 	sgsVariable ev;
 	UIEvent* e = UI_CreateEvent( C, ev, down ? EV_ButtonDown : EV_ButtonUp );
-	e->button = btn;
+	e->key = btn; // aliased as 'button'
 	e->x = mouseX;
 	e->y = mouseY;
 	UIEvent oe = *e;
 	
 	if( !down )
 	{
+		if( m_lastClickedButton != btn || m_clicktargets[ btn ] != m_lastClickItem || m_lastClickTime > clickTime )
+		{
+			m_lastClickedButton = btn;
+			m_clickCount = 0;
+		}
+		m_clickCount++;
+		e->uchar = m_clickCount; // aliased as 'clicks'
+		
+		m_lastClickTime = 0;
+		m_lastClickItem = m_clicktargets[ btn ];
+		
 		if( m_clicktargets[ btn ] )
 		{
 			m_clicktargets[ btn ]->niBubblingEvent( ev );
@@ -1128,6 +1139,8 @@ void UIFrame::_clearTimer( int64_t id )
 
 void UIFrame::processTimers( float t )
 {
+	m_lastClickTime += t;
+	
 	int64_t maxid = m_timerAutoID;
 	UITimerMap::iterator it = m_timers.begin();
 	while( it != m_timers.end() )
@@ -1743,6 +1756,8 @@ void UIControl::detach()
 
 void UIControl::destroy( bool hard )
 {
+	Handle less( this ); // prevent vaporization before end of this function
+	
 	stop( true );
 	detach();
 	UIControl::HandleArray chs = m_children;

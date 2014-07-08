@@ -822,6 +822,15 @@ function UI_DefaultFileSystem.ignore_list()
 	return [".",".."];
 }
 
+function UI_DefaultFileSystem.common_list()
+{
+	// enum drives
+	
+	// enum common folders (platform-specific)
+	
+	// TODO!!!!!
+}
+
 function UI_DefaultFileSystem.default_path()
 {
 	cd = io_getcwd();
@@ -851,8 +860,10 @@ function UI_DefaultFileSystem.goto( fullpath )
 {
 	fullpath = tostring(fullpath);
 	cd = io_getcwd();
+	if( this.path )
+		io_setcwd( this.path );
 	if( io_setcwd( fullpath ) )
-		this.path = fullpath;
+		this.path = io_getcwd();
 	io_setcwd( cd );
 	return fullpath === this.path;
 }
@@ -934,6 +945,8 @@ function UI_FileBrowser.addFile( info )
 		foreach( cls : extclasses )
 			ctrl.addClass( "type-" $ cls );
 	}
+	me = this;
+	ctrl.bindEvent( "click", function(e) use( me ){ me._actOn( this.data.info.name, e.clicks ); } );
 	tgt.addChild( ctrl );
 }
 
@@ -971,16 +984,40 @@ function UI_FileBrowser.refillFileList()
 	return !!iter;
 }
 
+function UI_FileBrowser._onPathChange( sf )
+{
+	if( !sf )
+		return false;
+	data = this.data;
+	this.data.PathText.setText( data.filesystem.get_path() );
+	this.refillFileList();
+	return true;
+}
+
 function UI_FileBrowser.setPath( path )
 {
 	data = this.data;
 	if( path === null )
 		path = data.filesystem.default_path();
-	if( !data.filesystem.goto( path ) )
-		return false;
-	this.data.PathText.setText( data.filesystem.get_path() );
-	this.refillFileList();
-	return true;
+	return this._onPathChange( data.filesystem.goto( path ) );
+}
+
+function UI_FileBrowser.moveUp()
+{
+	return this._onPathChange( this.data.filesystem.goback() );
+}
+
+function UI_FileBrowser.moveTo( entry )
+{
+	return this._onPathChange( this.data.filesystem.advance( entry ) );
+}
+
+function UI_FileBrowser._actOn( entry, clicks )
+{
+	if( clicks == 1 )
+		;// TODO SELECT
+	if( clicks == 2 )
+		return this.moveTo( entry );
 }
 
 function UI_CreateFileBrowser( parent, defpath, filesystem )
@@ -1003,6 +1040,8 @@ function UI_CreateFileBrowser( parent, defpath, filesystem )
 	BtnFwd = UI_CreateButton( PathBlock )[]{ class = "btn-fwd" };
 	BtnUp = UI_CreateButton( PathBlock )[]{ class = "btn-up" };
 	fbdata.PathText = PathText = UI_CreateTextbox( PathBlock )[]{ class = "path-text" };
+	
+	BtnUp.bindEvent( "click", function(){ this.parent.parent.moveUp(); } );
 	
 	// directory tree
 	// - TODO

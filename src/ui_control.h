@@ -190,12 +190,13 @@ struct UIEvent
 {
 	SGS_OBJECT_LITE;
 	
-	UIEvent() : type(0), key(0), button(0), uchar(0), x(0), y(0), rx(0), ry(0){}
+	UIEvent() : type(0), key(0), uchar(0), x(0), y(0), rx(0), ry(0){}
 	
 	SGS_PROPERTY int type;
 	SGS_PROPERTY int key;
-	SGS_PROPERTY int button;
+	SGS_PROPERTY_FUNC( READ WRITE VARNAME button ) SGS_ALIAS( int key );
 	SGS_PROPERTY uint32_t uchar;
+	SGS_PROPERTY_FUNC( READ WRITE VARNAME clicks ) SGS_ALIAS( uint32_t uchar );
 	SGS_PROPERTY float x;
 	SGS_PROPERTY float y;
 	SGS_PROPERTY float rx;
@@ -537,6 +538,8 @@ struct UIFrame
 	SGS_PROPERTY READ sgsVariable theme;
 	SGS_METHOD void setTheme( sgsVariable newtheme );
 	
+	SGS_PROPERTY float clickTime;
+	
 	
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK onLayoutChange ) float x;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK onLayoutChange ) float y;
@@ -556,6 +559,10 @@ struct UIFrame
 	UIControl* m_focus;
 	UIControl* m_clicktargets[ Mouse_Button_Count ];
 	float m_clickoffsets[ Mouse_Button_Count ][2];
+	int m_lastClickedButton;
+	float m_lastClickTime;
+	int m_clickCount;
+	void* m_lastClickItem;
 	UITimerMap m_timers;
 	int64_t m_timerAutoID;
 	IDGen m_controlIDGen;
