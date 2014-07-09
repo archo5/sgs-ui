@@ -853,12 +853,12 @@ function UI_DefaultFileSystem.initial_path()
 
 function UI_DefaultFileSystem.get_path()
 {
-	return this.path;
+	return string_replace( this.path, "\\", "/" );
 }
 
 function UI_DefaultFileSystem.goto( fullpath )
 {
-	fullpath = tostring(fullpath);
+	fullpath = string_replace( tostring(fullpath), "/", "\\" );
 	cd = io_getcwd();
 	if( this.path )
 		io_setcwd( this.path );
@@ -923,12 +923,6 @@ function UI_DefaultFileSystem.item_ext_normalized( item )
 
 global UI_FileBrowser = {};
 
-function UI_FileBrowser.normalizePath( path )
-{
-	path = string_trim( string_replace( path, "\\", "/" ), "/", STRING_TRIM_RIGHT );
-	return path;
-}
-
 function UI_FileBrowser.addFile( info )
 {
 	data = this.data;
@@ -946,7 +940,7 @@ function UI_FileBrowser.addFile( info )
 			ctrl.addClass( "type-" $ cls );
 	}
 	me = this;
-	ctrl.bindEvent( "click", function(e) use( me ){ me._actOn( this.data.info.name, e.clicks ); } );
+	ctrl.bindEvent( "click", function(e) use( me ){ me._actOn( this, e ); } );
 	tgt.addChild( ctrl );
 }
 
@@ -973,6 +967,7 @@ function UI_FileBrowser.refillFileList()
 			if( a.name != b.name ) return a.name <=> b.name;
 			return 0;
 		});
+		data.FileCont._updatingLayout = true;
 		data.FileCont.destroyAllChildren( true );
 		foreach( info : filelist )
 		{
@@ -980,26 +975,66 @@ function UI_FileBrowser.refillFileList()
 				continue;
 			this.addFile( info );
 		}
+		data.FileCont._updatingLayout = false;
+		data.FileCont.onLayoutChange();
+		data.FileCont.onLayoutChange();
 	}
 	return !!iter;
 }
 
-function UI_FileBrowser._onPathChange( sf )
+function UI_FileBrowser.getCurrentPath(){ return this.data.filesystem.get_path(); }
+function UI_FileBrowser.getSubmittedItem(){ return this.data.SubText.getText(); }
+
+function UI_FileBrowser.submitItem( event )
+{
+	if( event === null )
+		event = UI_CreateEvent();
+	this.callEvent( "change", event );
+}
+
+function UI_FileBrowser._onPathChange( sf, nohistory )
 {
 	if( !sf )
 		return false;
 	data = this.data;
-	this.data.PathText.setText( data.filesystem.get_path() );
+	path = data.filesystem.get_path();
+	this.data.PathText.setText( path );
 	this.refillFileList();
+	if( !nohistory )
+	{
+		data.history_pos++;
+		data.history.resize( data.history_pos + 1 );
+		data.history[ data.history_pos ] = path;
+	}
 	return true;
 }
 
-function UI_FileBrowser.setPath( path )
+function UI_FileBrowser.setPath( path, nohistory )
 {
 	data = this.data;
 	if( path === null )
 		path = data.filesystem.default_path();
-	return this._onPathChange( data.filesystem.goto( path ) );
+	return this._onPathChange( data.filesystem.goto( path ), nohistory );
+}
+
+function UI_FileBrowser.moveBack()
+{
+	data = this.data;
+	if( data.history_pos > 0 )
+	{
+		data.history_pos--;
+		this.setPath( data.history[ data.history_pos ], true );
+	}
+}
+
+function UI_FileBrowser.moveForward()
+{
+	data = this.data;
+	if( data.history_pos < data.history.size - 1 )
+	{
+		data.history_pos++;
+		this.setPath( data.history[ data.history_pos ], true );
+	}
 }
 
 function UI_FileBrowser.moveUp()
@@ -1012,12 +1047,22 @@ function UI_FileBrowser.moveTo( entry )
 	return this._onPathChange( this.data.filesystem.advance( entry ) );
 }
 
-function UI_FileBrowser._actOn( entry, clicks )
+function UI_FileBrowser._actOn( entryitem, event )
 {
-	if( clicks == 1 )
-		;// TODO SELECT
-	if( clicks == 2 )
-		return this.moveTo( entry );
+	edi = entryitem.data.info;
+	if( event.clicks == 1 )
+	{
+		entryitem.frame.find( entryitem.parent ).children( ".selected" ).removeClass( "selected" );
+		entryitem.addClass( "selected" );
+		this.data.SubText.setText( edi.name );
+	}
+	if( event.clicks == 2 )
+	{
+		if( edi.is_dir )
+			return this.moveTo( edi.name );
+		else
+			return this.submitItem( event );
+	}
 }
 
 function UI_CreateFileBrowser( parent, defpath, filesystem )
@@ -1030,6 +1075,8 @@ function UI_CreateFileBrowser( parent, defpath, filesystem )
 	FileBrowser.data = fbdata =
 	{
 		filesystem = filesystem,
+		history = [],
+		history_pos = -1,
 		
 		FileCont = null,
 	};
@@ -1041,7 +1088,18 @@ function UI_CreateFileBrowser( parent, defpath, filesystem )
 	BtnUp = UI_CreateButton( PathBlock )[]{ class = "btn-up" };
 	fbdata.PathText = PathText = UI_CreateTextbox( PathBlock )[]{ class = "path-text" };
 	
+	BtnBack.bindEvent( "click", function(){ this.parent.parent.moveBack(); } );
+	BtnFwd.bindEvent( "click", function(){ this.parent.parent.moveForward(); } );
 	BtnUp.bindEvent( "click", function(){ this.parent.parent.moveUp(); } );
+	PathText.bindEvent( "submit", function(){ this.parent.parent.setPath( this.getText() ); } );
+	
+	// submission block
+	SubBlock = UI_CreateStatic( FileBrowser )[]{ class = "sub-block" };
+	fbdata.SubText = SubText = UI_CreateTextbox( SubBlock )[]{ class = "sub-text" };
+	BtnSubmit = UI_CreateButton( SubBlock )[]{ class = "btn-submit", caption = "Submit" };
+	
+	SubText.bindEvent( "submit", function(){ this.parent.parent.submitItem(); } );
+	BtnSubmit.bindEvent( "click", function(){ this.parent.parent.submitItem(); } );
 	
 	// directory tree
 	// - TODO

@@ -448,7 +448,7 @@ struct UIFrame
 	
 	SGS_METHOD void event( sgsVariable ev );
 	SGS_METHOD void render();
-	UIControl* _getControlAtPosition( float x, float y );
+	UIControl* _getControlAtPosition( float x, float y, bool fillarr = false );
 	SGS_METHOD void handleMouseMove( bool optional );
 	SGS_METHOD void setFocus( UIControl* ctrl );
 	
@@ -474,6 +474,7 @@ struct UIFrame
 	SGS_METHOD bool popScissorRect();
 	SGS_METHOD int getScissorRectCount(){ return m_scissorRects.size(); }
 	void _applyScissorState();
+	bool inScissorRect( UIControl* ctrl );
 	
 	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
 	
@@ -568,6 +569,7 @@ struct UIFrame
 	IDGen m_controlIDGen;
 	UIRectArray m_scissorRects;
 	CtrlPtrArray m_animatedControls;
+	CtrlPtrArray m_hoverTrail;
 	StyleSheetArray m_styleSheets;
 	
 };

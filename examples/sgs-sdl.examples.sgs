@@ -664,6 +664,7 @@ function sgs_ui_example_selectors()
 
 function sgs_ui_example_filebrowse()
 {
-	UI_CreateFileBrowser( FRAME.root )[]{ anchorMode = UI_Anchor_All };
+	fb = UI_CreateFileBrowser( FRAME.root )[]{ anchorMode = UI_Anchor_All };
+	fb.bindEvent( "change", function(){ println( "SUBMIT "${path=this.getCurrentPath(),file=this.getSubmittedItem()} ); } );
 }
 

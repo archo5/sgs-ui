@@ -1,4 +1,10 @@
 
+STYLESHEET OPTIMIZATION
+
+- two-layer caching: style rule array --[core selectors]--> per-control filtered all-state styles --[state selectors]--> per-control filtered specific-state styles
+- stack mouseenter/leave transitions (replace bubbling event with finding the common parent, running events up and down that, and finally refiltering control styles at only that point
+
+
 UI COLOR STORAGE & INTERFACE
 
 some way to store color just enough for interop without xgmath

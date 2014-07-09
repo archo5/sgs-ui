@@ -778,13 +778,11 @@ int UICFPNAME( SGS_CTX )
 	case EV_MouseEnter:
 		SGSFN( UNCFPNS "/mouseenter" );
 		ctrl->mouseOn = true;
-		ctrl->frame->_updateStyles( ctrl );
 		ctrl->callEvent( sgsString( C, "mouseenter" ), ev );
 		return 1;
 	case EV_MouseLeave:
 		SGSFN( UNCFPNS "/mouseleave" );
 		ctrl->mouseOn = false;
-		ctrl->frame->_updateStyles( ctrl );
 		ctrl->callEvent( sgsString( C, "mouseleave" ), ev );
 		return 1;
 	case EV_ButtonDown:
@@ -879,12 +877,15 @@ void UIFrame::render()
 		root->niRender();
 }
 
-UIControl* UIFrame::_getControlAtPosition( float x, float y )
+UIControl* UIFrame::_getControlAtPosition( float x, float y, bool fillarr )
 {
 	sgsVariable htev;
 	UIEvent* hte = UI_CreateEvent( C, htev, EV_HitTest );
 	hte->x = x;
 	hte->y = y;
+	
+	if( fillarr )
+		m_hoverTrail.clear();
 	
 	UIControl* ctrl = root, *atpos = NULL;
 	int nonclient = -1;
@@ -903,6 +904,8 @@ UIControl* UIFrame::_getControlAtPosition( float x, float y )
 				if( hit != Hit_None )
 				{
 					ctrl = nc;
+					if( fillarr )
+						m_hoverTrail.push_back( nc );
 					nonclient = hit == Hit_NonClient ? 1 : 0;
 					break;
 				}
@@ -924,7 +927,7 @@ void UIFrame::handleMouseMove( bool optional )
 	
 	// find new mouse-over item
 	UIControl* prevhover = m_hover;
-	m_hover = _getControlAtPosition( mouseX, mouseY );
+	m_hover = _getControlAtPosition( mouseX, mouseY, true );
 	
 	if( m_hover != prevhover )
 	{
@@ -933,19 +936,83 @@ void UIFrame::handleMouseMove( bool optional )
 			sgsVariable mev;
 			UIEvent* me = UI_CreateEvent( C, mev );
 			
-			if( prevhover )
+			// try to find common parent
+			UIControl* phi = prevhover, *pphi = NULL;
+			size_t i;
+			while( phi )
 			{
+				for( i = 0; i < m_hoverTrail.size(); ++i )
+					if( m_hoverTrail[ i ] == phi )
+						break;
+				if( i < m_hoverTrail.size() )
+					break;
+				pphi = phi;
+				phi = phi->parent;
+			}
+			
+		//	printf("ht0=%p htsz=%d pphi=%p phi=%p prev=%p curr=%p\n", m_hoverTrail.size()>=2 ? m_hoverTrail[1] : NULL, (int) m_hoverTrail.size(), pphi, phi, prevhover, m_hover );
+			if( !phi )
+			{
+				// no common parent, run bubbling event on previous hover, bubbling event on current hover, update all styles
+				if( pphi )
+				{
+					me->type = EV_MouseLeave;
+					me->x = mouseX;
+					me->y = mouseY;
+					pphi->niBubblingEvent( mev );
+					_updateStyles( pphi );
+				}
+				if( m_hover )
+				{
+					me->type = EV_MouseEnter;
+					me->x = mouseX;
+					me->y = mouseY;
+					m_hover->niBubblingEvent( mev );
+					_updateStyles( root );
+				}
+			}
+			else
+			{
+				// found common parent, run events through that (parent gets none), update styles up from parent (not parent itself)
+				UIControl *cc, *pcc1, *pcc2;
+				
+				pcc1 = cc = prevhover;
 				me->type = EV_MouseLeave;
 				me->x = mouseX;
 				me->y = mouseY;
-				prevhover->niBubblingEvent( mev );
-			}
-			if( m_hover )
-			{
+				me->target = UIControl::Handle( cc );
+				while( cc != phi )
+				{
+					if( !cc->niEvent( mev ) )
+						break;
+					pcc1 = cc;
+					cc = cc->parent;
+				}
+				
+				pcc2 = cc = m_hover;
 				me->type = EV_MouseEnter;
 				me->x = mouseX;
 				me->y = mouseY;
-				m_hover->niBubblingEvent( mev );
+				me->target = UIControl::Handle( cc );
+				while( cc != phi )
+				{
+					if( !cc->niEvent( mev ) )
+						break;
+					pcc2 = cc;
+					cc = cc->parent;
+				}
+				
+				if( prevhover == phi || m_hover == phi ) // common parent is one of the controls itself
+				{
+					// update styles only once, from that control
+					_updateStyles( phi );
+				}
+				else // common parent is higher than both controls
+				{
+					// update both common-parent-most controls
+					_updateStyles( pcc1 );
+					_updateStyles( pcc2 );
+				}
 			}
 		}
 		
@@ -1239,6 +1306,14 @@ void UIFrame::_applyScissorState()
 	sgs_SetStackSize( C, ssz );
 }
 
+bool UIFrame::inScissorRect( UIControl* ctrl )
+{
+	if( !m_scissorRects.size() )
+		return true;
+	UIRect& rect = m_scissorRects.back();
+	return ctrl->rx0 <= rect.x1 && ctrl->rx1 >= rect.x0 && ctrl->ry0 <= rect.y1 && ctrl->ry1 >= rect.y0;
+}
+
 
 static UIStyleSheet::Handle _theme_getstylesheet( SGS_CTX, sgsVariable theme )
 {
@@ -1363,8 +1438,8 @@ void UIFrame::_updateStyles( UIControl* initial )
 	controls.push_back( initial );
 	while( controls.size() )
 	{
-		UIControl* ctrl = controls[0];
-		VREMOVEAT( controls, 0 );
+		UIControl* ctrl = controls.back();
+		controls.pop_back();
 		
 		ctrl->_refilterStyles( fsa );
 		
@@ -1489,6 +1564,12 @@ void UIControl::niBubblingEvent( sgsVariable& ev )
 	}
 }
 
+
+static inline bool frisect( UIControl* c1, UIControl* c2 )
+{
+	return c1->rx0 <= c2->rx1 && c2->rx0 <= c1->rx1 && c1->ry0 <= c2->ry1 && c2->ry0 <= c1->ry1;
+}
+
 void UIControl::niRender()
 {
 	if( !get_visible() )
@@ -1503,22 +1584,25 @@ void UIControl::niRender()
 		sgs_SetStackSize( C, orig );
 	}
 	
-	bool overflow = get_overflow();
-	if( overflow || frame->pushScissorRect( rx0 + get_nonClientLeft(), ry0 + get_nonClientTop(), rx1 - get_nonClientRight(), ry1 - get_nonClientBottom() ) )
+	if( m_children.size() )
 	{
+		bool overflow = get_overflow();
+		if( overflow || frame->pushScissorRect( cx0, cy0, cx1, cy1 ) )
+		{
+			for( HandleArray::iterator it = m_sorted.begin(), itend = m_sorted.end(); it != itend; ++it )
+			{
+				if( !(*it)->nonclient && ( overflow || frame->inScissorRect( *it ) ) )
+					(*it)->niRender();
+			}
+			if( !overflow )
+				frame->popScissorRect();
+		}
+		
 		for( HandleArray::iterator it = m_sorted.begin(), itend = m_sorted.end(); it != itend; ++it )
 		{
-			if( !(*it)->nonclient )
+			if( (*it)->nonclient && frisect( this, *it ) )
 				(*it)->niRender();
 		}
-		if( !overflow )
-			frame->popScissorRect();
-	}
-	
-	for( HandleArray::iterator it = m_sorted.begin(), itend = m_sorted.end(); it != itend; ++it )
-	{
-		if( (*it)->nonclient )
-			(*it)->niRender();
 	}
 }
 
@@ -1632,6 +1716,9 @@ void UIControl::ppgLayoutChange( sgsVariable& ev )
 
 void UIControl::onLayoutChange()
 {
+	if( _updatingLayout )
+		return;
+	
 	sgsVariable ev;
 	UI_CreateEvent( C, ev, EV_Layout )->target = Handle( this );
 	ppgLayoutChange( ev );
@@ -1884,8 +1971,8 @@ int UIControl::getChildCount( bool nonclient )
 SGS_MULTRET UIControl::getChildAABB( int clientness )
 {
 	float x0 = 0, x1 = 0, y0 = 0, y1 = 0;
-	float cx = _clientRectFromPadded ? px0 : cx0;
-	float cy = _clientRectFromPadded ? py0 : cy0;
+	float cx = ( _clientRectFromPadded ? px0 : cx0 ) + scroll_x;
+	float cy = ( _clientRectFromPadded ? py0 : cy0 ) + scroll_y;
 	
 	for( HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{

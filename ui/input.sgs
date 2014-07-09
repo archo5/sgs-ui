@@ -679,6 +679,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 				else if( key == Key_Enter )
 				{
 					this.frame.setFocus( null );
+					this.callEvent( "submit", event );
 				}
 			}
 		}
