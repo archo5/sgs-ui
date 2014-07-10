@@ -858,7 +858,9 @@ function UI_DefaultFileSystem.get_path()
 
 function UI_DefaultFileSystem.goto( fullpath )
 {
-	fullpath = string_replace( tostring(fullpath), "/", "\\" );
+	fullpath = tostring( fullpath );
+	if( os_gettype() == "Windows" )
+		fullpath = string_replace( fullpath, "/", "\\" );
 	cd = io_getcwd();
 	if( this.path )
 		io_setcwd( this.path );
@@ -971,8 +973,6 @@ function UI_FileBrowser.refillFileList()
 		data.FileCont.destroyAllChildren( true );
 		foreach( info : filelist )
 		{
-			if( !is_real )
-				continue;
 			this.addFile( info );
 		}
 		data.FileCont._updatingLayout = false;
@@ -1054,7 +1054,8 @@ function UI_FileBrowser._actOn( entryitem, event )
 	{
 		entryitem.frame.find( entryitem.parent ).children( ".selected" ).removeClass( "selected" );
 		entryitem.addClass( "selected" );
-		this.data.SubText.setText( edi.name );
+		if( edi.is_file )
+			this.data.SubText.setText( edi.name );
 	}
 	if( event.clicks == 2 )
 	{
@@ -1116,5 +1117,12 @@ function UI_CreateFileBrowser( parent, defpath, filesystem )
 	FileBrowser.updateTheme();
 	parent.addChild( FileBrowser );
 	return FileBrowser;
+}
+
+UI_Controls.filebrowser_params = ["path","filesystem"];
+function UI_Controls.filebrowser( parent, params )
+{
+	ctrl = UI_CreateFileBrowser( parent, @params.path, @params.filesystem );
+	UI_ConfigControl( ctrl, params );
 }
 
