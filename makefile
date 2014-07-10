@@ -53,7 +53,6 @@ OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
 
 $(OUTDIR)/sgs-ui$(LIBEXT): $(OBJ)
-	$(MAKE) -C sgscript
 	$(CXX) -Wall -o $@ $(OBJ) $(CXXFLAGS) -Lsgscript/bin $(LINKPATHS) $(PLATFLAGS) -lsgscript -shared -static-libgcc -static-libstdc++
 	$(PLATPOST)
 
@@ -61,7 +60,8 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)
 	$(CXX) -c -o $@ $< $(COMPATHS) -I. -Isgscript/src -Isgscript/ext/cppbc $(CXXFLAGS)
 
 $(SRCDIR)/cppbc_ui_control.cpp: $(SRCDIR)/ui_control.h
-	sgsvm -p sgscript/ext/cppbc/cppbc.sgs $(SRCDIR)/ui_control.h
+	$(MAKE) -C sgscript vm
+	sgscript/bin/sgsvm -p sgscript/ext/cppbc/cppbc.sgs $(SRCDIR)/ui_control.h
 
 
 .PHONY: clean
