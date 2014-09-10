@@ -1319,17 +1319,13 @@ static UIStyleSheet::Handle _theme_getstylesheet( SGS_CTX, sgsVariable theme )
 {
 	if( theme.not_null() )
 	{
-		sgs_String32 str32;
 		sgs_Variable key, val;
-		sgs_InitString32( &key, &str32, "stylesheet" );
+		sgs_InitString( C, &key, "stylesheet" );
 		
-		if( SGS_SUCCEEDED( sgs_GetIndexPPP( C, &theme.var, &key, &val, 0 ) ) )
-		{
-			sgs_CheckString32( &str32 );
-			if( val.type == SGS_VT_OBJECT )
-				return UIStyleSheet::Handle( C, val.data.O );
-		}
-		sgs_CheckString32( &str32 );
+		bool suc = SGS_SUCCEEDED( sgs_GetIndexPPP( C, &theme.var, &key, &val, 0 ) );
+		sgs_Release( C, &key );
+		if( suc && val.type == SGS_VT_OBJECT )
+			return UIStyleSheet::Handle( C, val.data.O );
 	}
 	
 	return UIStyleSheet::Handle();
@@ -2394,13 +2390,13 @@ void UIControl::_setClasses3( const char* str1, size_t size1, const char* str2, 
 	// assume that one of these pointers may be from the current class string
 	sgsString _c = classes;
 	// allocate a string big enough for all those substrings
-	sgs_PushStringBuf( C, NULL, size1 + size2 + size3 );
+	char* out = sgs_PushStringAlloc( C, size1 + size2 + size3 );
 	// copy substrings to string
-	char* out = sgs_GetStringPtr( C, -1 );
 	if( size1 ) memcpy( out, str1, size1 );
 	if( size2 ) memcpy( out + size1, str2, size2 );
 	if( size3 ) memcpy( out + size1 + size2, str3, size3 );
 	// retrieve new class string
+	sgs_FinalizeStringAlloc( C, -1 );
 	classes = sgsString( C, -1 );
 	// old one is automatically freed
 }
@@ -2728,7 +2724,7 @@ int UIQuery::sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int ispr
 	}
 	else if( !isprop && sgs_ParseIntP( C, key, &idx ) )
 	{
-		if( idx < 0 || idx >= Q->m_items.size() )
+		if( idx < 0 || idx >= (sgs_Int) Q->m_items.size() )
 			return SGS_EBOUNDS;
 		Q->m_items[ idx ].push( C );
 		return SGS_SUCCESS;

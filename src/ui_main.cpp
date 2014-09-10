@@ -215,6 +215,8 @@ __declspec(dllexport)
 #endif
 int sgscript_main( SGS_CTX )
 {
+	SGS_MODULE_CHECK_VERSION( C );
+	
 	sgs_RegIntConsts( C, g_iconsts, -1 );
 	sgs_RegRealConsts( C, g_rconsts, -1 );
 	sgs_RegFuncConsts( C, g_fconsts, -1 );

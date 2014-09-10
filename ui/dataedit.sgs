@@ -1,0 +1,143 @@
+
+// schema is a map of types
+// each type is a dict of properties that describe both data and type itself
+// type properties:
+// - [string] $type - name of data type valid for this property
+// - [string] $name - name to use for labels
+// - [string] $hint - a most-generic-first, dot-separated list of descriptors that may aid the choice of a UI control (like "path.image.icon")
+// -- other variables may be used by specific types for additional data, such as... --
+// - [string] $subtype - name of subtype (one of named root types) valid as one of the items for the value (for arrays and such data types)
+// - [string] $options - array of possible value strings (or key-value pairs) to be suggested / allowed
+// basic rules:
+// - all property names correspond to actual properties inside the data (doing type1.prop2.prop3 in data and schema works and returns related data)
+
+global UI_DataEdit = {};
+
+function UI_DataEdit._create_label( text )
+{
+	return UI_CreateStatic( this.data.OpCont )[]{ caption = text }.addClass( "label" );
+}
+
+function UI_DataEdit._createDefaultLabel( option )
+{
+	return this._create_label( @option.label || @option.name );
+}
+
+function UI_DataEdit._create_separator( option, value )
+{
+	return UI_CreateStatic( this.data.OpCont )[]{ caption = @option.label || value || @option.name }.addClass( "separator" );
+}
+
+function UI_DataEdit._create_checkbox( option, value )
+{
+	this._createDefaultLabel( option );
+	ctrl = UI_CreateCheckbox( this.data.OpCont, option.name, null, !!value ).addClass( "value" );
+	return ctrl;
+}
+
+function UI_DataEdit._create_slider( option, value )
+{
+	this._createDefaultLabel( option );
+	ctrl = UI_CreateSlider( this.data.OpCont, option.name, @option.min, @option.max, @option.stopsize, false, value ).addClass( "value" );
+	return ctrl;
+}
+
+function UI_DataEdit._create_textbox( option, value )
+{
+	this._createDefaultLabel( option );
+	ctrl = UI_CreateTextbox( this.data.OpCont, option.name, @option.textbox_caption, value ).addClass( "value" );
+	return ctrl;
+}
+
+function UI_DataEdit._create_switchbutton( option, value )
+{
+	this._createDefaultLabel( option );
+	ctrl = UI_CreateSwitchButton( this.data.OpCont, option.name, @option.items, @option.sidebuttons, value ).addClass( "value" );
+	return ctrl;
+}
+
+function UI_DataEdit._create_selectbox( option, value )
+{
+	this._createDefaultLabel( option );
+	ctrl = UI_CreateSelectBox( this.data.OpCont, option.name, @option.items, value ).addClass( "value" );
+	return ctrl;
+}
+
+function UI_DataEdit._create_button( option, value )
+{
+	ctrl = UI_CreateButton( this.data.OpCont )[]{ caption = @option.label || option.name, icon = @option.icon, class = "value" };
+	ctrl.bindEvent( "click", @option.func || value );
+	return ctrl;
+}
+
+function UI_DataEdit.getChangedProperty()
+{
+	return this.data.changed_prop;
+}
+
+function UI_DataEdit.getChangedValue()
+{
+	return this.data.changed_val;
+}
+
+function UI_DataEdit._addCtrls( schema, path )
+{
+	name = @schema."$name";
+	value = this._getDataByPath( path );
+	type = this._pickCtrlType( schema );
+	this.( "_create_" $ type )( schema, value );
+	foreach( key, subschema : schema )
+	{
+		npath = clone(path).push( key );
+		this._addCtrls( subschema, npath );
+	}
+}
+function UI_DataEdit.setData( dataobj, schema )
+{
+	if( !schema )
+		return;
+	data = this.data;
+	data.schema = schema;
+	data.dataobj = dataobj;
+	data.AutoLayout.destroyAllChildren(true);
+	this._addCtrls( schema, [] );
+}
+
+function UI_CreateDataEdit( parent, dataobj, schema )
+{
+	DataEdit = parent.frame.createControl( "dataedit" );
+	DataEdit._interface = UI_DataEdit;
+	DataEdit.data =
+	{
+		data = dataobj,
+		schema = schema,
+		
+		changed_prop = null,
+		changed_val = null,
+	};
+	
+	Form = UI_CreateForm( DataEdit );
+	DataEdit.data.Form = Form;
+	Form.bindEvent( "change", function( e ){ /* this.parent._updateData(); */ this.parent.callEvent( "change", e ); } );
+	
+	Scrollable = UI_CreateScrollable( Form, "auto", false );
+	DataEdit.data.Scrollable = Scrollable;
+	
+	AutoLayout = UI_CreateAutoLayout( Scrollable );
+	DataEdit.data.AutoLayout = AutoLayout;
+	DataEdit.data.OpCont = AutoLayout;
+	
+	parent.addChild( DataEdit );
+	
+	DataEdit.setData( dataobj, schema );
+	
+	return DataEdit;
+}
+
+UI_Controls.dataedit_params = ["data","schema"];
+function UI_Controls.dataedit( parent, params )
+{
+	ctrl = UI_CreateDataEdit( parent, @params.data, @params.schema );
+	UI_ConfigControl( ctrl, params );
+}
+

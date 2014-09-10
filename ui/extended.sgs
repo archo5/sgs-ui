@@ -569,15 +569,6 @@ function UI_CreatePropertyGrid( parent, values, options )
 	PropertyGrid._interface = UI_PropertyGrid;
 	PropertyGrid.data =
 	{
-		label_width_min = 0,
-		label_width_max = UI_MaxValue,
-		label_width_percent = 0.5,
-		label_height = 24,
-		value_width_min = 0,
-		value_width_max = UI_MaxValue,
-		value_width_percent = 0.5,
-		value_height = 24,
-		
 		values = {},
 		options = [],
 	};

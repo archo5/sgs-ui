@@ -1,5 +1,15 @@
 
 //
+// MIN. EXAMPLE
+// - least amount of things
+//
+
+function sgs_ui_example_min()
+{
+}
+
+
+//
 // DEFAULT EXAMPLE
 // - all kinds of stuff
 //
@@ -666,5 +676,17 @@ function sgs_ui_example_filebrowse()
 {
 	fb = UI_CreateFileBrowser( FRAME.root )[]{ anchorMode = UI_Anchor_All };
 	fb.bindEvent( "change", function(){ println( "SUBMIT "${path=this.getCurrentPath(),file=this.getSubmittedItem()} ); } );
+}
+
+
+//
+// DATAEDIT EXAMPLE
+// - tests complex data editing features
+//
+
+function sgs_ui_example_dataedit()
+{
+	de = UI_CreateDataEdit( FRAME.root, dataobj, schema )[]{ anchorMode = UI_Anchor_All };
+	fb.bindEvent( "change", function(){ println( "CHANGED "${path=this.getChangedProperty(),file=this.getChangedValue()} ); } );
 }
 
