@@ -679,6 +679,13 @@ global SS_UI_Theme_Default =
 		"filebrowser .file-cont fbentry.type-code" = { icon = "icons/page_white_text.png" },
 		"filebrowser .file-cont fbentry.type-archive" = { icon = "icons/page_white_zip.png" },
 		// type icons -- end --
+		"dataedit scrollable" = { anchorMode = UI_Anchor_All },
+		"dataedit autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
+		"dataedit .label" = { width = 120, height = 24, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
+		"dataedit .value" = { width = 120, height = 24 },
+		"dataedit .separator" = { anchorMode = UI_Anchor_Hor, height = 24, textColor = UIColor(1), backgroundColor = UIColor(0.6,1) },
+		"dataedit button.value" = { q1x = 1 },
+		"dataedit groupblock groupblock" = { nonClientLeft = 24 },
 	}),
 	
 	// BUTTON

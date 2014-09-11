@@ -15,59 +15,64 @@ global UI_DataEdit = {};
 
 function UI_DataEdit._create_label( text )
 {
-	return UI_CreateStatic( this.data.OpCont )[]{ caption = text }.addClass( "label" );
+	return UI_CreateStatic( this.data.OpConts.last )[]{ caption = text }.addClass( "label" );
 }
 
-function UI_DataEdit._createDefaultLabel( option )
+function UI_DataEdit._createDefaultLabel( name, schema )
 {
-	return this._create_label( @option.label || @option.name );
+	return this._create_label( @schema."$name" || name );
 }
 
-function UI_DataEdit._create_separator( option, value )
+function UI_DataEdit._create_separator( name, schema, value )
 {
-	return UI_CreateStatic( this.data.OpCont )[]{ caption = @option.label || value || @option.name }.addClass( "separator" );
+	return UI_CreateStatic( this.data.OpConts.last )[]{ caption = @schema."$name" || value || name }.addClass( "separator" );
 }
 
-function UI_DataEdit._create_checkbox( option, value )
+function UI_DataEdit._create_checkbox( name, schema, value )
 {
-	this._createDefaultLabel( option );
-	ctrl = UI_CreateCheckbox( this.data.OpCont, option.name, null, !!value ).addClass( "value" );
+	this._createDefaultLabel( name, schema );
+	ctrl = UI_CreateCheckbox( this.data.OpConts.last, name, null, !!value ).addClass( "value" );
 	return ctrl;
 }
 
-function UI_DataEdit._create_slider( option, value )
+function UI_DataEdit._create_slider( name, schema, value )
 {
-	this._createDefaultLabel( option );
-	ctrl = UI_CreateSlider( this.data.OpCont, option.name, @option.min, @option.max, @option.stopsize, false, value ).addClass( "value" );
+	this._createDefaultLabel( name, schema );
+	ctrl = UI_CreateSlider( this.data.OpConts.last, name, @schema.min, @schema.max, @schema.stopsize, false, value ).addClass( "value" );
 	return ctrl;
 }
 
-function UI_DataEdit._create_textbox( option, value )
+function UI_DataEdit._create_textbox( name, schema, value )
 {
-	this._createDefaultLabel( option );
-	ctrl = UI_CreateTextbox( this.data.OpCont, option.name, @option.textbox_caption, value ).addClass( "value" );
+	this._createDefaultLabel( name, schema );
+	ctrl = UI_CreateTextbox( this.data.OpConts.last, name, @schema.textbox_caption, value ).addClass( "value" );
 	return ctrl;
 }
 
-function UI_DataEdit._create_switchbutton( option, value )
+function UI_DataEdit._create_switchbutton( name, schema, value )
 {
-	this._createDefaultLabel( option );
-	ctrl = UI_CreateSwitchButton( this.data.OpCont, option.name, @option.items, @option.sidebuttons, value ).addClass( "value" );
+	this._createDefaultLabel( name, schema );
+	ctrl = UI_CreateSwitchButton( this.data.OpConts.last, name, @schema.items, @schema.sidebuttons, value ).addClass( "value" );
 	return ctrl;
 }
 
-function UI_DataEdit._create_selectbox( option, value )
+function UI_DataEdit._create_selectbox( name, schema, value )
 {
-	this._createDefaultLabel( option );
-	ctrl = UI_CreateSelectBox( this.data.OpCont, option.name, @option.items, value ).addClass( "value" );
+	this._createDefaultLabel( name, schema );
+	ctrl = UI_CreateSelectBox( this.data.OpConts.last, name, @schema.items, value ).addClass( "value" );
 	return ctrl;
 }
 
-function UI_DataEdit._create_button( option, value )
+function UI_DataEdit._create_button( name, schema, value )
 {
-	ctrl = UI_CreateButton( this.data.OpCont )[]{ caption = @option.label || option.name, icon = @option.icon, class = "value" };
-	ctrl.bindEvent( "click", @option.func || value );
+	ctrl = UI_CreateButton( this.data.OpConts.last )[]{ caption = @schema."$name" || name, icon = @schema.icon, class = "value" };
+	ctrl.bindEvent( "click", @schema.func || value );
 	return ctrl;
+}
+
+function UI_DataEdit._create_object( name, schema, value )
+{
+	return UI_CreateGroupBlock( this.data.OpConts.last, @schema."$name" || name );
 }
 
 function UI_DataEdit.getChangedProperty()
@@ -80,16 +85,41 @@ function UI_DataEdit.getChangedValue()
 	return this.data.changed_val;
 }
 
+function UI_DataEdit._getDataByPath( path )
+{
+	o = this.data.dataobj;
+	foreach( item : path.part(1) )
+		o = o[ item ];
+	return o;
+}
+
+function UI_DataEdit._pickCtrlType( schema )
+{
+	type = @schema."$type";
+	hint = @schema."$hint";
+	
+	if( type == "string" )
+		return "textbox";
+	if( type == "array" ) return "object"; // TEMP
+	return type;
+}
+
 function UI_DataEdit._addCtrls( schema, path )
 {
-	name = @schema."$name";
 	value = this._getDataByPath( path );
 	type = this._pickCtrlType( schema );
-	this.( "_create_" $ type )( schema, value );
-	foreach( key, subschema : schema )
+	last = this.( "_create_" $ type )( @path.last || "", schema, value );
+	if( null != ( cont = @last.getContainer() ) )
 	{
-		npath = clone(path).push( key );
-		this._addCtrls( subschema, npath );
+		this.data.OpConts.push( cont );
+		foreach( key, subschema : schema )
+		{
+			if( key[0] == "$" )
+				continue;
+			npath = clone(path).push( key );
+			this._addCtrls( subschema, npath );
+		}
+		this.data.OpConts.pop();
 	}
 }
 function UI_DataEdit.setData( dataobj, schema )
@@ -100,7 +130,8 @@ function UI_DataEdit.setData( dataobj, schema )
 	data.schema = schema;
 	data.dataobj = dataobj;
 	data.AutoLayout.destroyAllChildren(true);
-	this._addCtrls( schema, [] );
+	name = schema."$root";
+	this._addCtrls( schema.(name), [name] );
 }
 
 function UI_CreateDataEdit( parent, dataobj, schema )
@@ -125,7 +156,7 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 	
 	AutoLayout = UI_CreateAutoLayout( Scrollable );
 	DataEdit.data.AutoLayout = AutoLayout;
-	DataEdit.data.OpCont = AutoLayout;
+	DataEdit.data.OpConts = [ AutoLayout ];
 	
 	parent.addChild( DataEdit );
 	

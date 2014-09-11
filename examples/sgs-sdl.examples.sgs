@@ -686,7 +686,46 @@ function sgs_ui_example_filebrowse()
 
 function sgs_ui_example_dataedit()
 {
+	dataobj =
+	{
+		name = "box",
+		label = "Box",
+		icon = "icons/box.png",
+		properties =
+		[
+			{ name = "size", label = "Size", type = "text", default = "1" },
+		],
+		render = [ "icon", "name", "properties" ],
+		info = { created = "2012-04-05", modified = "2013-05-07" },
+	};
+	schema =
+	{
+		ENTITY_PROPERTY =
+		{
+			"$type" = "object",
+			name = { "$type" = "string" },
+			label = { "$type" = "string" },
+			type = { "$type" = "string", "$hint" = "type.property.entity", "$options" = ["text","position","angle"] },
+			default = { "$type" = "string" },
+		},
+		ENTITY =
+		{
+			"$type" = "object",
+			name = { "$type" = "string" },
+			label = { "$type" = "string" },
+			icon = { "$type" = "string", "$hint" = "path.image.icon.entity" },
+			properties = { "$type" = "array", "$subtype" = "ENTITY_PROPERTY" },
+			render = { "$type" = "array", "$subtype" = "string" },
+			info =
+			{
+				"$type" = "object",
+				created = { "$type" = "string" },
+				modified = { "$type" = "string" },
+			},
+		},
+		"$root" = "ENTITY",
+	};
 	de = UI_CreateDataEdit( FRAME.root, dataobj, schema )[]{ anchorMode = UI_Anchor_All };
-	fb.bindEvent( "change", function(){ println( "CHANGED "${path=this.getChangedProperty(),file=this.getChangedValue()} ); } );
+	de.bindEvent( "change", function(){ println( "CHANGED "${key=this.getChangedProperty(),val=this.getChangedValue()} ); } );
 }
 
