@@ -41,7 +41,7 @@ function UI_AutoLayout._recalc()
 	mostwidth_total = max( mostwidth_total, x );
 	
 //	if( this.q1x == 0 ) this.width = mostwidth_total;
-	if( this.q1y == 0 ) this.height = y;
+	if( this.q1y == 0 ) this.height = y + this.nonClientTop + this.nonClientBottom;
 }
 
 function UI_CreateAutoLayout( parent, hexpand )

@@ -696,6 +696,7 @@ function sgs_ui_example_dataedit()
 		properties =
 		[
 			{ name = "size", label = "Size", type = "text", default = "1" },
+			{ name = "angle", label = "Angle", type = "text", default = "0" },
 		],
 		render = [ "icon", "name", "properties" ],
 		info = { created = "2012-04-05", modified = "2013-05-07" },
@@ -717,7 +718,7 @@ function sgs_ui_example_dataedit()
 			label = { "$type" = "string" },
 			icon = { "$type" = "string", "$hint" = "path.image.icon.entity" },
 			properties = { "$type" = "array", "$subtype" = "ENTITY_PROPERTY" },
-			render = { "$type" = "array", "$subtype" = "string" },
+			render = { "$type" = "array", "$subtype" = { "$type" = "string" } },
 			info =
 			{
 				"$type" = "object",

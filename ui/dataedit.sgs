@@ -11,6 +11,17 @@
 // basic rules:
 // - all property names correspond to actual properties inside the data (doing type1.prop2.prop3 in data and schema works and returns related data)
 
+function FNN()
+{
+	for( i = 0, cnt = va_arg_count(); i < cnt; ++i )
+	{
+		arg = va_get_arg( i );
+		if( arg !== null )
+			return arg;
+	}
+	return null;
+}
+
 global UI_DataEdit = {};
 
 function UI_DataEdit._create_label( text )
@@ -20,12 +31,12 @@ function UI_DataEdit._create_label( text )
 
 function UI_DataEdit._createDefaultLabel( name, schema )
 {
-	return this._create_label( @schema."$name" || name );
+	return this._create_label( FNN( @schema."$name", name ) );
 }
 
 function UI_DataEdit._create_separator( name, schema, value )
 {
-	return UI_CreateStatic( this.data.OpConts.last )[]{ caption = @schema."$name" || value || name }.addClass( "separator" );
+	return UI_CreateStatic( this.data.OpConts.last )[]{ caption = FNN( @schema."$name", value, name ) }.addClass( "separator" );
 }
 
 function UI_DataEdit._create_checkbox( name, schema, value )
@@ -70,20 +81,46 @@ function UI_DataEdit._create_button( name, schema, value )
 	return ctrl;
 }
 
-function UI_DataEdit._push_node_wrapper()
-{
-	pp = this.data.OpConts.last;
-	ctrl = UI_CreateAutoLayout( pp );
-	this.data.OpConts.push( ctrl );
-}
-function UI_DataEdit._pop_node_wrapper()
-{
-	this.data.OpConts.pop();
-}
-
 function UI_DataEdit._create_object( name, schema, value )
 {
-	return UI_CreateGroupBlock( this.data.OpConts.last, @schema."$name" || name );
+	return UI_CreateGroupBlock( this.data.OpConts.last, FNN( @schema."$name", name, @schema."$type", "object" ) );
+}
+
+function UI_DataEdit._create_array( name, schema, value, path )
+{
+	ctrl = UI_CreateGroupBlock( this.data.OpConts.last, FNN( @schema."$name", name ) );
+	ctrl.addClass( "array" );
+	cont = ctrl.getContainer();
+	ibox = UI_CreateIntegerBox( cont, "__ibox__" $ name, @value.size || 0 )[]{ class = "array_size" };
+	ibox.bindEvent( "change", function()
+	{
+		cursize = 5; // WHERE IS MY ARRAY
+		newsize = this.getValue();
+		while( cursize > newsize )
+		{
+			// REMOVE ITEM
+			cursize--;
+		}
+		while( cursize < newsize )
+		{
+			// ADD ITEM
+			cursize++;
+		}
+	});
+	if( value )
+	{
+		subschema = schema."$subtype";
+		this.data.OpConts.push( cont );
+		npath = clone( path );
+		foreach( i, v : value )
+		{
+			npath.push( i );
+			this._addCtrls( subschema, npath );
+			npath.pop();
+		}
+		this.data.OpConts.pop();
+	}
+	return ctrl;
 }
 
 function UI_DataEdit.getChangedProperty()
@@ -106,22 +143,46 @@ function UI_DataEdit._getDataByPath( path )
 
 function UI_DataEdit._pickCtrlType( schema )
 {
+	if( typeof( schema ) == "string" )
+	{
+		sch = this.data.schema[ schema ];
+		return this._pickCtrlType( sch ), sch;
+	}
 	type = @schema."$type";
 	hint = @schema."$hint";
 	
 	if( type == "string" )
 		return "textbox";
-	if( type == "array" ) return "object"; // TEMP
 	return type;
+}
+
+function UI_DataEdit._push_node_wrapper()
+{
+	pp = this.data.OpConts.last;
+	ctrl = UI_CreateAutoLayout( pp );
+	this.data.OpConts.push( ctrl );
+}
+
+function UI_DataEdit._pop_node_wrapper()
+{
+	this.data.OpConts.pop();
 }
 
 function UI_DataEdit._addCtrls( schema, path )
 {
 	value = this._getDataByPath( path );
-	type = this._pickCtrlType( schema );
+	
+	(type,newschema) = this._pickCtrlType( schema );
+	if( newschema )
+		schema = newschema;
+	
+	if( !@this.( "_create_" $ type ) )
+		return WARNING( "no such data edit element: " $ type );
+	
 	this._push_node_wrapper();
-	last = this.( "_create_" $ type )( @path.last || "", schema, value );
+	last = this.( "_create_" $ type )( @path.last, schema, value, path );
 	this._pop_node_wrapper();
+	
 	if( null != ( cont = @last.getContainer() ) )
 	{
 		this.data.OpConts.push( cont );

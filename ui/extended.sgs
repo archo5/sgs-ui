@@ -314,7 +314,7 @@ function UI_CreateGroupBlock( parent, name, time, closed )
 	GroupBlock.data = { time = time };
 	GroupBlock.class = if( closed, "groupblk-closed", "groupblk-open" );
 	
-	GroupBlock.data.Title = UI_CreateButton( GroupBlock )[]{ caption = name || "", class = "groupblk-title" }
+	GroupBlock.data.Title = UI_CreateButton( GroupBlock )[]{ caption = if( name !== null, name, "" ), class = "groupblk-title" }
 		.bindEvent( "click", function(){ this.parent.toggle(); } );
 	GroupBlock.data.AutoLayout = grpblk_auto = UI_CreateAutoLayout( GroupBlock )[]{ class = "groupblk-cont" };
 	

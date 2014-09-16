@@ -97,6 +97,16 @@ function update()
 			SS_DrawColorRect( hctrl.rx0, hctrl.ry0, hctrl.rx1, hctrl.ry1, 0.2, 0.8, 0.1, 0.1 );
 			SS_DrawColorRect( hctrl.cx0, hctrl.cy0, hctrl.cx1, hctrl.cy1, 0.1, 0.2, 0.8, 0.1 );
 			SS_DrawColorRect( hctrl.px0, hctrl.py0, hctrl.px1, hctrl.py1, 0.8, 0.1, 0.2, 0.1 );
+			
+			text = 
+				"Type: " $ hctrl.type $ "\n" $
+				"Name: " $ hctrl.name $ "\n" $
+				"Class: " $ hctrl.class $ "\n" $
+				"Caption: " $ hctrl.caption $ "\n" $
+				"Data: " $ tostring(hctrl.data) $ "\n"
+			;
+			SS_DrawTextRect( text, g_DbgFont, color(0.1,1), DT_LEFT | DT_TOP, 400+1, 1000+1, 10+1, 800+1 );
+			SS_DrawTextRect( text, g_DbgFont, color(0.9,1), DT_LEFT | DT_TOP, 400, 1000, 10, 800 );
 		}
 		
 		tx = "frame time: " $ ( ftime() - lasttime ) * 1000.0 $ " ms";

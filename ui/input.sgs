@@ -1186,6 +1186,7 @@ function UI_CreateIntegerBox( parent, name, value )
 			tb.setText( intstr );
 		return true;
 	}
+	Textbox.bindEvent( "change", function(e){ this.parent.callEvent( "change", e ); } );
 	
 	IntegerBox.updateTheme();
 	parent.addChild( IntegerBox );
