@@ -199,6 +199,8 @@ function sgs_ui_example_default()
 	
 	SWBTN1 = UI_CreateSwitchButton( STAT, "swtchbtn", map( true, "Yes", false, "No", "FileNotFound", "Maybe" ), true, true )[]{ x = 100, y = 150, width = 150, height = 24 };
 	SWBTN2 = UI_CreateSwitchButton( STAT, "swtchbt2", map( true, "Yes", false, "No" ), false, false )[]{ x = 100, y = 180, width = 150, height = 24 };
+	
+	INTBOX1 = UI_CreateIntegerBox( STAT, "ibx1", 37 )[]{ x = 100, y = 210, width = 80, height = 24 };
 }
 
 

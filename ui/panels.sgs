@@ -14,7 +14,7 @@ function UI_AutoLayout._recalc()
 	children = this.children();
 	foreach( ch : children )
 	{
-		ch._updatingLayout = true;
+//		ch._updatingLayout = true;
 		ch._updateFullRect();
 		chwidth = max( ch.realWidth, ch.minWidth );
 		chheight = max( ch.realHeight, ch.minHeight );
@@ -34,7 +34,7 @@ function UI_AutoLayout._recalc()
 	}
 	foreach( ch : children )
 	{
-		ch._updatingLayout = false;
+//		ch._updatingLayout = false;
 //		ch.onLayoutChange();
 	}
 	y += mostheight_line;

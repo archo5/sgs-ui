@@ -70,6 +70,17 @@ function UI_DataEdit._create_button( name, schema, value )
 	return ctrl;
 }
 
+function UI_DataEdit._push_node_wrapper()
+{
+	pp = this.data.OpConts.last;
+	ctrl = UI_CreateAutoLayout( pp );
+	this.data.OpConts.push( ctrl );
+}
+function UI_DataEdit._pop_node_wrapper()
+{
+	this.data.OpConts.pop();
+}
+
 function UI_DataEdit._create_object( name, schema, value )
 {
 	return UI_CreateGroupBlock( this.data.OpConts.last, @schema."$name" || name );
@@ -108,7 +119,9 @@ function UI_DataEdit._addCtrls( schema, path )
 {
 	value = this._getDataByPath( path );
 	type = this._pickCtrlType( schema );
+	this._push_node_wrapper();
 	last = this.( "_create_" $ type )( @path.last || "", schema, value );
+	this._pop_node_wrapper();
 	if( null != ( cont = @last.getContainer() ) )
 	{
 		this.data.OpConts.push( cont );

@@ -355,6 +355,17 @@ global UI_Textbox = {};
 
 function UI_Textbox._notifyChange( event )
 {
+	res = this.data.validator( this );
+	if( res === true ) // VALIDATED
+		;
+	else if( res === false ) // NOT VALID, RESET AND DO NOT SUBMIT
+	{
+		this.setText( this.data.prevtext );
+		return;
+	}
+	else // DON'T DO ANYTHING
+		return;
+	
 	if( event === null )
 		event = UI_CreateEvent();
 	this.callEvent( "change", event );
@@ -364,8 +375,7 @@ function UI_Textbox.getText(){ return this.data.text; }
 function UI_Textbox.setText( text )
 {
 	data = this.data;
-	text ||= "";
-	text = tostring( text );
+	text = tostring( if( text === null, "", text ) );
 	
 	data.sel_from = text.length;
 	data.sel_to = text.length;
@@ -413,6 +423,8 @@ function UI_CreateTextbox( parent, name, caption, text )
 	
 	function tbdata.getValue(){ return this.text; }
 	
+	function tbdata.validator( tb ){ return true; }
+	
 	function tbdata.removeCursorTimer( frame )
 	{
 		if( this.cursor_timer )
@@ -451,7 +463,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 		}
 	}
 	
-	function tbdata.updateText()
+	function tbdata.updateText( tb )
 	{
 		this.text = string_utf8_encode( this.chars );
 	}
@@ -516,7 +528,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 				if( data.sel_from == data.sel_to )
 				{
 					data.chars.insert( data.sel_from, event.uchar );
-					data.updateText();
+					data.updateText( this );
 					this.callEvent( "edit", event );
 					data.sel_from++;
 					data.sel_to++;
@@ -533,7 +545,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 					data.chars.erase( from, to - 1 );
 					data.chars.insert( from, event.uchar );
 					from++;
-					data.updateText();
+					data.updateText( this );
 					this.callEvent( "edit", event );
 					data.sel_from = from;
 					data.sel_to = from;
@@ -611,7 +623,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 					{
 						data.chars.erase( data.sel_from );
 					}
-					data.updateText();
+					data.updateText( this );
 					this.callEvent( "edit", event );
 					data.updateSelOffsets( this );
 					data.resetCursorTimer( this.frame );
@@ -634,7 +646,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 							data.sel_from = from;
 							data.sel_to = from;
 						}
-						data.updateText();
+						data.updateText( this );
 						this.callEvent( "edit", event );
 						data.updateSelOffsets( this );
 						data.resetCursorTimer( this.frame );
@@ -663,7 +675,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 						utext = string_utf8_decode( text );
 						data.chars = get_concat( data.chars.part( 0, at ), utext, data.chars.part( at ) );
 						data.sel_from = data.sel_to = at + utext.size;
-						data.updateText();
+						data.updateText( this );
 						this.callEvent( "edit", event );
 						data.updateSelOffsets( this );
 						data.resetCursorTimer( this.frame );
@@ -1124,5 +1136,59 @@ function UI_CreateSelectBox( parent, name, options, value )
 	SelectBox.updateTheme();
 	parent.addChild( SelectBox );
 	return SelectBox;
+}
+
+
+global UI_IntegerBox = {};
+
+function UI_IntegerBox.getValue(){ return toint( this.data.Textbox.getText() ); }
+
+function UI_IntegerBox.setValue( i )
+{
+	this.data.Textbox.setText( toint( i ) );
+}
+
+function UI_IntegerBox.increment()
+{
+	this.setValue( this.getValue() + 1 );
+}
+
+function UI_IntegerBox.decrement()
+{
+	this.setValue( this.getValue() - 1 );
+}
+
+function UI_CreateIntegerBox( parent, name, value )
+{
+	value = toint( value );
+	
+	IntegerBox = parent.frame.createControl( "integerbox" )[]{ name = name };
+	IntegerBox.data = {};
+	IntegerBox._interface = UI_IntegerBox;
+	
+	IntegerBox.data.SliderBtnAdd = SliderBtnAdd = UI_CreateButton( IntegerBox )[]{ class = "slider-btn add" };
+	IntegerBox.data.SliderBtnSub = SliderBtnSub = UI_CreateButton( IntegerBox )[]{ class = "slider-btn sub" };
+	
+	SliderBtnAdd.bindEvent( "click", function(){ this.parent.increment(); } );
+	SliderBtnSub.bindEvent( "click", function(){ this.parent.decrement(); } );
+	
+	IntegerBox.addChild( SliderBtnAdd );
+	IntegerBox.addChild( SliderBtnSub );
+	
+	IntegerBox.data.Textbox = Textbox = UI_CreateTextbox( IntegerBox, name, "", value );
+	Textbox_data = Textbox.data;
+	Textbox_validator = Textbox_data.validator;
+	function Textbox_data.validator( tb ) use( Textbox_validator )
+	{
+		curstr = tb.getText();
+		intstr = tostring( toint( curstr ) );
+		if( curstr != intstr )
+			tb.setText( intstr );
+		return true;
+	}
+	
+	IntegerBox.updateTheme();
+	parent.addChild( IntegerBox );
+	return IntegerBox;
 }
 

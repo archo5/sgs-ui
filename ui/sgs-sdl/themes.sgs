@@ -276,6 +276,10 @@ global SS_UI_Theme_Default =
 				}
 			},
 		},
+		"integerbox textbox" = { anchorMode = UI_Anchor_All, width = -24 },
+		"integerbox .slider-btn" = { anchorMode = UI_Anchor_Right | UI_Anchor_Vert, x = -24, width = 24 },
+		"integerbox .slider-btn.add" = { q1y = 0.5 },
+		"integerbox .slider-btn.sub" = { q0y = 0.5 },
 		"slider.horizontal .sdr-rail" =
 		{
 			q0x = 0,
