@@ -89,6 +89,11 @@ function UIForm_GetFromCtrl( ctrl )
 	return null;
 }
 
+function UIForm_EditEvent( form, event )
+{
+	form.callEvent( "edit", event );
+}
+
 function UIForm_ChangeEvent( form, event )
 {
 	form.callEvent( "change", event );
@@ -115,6 +120,17 @@ function UIForm_Detach( ctrl, event )
 		form.data.changeType = "remove";
 		unset( form.data.ctrls, ctrl );
 		UIForm_ChangeEvent( form, event );
+	}
+}
+
+function UIForm_CtrlEdited( ctrl, event )
+{
+	form = UIForm_GetFromCtrl( ctrl );
+	if( form )
+	{
+		form.data.changedItem = ctrl.name;
+		form.data.changeType = "edit";
+		UIForm_EditEvent( form, event );
 	}
 }
 
@@ -529,7 +545,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 				{
 					data.chars.insert( data.sel_from, event.uchar );
 					data.updateText( this );
-					this.callEvent( "edit", event );
+					UIForm_CtrlEdited( this, event );
 					data.sel_from++;
 					data.sel_to++;
 				}
@@ -624,7 +640,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 						data.chars.erase( data.sel_from );
 					}
 					data.updateText( this );
-					this.callEvent( "edit", event );
+					UIForm_CtrlEdited( this, event );
 					data.updateSelOffsets( this );
 					data.resetCursorTimer( this.frame );
 				}
@@ -647,7 +663,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 							data.sel_to = from;
 						}
 						data.updateText( this );
-						this.callEvent( "edit", event );
+						UIForm_CtrlEdited( this, event );
 						data.updateSelOffsets( this );
 						data.resetCursorTimer( this.frame );
 					}
@@ -676,7 +692,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 						data.chars = get_concat( data.chars.part( 0, at ), utext, data.chars.part( at ) );
 						data.sel_from = data.sel_to = at + utext.size;
 						data.updateText( this );
-						this.callEvent( "edit", event );
+						UIForm_CtrlEdited( this, event );
 						data.updateSelOffsets( this );
 						data.resetCursorTimer( this.frame );
 					}
@@ -707,12 +723,20 @@ function UI_CreateTextbox( parent, name, caption, text )
 
 global UI_Slider = {};
 
-function UI_Slider._notifyChange( event )
+function UI_Slider._notifyChange( event, edited )
 {
 	if( event === null )
 		event = UI_CreateEvent();
-	this.callEvent( "change", event );
-	UIForm_CtrlChanged( this, event );
+	if( edited )
+	{
+		this.callEvent( "edit", event );
+		UIForm_CtrlEdited( this, event );
+	}
+	else
+	{
+		this.callEvent( "change", event );
+		UIForm_CtrlChanged( this, event );
+	}
 }
 
 function UI_Slider._changeValue( value, event )
@@ -747,11 +771,7 @@ function UI_Slider._changeValue( value, event )
 		data.Handle[]{ q0y = data.position, q1y = data.position };
 	
 	if( prev != value )
-	{
-		if( event === null )
-			event = UI_CreateEvent();
-		this.callEvent( "edit", event );
-	}
+		this._notifyChange( event, true );
 }
 
 function UI_Slider._updatePosData( dx, dy, event )
@@ -1186,6 +1206,7 @@ function UI_CreateIntegerBox( parent, name, value )
 			tb.setText( intstr );
 		return true;
 	}
+	Textbox.bindEvent( "edit", function(e){ this.parent.callEvent( "edit", e ); } );
 	Textbox.bindEvent( "change", function(e){ this.parent.callEvent( "change", e ); } );
 	
 	IntegerBox.updateTheme();

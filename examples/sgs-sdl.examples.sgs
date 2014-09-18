@@ -729,6 +729,7 @@ function sgs_ui_example_dataedit()
 		"$root" = "ENTITY",
 	};
 	de = UI_CreateDataEdit( FRAME.root, dataobj, schema )[]{ anchorMode = UI_Anchor_All };
-	de.bindEvent( "change", function(){ println( "CHANGED "${key=this.getChangedProperty(),val=this.getChangedValue()} ); } );
+	de.bindEvent( "edit", function(){ println( "edited "${key=this.getChangedProperty(),val=this.getValueByName(this.getChangedProperty())} ); } );
+	de.bindEvent( "change", function(){ println( "CHANGED "${key=this.getChangedProperty(),val=this.getValueByName(this.getChangedProperty())} ); } );
 }
 

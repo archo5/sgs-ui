@@ -103,12 +103,13 @@ function UI_DataEdit._create_array( name, schema, value, path )
 	ctrl.data.schema = schema;
 	ctrl.data.subschema = schema."$subtype";
 	ctrl.data.path = path;
+	ctrl.data.value = value;
 	ctrl.data.dataedit = this;
 	
 	UI_CreateStatic( cont )[]{ caption = "Size" }.addClass( "label" );
 	ibox = UI_CreateIntegerBox( cont, "__ibox__" $ name, @value.size || 0 )[]{ class = "array_size" };
 	
-	ibox.bindEvent( "change", function()
+	ibox.bindEvent( "change", function array_ibox_change_handler()
 	{
 		rootarr = this.parent;
 		while( !rootarr.hasClass( "array" ) )
@@ -125,16 +126,21 @@ function UI_DataEdit._create_array( name, schema, value, path )
 		//	dataedit._evictPath( ctrl.name );
 			ctrl.parent.destroy(true);
 			// - DATA
+			rootarr.data.value.pop();
 			// - EVENT
 		}
 		while( elements.size < newsize )
 		{
 			// ADD ITEM
-			// - CONTROLS
-			npath = clone( rootarr.data.path );
-			npath.push( elements.size );
-			ctrl = dataedit._addCtrls( rootarr.data.subschema, npath );
 			// - DATA
+			newdata = dataedit._recreateFromSchema( rootarr.data.subschema );
+			rootarr.data.value.push( newdata );
+			// - CONTROLS
+			dataedit.data.OpConts.push( rootarr.getContainer() );
+			npath = clone( rootarr.data.path ).push( elements.size );
+			ctrl = dataedit._addCtrls( rootarr.data.subschema, npath );
+			elements.push( ctrl );
+			dataedit.data.OpConts.pop();
 			// - EVENT
 		}
 	});
@@ -142,26 +148,14 @@ function UI_DataEdit._create_array( name, schema, value, path )
 	{
 		subschema = schema."$subtype";
 		this.data.OpConts.push( cont );
-		npath = clone( path );
 		foreach( i, v : value )
 		{
-			npath.push( i );
+			npath = clone( path ).push( i );
 			elements.push( this._addCtrls( subschema, npath ) );
-			npath.pop();
 		}
 		this.data.OpConts.pop();
 	}
 	return ctrl;
-}
-
-function UI_DataEdit.getChangedProperty()
-{
-	return this.data.changed_prop;
-}
-
-function UI_DataEdit.getChangedValue()
-{
-	return this.data.changed_val;
 }
 
 function UI_DataEdit._deepCloneDataItem( item )
@@ -183,6 +177,15 @@ function UI_DataEdit._getDataByPath( path )
 	foreach( item : path.part(1) )
 		o = o[ item ];
 	return o;
+}
+
+function UI_DataEdit._setDataByPath( path, value )
+{
+	o = this.data.dataobj;
+	foreach( item : path.part(1,path.size-2) )
+		o = o[ item ];
+	o[ path.last ] = value;
+	return true;
 }
 
 function UI_DataEdit._pickCtrlType( schema )
@@ -226,6 +229,31 @@ function UI_DataEdit._placePath( path )
 function UI_DataEdit._evictPath( pathname )
 {
 	unset( this.data.pathmap, pathname );
+}
+
+function UI_DataEdit._recreateFromSchema( schema, defval )
+{
+	if( typeof( schema ) == "string" )
+		schema = this.data.schema[ schema ];
+	
+	type = schema."$type";
+	if( type == "bool" ) return tobool(defval);
+	else if( type == "int" ) return toint(defval);
+	else if( type == "float" || type == "real" ) return toreal( defval );
+	else if( type == "string" ) return if( defval === null, "", tostring( defval ) );
+	else if( type == "object" )
+	{
+		out = {};
+		foreach( k, v : schema )
+		{
+			if( k[0] == "$" )
+				continue;
+			out[ k ] = this._recreateFromSchema( schema.(k), @defval.(k) );
+		}
+		return out;
+	}
+	else if( type == "array" ) return [];
+	return WARNING( "unsupported type in schema" );
 }
 
 function UI_DataEdit._push_node_wrapper( name )
@@ -272,10 +300,17 @@ function UI_DataEdit._addCtrls( schema, path )
 	return last;
 }
 
-function UI_DataEdit.getLastChange()
+function UI_DataEdit._setValueByName( name, value )
 {
-	return this.data.changed_prop, this.data.change_type;
+	pmap = this.data.pathmap;
+	if( isset( pmap, name ) )
+		return this._setDataByPath( pmap[ name ], value );
+	return false;
 }
+
+function UI_DataEdit.getChangedProperty(){ return this.data.changed_prop; }
+function UI_DataEdit.getChangeType(){ return this.data.change_type; }
+function UI_DataEdit.getLastChange(){ return this.data.changed_prop, this.data.change_type; }
 
 function UI_DataEdit.getValueByName( name )
 {
@@ -319,6 +354,17 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 	
 	Form = UI_CreateForm( DataEdit );
 	DataEdit.data.Form = Form;
+	Form.bindEvent( "edit", function( e )
+	{
+		dataedit = this.parent;
+		chgname = this.getLastChange();
+		if( chgname[0] == "_" )
+			return;
+		dataedit.data.changed_prop = chgname;
+		dataedit.data.change_type = "edit";
+		dataedit._setValueByName( chgname, this.getString( chgname ) );
+		dataedit.callEvent( "edit", e );
+	});
 	Form.bindEvent( "change", function( e )
 	{
 		dataedit = this.parent;
@@ -327,8 +373,9 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 			return;
 		if( chgname[0] == "_" )
 			return;
-		dataedit.changed_prop = chgname;
-		dataedit.change_type = "edit";
+		dataedit.data.changed_prop = chgname;
+		dataedit.data.change_type = "edit";
+		dataedit._setValueByName( chgname, this.getString( chgname ) );
 		dataedit.callEvent( "change", e );
 	});
 	
