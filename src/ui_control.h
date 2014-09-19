@@ -32,6 +32,16 @@
 #define UI_Align_VCenter 0x0020
 #define UI_Align_Bottom  0x0040
 
+#define UI_Pos_Abs       0
+#define UI_Pos_Line      1
+#define UI_Pos_SideA     2
+#define UI_Pos_SideB     3
+
+#define UI_Stack_Top     0
+#define UI_Stack_Left    1
+#define UI_Stack_Bottom  2
+#define UI_Stack_Right   3
+
 #define EV_Paint      1
 #define EV_Layout     2
 #define EV_ChgTheme   3
@@ -238,6 +248,8 @@ struct UIStyle /* style storage */
 	SGS_PROPERTY sgsMaybe<float> paddingRight;
 	SGS_PROPERTY sgsMaybe<float> paddingTop;
 	SGS_PROPERTY sgsMaybe<float> paddingBottom;
+	SGS_PROPERTY sgsMaybe<int8_t> posMode;
+	SGS_PROPERTY sgsMaybe<int8_t> stackMode;
 	SGS_PROPERTY sgsMaybe<bool>  overflow;
 	SGS_PROPERTY sgsMaybe<UIColor> backgroundColor;
 	SGS_PROPERTY sgsMaybe<UIColor> textColor;
@@ -313,6 +325,8 @@ struct UIStyleCache /* computed style cache */
 	float paddingRight;
 	float paddingTop;
 	float paddingBottom;
+	int8_t posMode;
+	int8_t stackMode;
 	bool  overflow;
 	UIColor backgroundColor;
 	UIColor textColor;
@@ -546,6 +560,7 @@ struct UIFrame
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK onLayoutChange ) float y;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK onLayoutChange ) float width;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK onLayoutChange ) float height;
+	SGS_METHOD void resize( float _w, float _h ){ width = _w; height = _h; onLayoutChange(); }
 	SGS_PROPERTY READ sgsHandle< UIControl > root;
 	
 	SGS_PROPERTY READ float mouseX;
@@ -572,6 +587,19 @@ struct UIFrame
 	CtrlPtrArray m_hoverTrail;
 	StyleSheetArray m_styleSheets;
 	
+};
+
+
+struct UIStackLayoutState
+{
+	/* layout state */
+	float xc0, yc0; /* cursor position 0 (furthest no margin) */
+	float xc1, yc1; /* cursor position 1 (furthest with margin) */
+	float xn0, yn0; /* predicted cursor data (no margin) */
+	float xn1, yn1; /* predicted cursor data (with margin) */
+	float tw, th; /* total width / height */
+	/* control state */
+	float cx, cy; /* calculated control position */
 };
 
 
@@ -753,6 +781,8 @@ struct UIControl
 	UIC_DEFINE_ACCESSORS( float, paddingRight );
 	UIC_DEFINE_ACCESSORS( float, paddingTop );
 	UIC_DEFINE_ACCESSORS( float, paddingBottom );
+	UIC_DEFINE_ACCESSORS( int8_t, posMode );
+	UIC_DEFINE_ACCESSORS( int8_t, stackMode );
 	UIC_DEFINE_ACCESSORS( bool, overflow );
 	UIC_DEFINE_ACCESSORS( UIColor, backgroundColor );
 	UIC_DEFINE_ACCESSORS( UIColor, textColor );
@@ -807,6 +837,8 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ get_paddingRight WRITE set_paddingRight ) SGS_ALIAS( sgsMaybe<float> paddingRight );
 	SGS_PROPERTY_FUNC( READ get_paddingTop WRITE set_paddingTop ) SGS_ALIAS( sgsMaybe<float> paddingTop );
 	SGS_PROPERTY_FUNC( READ get_paddingBottom WRITE set_paddingBottom ) SGS_ALIAS( sgsMaybe<float> paddingBottom );
+	SGS_PROPERTY_FUNC( READ get_posMode WRITE set_posMode ) SGS_ALIAS( sgsMaybe<int8_t> posMode );
+	SGS_PROPERTY_FUNC( READ get_stackMode WRITE set_stackMode ) SGS_ALIAS( sgsMaybe<int8_t> stackMode );
 	SGS_PROPERTY_FUNC( READ get_overflow WRITE set_overflow ) SGS_ALIAS( sgsMaybe<bool> overflow );
 	SGS_PROPERTY_FUNC( READ get_backgroundColor WRITE set_backgroundColor ) SGS_ALIAS( sgsMaybe<UIColor> backgroundColor );
 	SGS_PROPERTY_FUNC( READ get_textColor WRITE set_textColor ) SGS_ALIAS( sgsMaybe<UIColor> textColor );

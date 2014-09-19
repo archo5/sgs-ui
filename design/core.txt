@@ -57,7 +57,7 @@ special exts..
 + different color themes
 - tabbed panels (automatically assigning names to buttons)
 - autocomplete popups (relative non-constrained overlays)
-- slidable panel splits (table with draggable borders)
++ slidable panel splits (table with draggable borders)
 - docking system (dockable window, docking hub)
 
 a very common need:
@@ -77,3 +77,44 @@ DONE++> forms. otherwise unnoticeable hubs for field data (textboxes, checkboxes
 	- getList( name ) returns the data as array of values -- no data equals an empty array
 	- getString( name ) returns the first item as string, if any -- otherwise null
 /
+
+
+--------------
+OPTIMIZED AUTOMATIC LAYOUT SYSTEMS
+
+- relative + absolute positioning (current)
+- line/rect packing (to be added)
+
+>> Layout Processing
+
+/// examples \\\
+
+== ACTION
+layout root width++
+== SETUP
+layout root
+{
+	half-width float-left block 1
+	half-width float-left block 2
+	half-width float-left block 3
+}
+== IDEAL PROCESS
+> layout root width increased
+- layout root re-does the stacking layout from beginning, retrieving the to-be-used size values
+- for each its child, layout root calls child layout update
+
+== ACTION
+hwflb 2 resized to full-width
+== SETUP
+- same
+== IDEAL PROCESS
+> hwflb 2 width increased
+- hwflb 2 sees parent with child-dependent layout, hands control over to it, marking self as re-layouting start point
+- layout root re-does the stacking layout from marked control, retrieving the to-be-used size values
+- for each moved child, layout root calls child layout update
+
+
+/// how to do partial recalc - where to put the data?
+- each control can contain the layouting data that is produced after including it in the calculations
+
+

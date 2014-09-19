@@ -605,6 +605,8 @@ void UI_StyleMerge( UIStyle* style, UIStyle* add )
 	if( !style->paddingRight.isset ) style->paddingRight = add->paddingRight;
 	if( !style->paddingTop.isset ) style->paddingTop = add->paddingTop;
 	if( !style->paddingBottom.isset ) style->paddingBottom = add->paddingBottom;
+	if( !style->posMode.isset ) style->posMode = add->posMode;
+	if( !style->stackMode.isset ) style->stackMode = add->stackMode;
 	if( !style->backgroundColor.isset ) style->backgroundColor = add->backgroundColor;
 	if( !style->overflow.isset ) style->overflow = add->overflow;
 	if( !style->textColor.isset ) style->textColor = add->textColor;
@@ -647,6 +649,8 @@ void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style )
 	cache->paddingRight = style->paddingRight.isset ? style->paddingRight.data : 0;
 	cache->paddingTop = style->paddingTop.isset ? style->paddingTop.data : 0;
 	cache->paddingBottom = style->paddingBottom.isset ? style->paddingBottom.data : 0;
+	cache->posMode = style->posMode.isset ? style->posMode.data : 0;
+	cache->stackMode = style->stackMode.isset ? style->stackMode.data : 0;
 	cache->overflow = style->overflow.isset ? style->overflow.data : false;
 	cache->backgroundColor = style->backgroundColor.isset ? style->backgroundColor.data : UIColor();
 	cache->textColor = style->textColor.isset ? style->textColor.data : UIColor(0,0,0,1);
@@ -1482,6 +1486,38 @@ bool UIFrame::isControlUnderPoint( const sgsHandle< UIControl >& ctrl, float x, 
 		c2 = c2->parent;
 	}
 	return false;
+}
+
+
+void UI_StackLayoutInit( UIStackLayoutState* out )
+{
+	memset( out, 0, sizeof(*out) );
+}
+
+void UI_StackLayoutDo( UIStackLayoutState* out, UIStackLayoutState* src, UIControl* ch, UIControl* cont )
+{
+	*out = *src;
+	float maxwidth = cont->get_clientWidth();
+	float c_w = TMAX( ch->rx1 - ch->rx0, ch->get_minWidth() );
+	float c_h = TMAX( ch->ry1 - ch->ry0, ch->get_minHeight() );
+	
+	if( out->xc0 > 0 && out->xc0 + c_w - ( ch->_roundedCoords || cont->_roundedCoords ) > maxwidth )
+	{
+		out->yc0 = out->yn0;
+		out->yc1 = out->yn1;
+		out->tw = TMAX( out->tw, out->xn0 );
+		out->xn0 = 0;
+	}
+	
+	out->cx = out->xn0;
+	if( out->xc0 > 0 )
+		out->cx += TMAX( out->xn1 - out->xn0, ch->get_marginLeft() );
+	out->cy = out->yc0;
+	if( out->yc0 > 0 )
+		out->cy += TMAX( out->yc1 - out->yc0, ch->get_marginTop() );
+	
+	out->yn0 = TMAX( out->yn0, out->cy + ch->get_height() );
+	out->yn1 = TMAX( out->yn1, out->cy + ch->get_height() + ch->get_marginBottom() );
 }
 
 
