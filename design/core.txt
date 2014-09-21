@@ -118,3 +118,50 @@ hwflb 2 resized to full-width
 - each control can contain the layouting data that is produced after including it in the calculations
 
 
+/// ======= \\\
+|||  RULES  |||
+\\\ ======= ///
+ -- for on-layout-change processing
+
+> if control is not stacked, it never triggers parent layout-recalc
+> if control is stacked, it triggers parent layout-recalc and passes self as the starting point
+> any change for any control triggers full child layout recalculation (both stacked and absolute for both parent/child)
+> if stacked control has relative sizing in the direction that stacking (parent) control stretches, the behavior is undefined
+> if stacked control has relative sizing in the direction that stacking (parent) control does not stretch, the sizing is fully obeyed
+
+||| algorithm
+
+> IF stacked-control AND parent-is-stacking
+	> UPDATE parent FROM self
+	> RETURN
+/
+> IF marked
+	> FIND PREVIOUS FROM marked BACKWARDS OR INITIALIZE TO NULL
+/
+> FOR EACH stkctrl FROM marked OR start TO END
+	> IF stkctrl.stacked-control
+		> GENERATE LAYOUT FROM PREVIOUS PARSED TO stkctrl
+	/
+/
+> UPDATE LAYOUT FOR self
+> FOR EACH ctrl
+	> UPDATE ctrl
+/
+
+
+> Scrollable control integration as a component
+GOALS:
+- (custom) scrollbar creation/destruction
+- linking content overflow to scrollbar hiding/showing
+- cursor scrolling
+
+SOLUTION: control component system
+component is a styleless, renderless event processing attachment with custom data slot made for it
+struct UIComponent
+{
+	SGS_PROPERTY sgsString type;
+	SGS_PROPERTY sgsVariable data;
+	SGS_PROPERTY sgsVariable func;
+};
+
+

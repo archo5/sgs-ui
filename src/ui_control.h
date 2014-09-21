@@ -42,27 +42,26 @@
 #define UI_Stack_Bottom  2
 #define UI_Stack_Right   3
 
-#define EV_Paint      1
-#define EV_Layout     2
-#define EV_ChgTheme   3
-#define EV_Scroll     4
-#define EV_KeyDown    10
-#define EV_KeyUp      11
-#define EV_Char       12
-#define EV_FocusEnter 13
-#define EV_FocusLeave 14
-#define EV_NeedFocus  15
-#define EV_ButtonDown 20
-#define EV_ButtonUp   21
-#define EV_MouseMove  22
-#define EV_MouseEnter 23
-#define EV_MouseLeave 24
-#define EV_MouseWheel 25
-#define EV_Attach     30
-#define EV_Detach     31
-#define EV_HitTest    32
-#define EV_AddChild   33
-#define EV_RemChild   34
+#define EV_ChgTheme     3
+#define EV_KeyDown      10
+#define EV_KeyUp        11
+#define EV_Char         12
+#define EV_FocusEnter   13
+#define EV_FocusLeave   14
+#define EV_NeedFocus    15
+#define EV_ButtonDown   20
+#define EV_ButtonUp     21
+#define EV_MouseMove    22
+#define EV_MouseEnter   23
+#define EV_MouseLeave   24
+#define EV_MouseWheel   25
+#define EV_Attach       30
+#define EV_Detach       31
+#define EV_HitTest      32
+#define EV_AddChild     33
+#define EV_RemChild     34
+#define EV_AddComponent 40
+#define EV_RemComponent 41
 
 #define Mouse_ButtonL 0
 #define Mouse_ButtonR 1
@@ -595,12 +594,24 @@ struct UIStackLayoutState
 	/* layout state */
 	float xc0, yc0; /* cursor position 0 (furthest no margin) */
 	float xc1, yc1; /* cursor position 1 (furthest with margin) */
-	float xn0, yn0; /* predicted cursor data (no margin) */
-	float xn1, yn1; /* predicted cursor data (with margin) */
-	float tw, th; /* total width / height */
+	float /*xn0,*/ yn0; /* predicted cursor data (no margin) */
+	float /*xn1,*/ yn1; /* predicted cursor data (with margin) */
+	float tw; /* total width (height = xn0) */
 	/* control state */
 	float cx, cy; /* calculated control position */
 };
+
+
+struct UIComponent
+{
+	SGS_OBJECT;
+	
+	SGS_PROPERTY sgsString type;
+	SGS_PROPERTY sgsVariable func;
+	SGS_PROPERTY sgsVariable data;
+};
+typedef sgsHandle< UIComponent > CmptHandle;
+typedef std::vector< CmptHandle > CmptArray;
 
 
 struct UIControl
@@ -640,8 +651,11 @@ struct UIControl
 	void updateImage();
 	void updateIcon();
 	
-	void ppgLayoutChange( sgsVariable& ev );
+	void ppgLayoutChange( UIControl* from = NULL );
 	SGS_METHOD void onLayoutChange();
+	
+	bool isStacked(){ return get_posMode() != UI_Pos_Abs; }
+	UIStackLayoutState m_stackedLayout;
 	
 	SGS_METHOD bool insertChild( UIControl::Handle ch, ssize_t pos );
 	SGS_METHOD bool removeChild( UIControl::Handle ch );
@@ -688,6 +702,15 @@ struct UIControl
 	SGS_METHOD UIControl::Handle unbindEventAll( sgsString name );
 	SGS_METHOD void unbindEverything();
 	SGS_METHOD bool callEvent( sgsString name, sgsVariable data );
+	
+	SGS_METHOD void addComponent( sgsString type, sgsVariable func, sgsVariable data );
+	SGS_METHOD int getComponentCount(){ return m_components.size(); }
+	SGS_METHOD CmptHandle getComponent( int i ){ if( i < 0 || i >= m_components.size() ) return CmptHandle(); return m_components[ i ]; }
+	SGS_METHOD CmptHandle findComponentByType( sgsString type );
+	SGS_METHOD bool removeComponentByType( sgsString type );
+	SGS_METHOD bool removeComponentAtIndex( int i );
+	bool niComponentMsg( int i, sgsVariable ev );
+	bool niComponentMsgAll( sgsVariable ev );
 	
 	SGS_METHOD UIControl::Handle animate( sgsVariable state, float length, sgsVariable func, sgsVariable oncomplete );
 	SGS_METHOD UIControl::Handle stop( bool nofinish ); /* skip + dequeue */
@@ -915,7 +938,6 @@ struct UIControl
 	
 	SGS_PROPERTY bool _updatingLayout : 1; /* true if updating layout and don't want to trigger further layout changes */
 	SGS_PROPERTY bool _roundedCoords : 1; /* true if final coords (r[xy][01]) should be rounded */
-	SGS_PROPERTY bool _parentAffectsLayout : 1; /* true if parent has any influence over the layout and should be updated if parent is */
 	SGS_PROPERTY bool _childAffectsLayout : 1; /* true if child has any influence over the layout and should be updated if child is */
 	SGS_PROPERTY bool _clientRectFromPadded : 1; /* true to calculate relative position for child controls from the padded rect, not client rect */
 	SGS_PROPERTY bool _neverHit : 1; /* true if cannot hit (regardless of hit test) */
@@ -928,6 +950,7 @@ struct UIControl
 	HandleArray m_children;
 	HandleArray m_sorted;
 	sgsVariable m_events;
+	CmptArray m_components;
 	AnimArray m_animQueue;
 };
 

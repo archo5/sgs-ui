@@ -1,5 +1,5 @@
 
-
+/*
 global UI_AutoLayout = {};
 
 function UI_AutoLayout._recalc()
@@ -18,7 +18,7 @@ function UI_AutoLayout._recalc()
 		ch._updateFullRect();
 		chwidth = max( ch.realWidth, ch.minWidth );
 		chheight = max( ch.realHeight, ch.minHeight );
-		if( x > 0 && x + chwidth - toint(rounded || ch._roundedCoords) > maxwidth ) /* compensate for rounding errors with offset=1 */
+		if( x > 0 && x + chwidth - toint(rounded || ch._roundedCoords) > maxwidth ) // compensate for rounding errors with offset=1
 		{
 			y += mostheight_line;
 			mostwidth_total = max( mostwidth_total, x );
@@ -76,7 +76,7 @@ function UI_Controls.autolayout( parent, params )
 	ctrl = UI_CreateAutoLayout( parent );
 	UI_ConfigControl( ctrl, params );
 }
-
+*/
 
 global UI_Scrollable = {};
 

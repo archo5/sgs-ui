@@ -1,0 +1,24 @@
+
+
+function UI_HoverAnimator_Proc( event, com )
+{
+	if( event.type == EV_AddComponent )
+	{
+		foreach( k, v : com.data.state0 )
+			this.(k) = v;
+	}
+	else if( event.type == EV_MouseEnter )
+	{
+		this.stop(true).animate( com.data.state1, com.data.time );
+	}
+	else if( event.type == EV_MouseLeave )
+	{
+		this.stop(true).animate( com.data.state0, com.data.time );
+	}
+}
+
+function UI_CreateHoverAnimator( ctrl, state0, state1, time )
+{
+	ctrl.addComponent( "hoveranimator", UI_HoverAnimator_Proc, { state0 = state0, state1 = state1, time = time } );
+}
+

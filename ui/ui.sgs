@@ -34,4 +34,4 @@ function UI_BuildControls( parent, controls )
 }
 
 
-include "core", "input", "panels", "extended", "dataedit";
+include "core", "components", "input", "panels", "extended", "dataedit";

@@ -1101,7 +1101,7 @@ function UI_CreateFileBrowser( parent, defpath, filesystem )
 	
 	// file list
 	FileScroll = UI_CreateScrollable( FileBrowser )[]{ class = "file-scroll" };
-	fbdata.FileCont = FileCont = UI_CreateAutoLayout( FileScroll )[]{ class = "file-cont" };
+	fbdata.FileCont = FileScroll;
 	
 	FileBrowser.setPath( defpath );
 	

@@ -719,38 +719,17 @@ int UICFPNAME( SGS_CTX )
 	sgs_PushInt( C, 1 );
 	switch( event->type )
 	{
-	case EV_Layout:
-		SGSFN( UNCFPNS "/layout" );
-		ctrl->_updateFullRect();
-		return 1;
-		
-	case EV_Scroll:
-		SGSFN( UNCFPNS "/scroll" );
-		if( ctrl->_layoutRectOverride )
-			ctrl->onLayoutChange();
-		else
-		{
-			ctrl->_updateFullRect();
-			ctrl->_updateChildRects();
-		}
-		if( ctrl->frame )
-			ctrl->frame->handleMouseMove( true );
-		return 1;
-		
 	case EV_Attach:
 	case EV_Detach:
 		SGSFN( UNCFPNS "/childevent" );
 		ctrl->frame->_updateStyles( ctrl );
-		if( ctrl->_parentAffectsLayout )
-			ctrl->onLayoutChange();
 		sgs_PushInt( C, 1 );
 		return 1;
 		
 	case EV_AddChild:
 	case EV_RemChild:
 		SGSFN( UNCFPNS "/parentevent" );
-		if( ctrl->_childAffectsLayout )
-			ctrl->onLayoutChange();
+		ctrl->onLayoutChange();
 		sgs_PushInt( C, 1 );
 		return 1;
 		
@@ -890,6 +869,8 @@ UIControl* UIFrame::_getControlAtPosition( float x, float y, bool fillarr )
 	
 	if( fillarr )
 		m_hoverTrail.clear();
+	
+	m_hoverTrail.push_back( root );
 	
 	UIControl* ctrl = root, *atpos = NULL;
 	int nonclient = -1;
@@ -1494,30 +1475,34 @@ void UI_StackLayoutInit( UIStackLayoutState* out )
 	memset( out, 0, sizeof(*out) );
 }
 
-void UI_StackLayoutDo( UIStackLayoutState* out, UIStackLayoutState* src, UIControl* ch, UIControl* cont )
+void UI_StackLayoutDo_TopLR( UIStackLayoutState* out, UIStackLayoutState* src, UIControl* ch, UIControl* cont )
 {
 	*out = *src;
 	float maxwidth = cont->get_clientWidth();
 	float c_w = TMAX( ch->rx1 - ch->rx0, ch->get_minWidth() );
 	float c_h = TMAX( ch->ry1 - ch->ry0, ch->get_minHeight() );
 	
-	if( out->xc0 > 0 && out->xc0 + c_w - ( ch->_roundedCoords || cont->_roundedCoords ) > maxwidth )
+	if( out->xc0 > 0 && out->xc0 + c_w + TMAX( out->xc1 - out->xc0, ch->get_marginLeft() )
+		- ( ch->_roundedCoords || cont->_roundedCoords ) > maxwidth )
 	{
 		out->yc0 = out->yn0;
 		out->yc1 = out->yn1;
-		out->tw = TMAX( out->tw, out->xn0 );
-		out->xn0 = 0;
+		out->tw = TMAX( out->tw, out->xc0 );
+		out->xc0 = 0;
+		out->xc1 = 0;
 	}
 	
-	out->cx = out->xn0;
+	out->cx = out->xc0;
 	if( out->xc0 > 0 )
-		out->cx += TMAX( out->xn1 - out->xn0, ch->get_marginLeft() );
+		out->cx += TMAX( out->xc1 - out->xc0, ch->get_marginLeft() );
 	out->cy = out->yc0;
 	if( out->yc0 > 0 )
 		out->cy += TMAX( out->yc1 - out->yc0, ch->get_marginTop() );
 	
+	out->xc0 = out->cx + c_w;
+	out->xc1 = out->xc0 + ch->get_marginRight();
 	out->yn0 = TMAX( out->yn0, out->cy + ch->get_height() );
-	out->yn1 = TMAX( out->yn1, out->cy + ch->get_height() + ch->get_marginBottom() );
+	out->yn1 = TMAX( out->yn1, out->yn0 + ch->get_marginBottom() );
 }
 
 
@@ -1525,11 +1510,13 @@ UIControl::UIControl() :
 	id( UI_NO_ID ), scroll_x(0.0f), scroll_y(0.0f), nonclient(false),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
 	_updatingLayout(false), _roundedCoords(true),
-	_parentAffectsLayout(true), _childAffectsLayout(false),
+	_childAffectsLayout(false),
 	_clientRectFromPadded(false), _neverHit(false), _layoutRectOverride(false),
 	_disableClickBubbling(false),
 	mouseOn(false), keyboardFocus(false), clicked(0)
 {
+	UI_StackLayoutInit( &m_stackedLayout );
+	
 	sgs_PushCFunction( C, UIControl_CtrlProc );
 	callback = sgsVariable( C, -1 );
 	sgs_Pop( C, 1 );
@@ -1559,11 +1546,14 @@ int UIControl::niEvent( sgsVariable& ev, bool only )
 	if( !callback.not_null() )
 		return 0;
 	
-	int orig = sgs_StackSize( C );
+	SGS_SCOPE;
 	
 	sgs_PushVar( C, Handle( this ) );
 	if( only )
 		ev.get_object_data< UIEvent >()->target = Handle( this );
+	
+	if( niComponentMsgAll( ev ) )
+		return 0;
 	
 	ev.push( C );
 	callback.push();
@@ -1572,8 +1562,7 @@ int UIControl::niEvent( sgsVariable& ev, bool only )
 	
 	int ret = sgs_GetInt( C, -1 );
 	
-	sgs_SetStackSize( C, orig );
-	return ret;
+	return sgs_GetInt( C, -1 );
 }
 
 void UIControl::niDeepEvent( sgsVariable& ev )
@@ -1644,9 +1633,15 @@ void UIControl::updateScroll()
 		return;
 	
 	_updatingLayout = true;
-	sgsVariable ev;
-	UI_CreateEvent( C, ev, EV_Scroll );
-	niEvent( ev, true );
+	if( _layoutRectOverride )
+		onLayoutChange();
+	else
+	{
+		_updateFullRect();
+		_updateChildRects();
+	}
+	if( frame )
+		frame->handleMouseMove( true );
 	_updatingLayout = false;
 }
 
@@ -1722,27 +1717,64 @@ void UIControl::updateIcon()
 }
 
 
-void UIControl::ppgLayoutChange( sgsVariable& ev )
+void UIControl::ppgLayoutChange( UIControl* from )
 {
+	printf( "updating layout for %s (from %s)\n", caption.c_str(), from ? from->caption.c_str() : "event" );
+	printf( "parent: %p, stacked: %s\n", (UIControl*) parent, isStacked() ? "yes" : "no" );
+	if( parent.not_null() && isStacked() && parent != from )
+	{
+		parent->ppgLayoutChange( this );
+		return;
+	}
+	
 	if( _updatingLayout )
 		return;
-	
 	_updatingLayout = true;
-	if( _childAffectsLayout )
+	
+	// FIND PREVIOUS STACKED
+	UIStackLayoutState sls_prev;
+	size_t i = 0, prev = m_children.size();
+	for( ; i < m_children.size(); ++i )
 	{
-		niEvent( ev, true );
-		for( UIControl::HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
-			(*it)->ppgLayoutChange( ev );
+		if( m_children[ i ] == from )
+			break;
+		if( m_children[ i ]->isStacked() )
+			prev = i;
 	}
-	if( parent.not_null() && parent->_childAffectsLayout && !parent->_updatingLayout )
+	
+	// TAKE LAYOUT STATE FROM PREVIOUS OR NULL
+	if( i < m_children.size() && prev < m_children.size() )
+		sls_prev = m_children[ prev ]->m_stackedLayout;
+	else
 	{
-		niEvent( ev, true );
-		parent->ppgLayoutChange( ev );
+		UI_StackLayoutInit( &sls_prev );
+		i = 0;
 	}
-	niEvent( ev, true );
+	
+	// UPDATE OWN LAYOUT
+	if( isStacked() )
+	{
+		set_x( m_stackedLayout.cx );
+		set_y( m_stackedLayout.cy );
+	}
+	_updateFullRect();
+	
+	// STACK NEXT CONTROLS (start from `from`/i)
+	for( ; i < m_children.size(); ++i )
+	{
+		if( m_children[ i ]->isStacked() )
+		{
+			m_children[ i ]->_updateFullRect();
+			UI_StackLayoutDo_TopLR( &sls_prev, &sls_prev, m_children[ i ], this );
+			m_children[ i ]->m_stackedLayout = sls_prev;
+			printf( "stacked child (%s) placed at %g;%g\n", m_children[ i ]->caption.c_str(), sls_prev.cx, sls_prev.cy );
+		}
+	}
+	
+	// UPDATE CHILD CONTROLS
 	for( UIControl::HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
-		if( (*it)->_parentAffectsLayout )
-			(*it)->ppgLayoutChange( ev );
+		(*it)->ppgLayoutChange( this );
+	
 	_updatingLayout = false;
 }
 
@@ -1751,9 +1783,7 @@ void UIControl::onLayoutChange()
 	if( _updatingLayout )
 		return;
 	
-	sgsVariable ev;
-	UI_CreateEvent( C, ev, EV_Layout )->target = Handle( this );
-	ppgLayoutChange( ev );
+	ppgLayoutChange();
 	frame->handleMouseMove( true );
 }
 
@@ -2144,6 +2174,76 @@ bool UIControl::callEvent( sgsString name, sgsVariable data )
 	}
 	sgs_SetStackSize( C, orig );
 	return true;
+}
+
+
+void UIControl::addComponent( sgsString type, sgsVariable func, sgsVariable data )
+{
+	SGS_SCOPE;
+	UIComponent* cmpt = SGS_PUSHCLASS( C, UIComponent, () );
+	cmpt->type = type;
+	cmpt->func = func;
+	cmpt->data = data;
+	m_components.push_back( CmptHandle( C, -1 ) );
+	
+	sgsVariable addev;
+	UI_CreateEvent( C, addev, EV_AddComponent );
+	niComponentMsg( m_components.size() - 1, addev );
+}
+
+CmptHandle UIControl::findComponentByType( sgsString type )
+{
+	for( size_t i = 0; i < m_components.size(); ++i )
+	{
+		if( m_components[ i ]->type == type )
+			return m_components[ i ];
+	}
+	return CmptHandle();
+}
+
+bool UIControl::removeComponentByType( sgsString type )
+{
+	for( size_t i = 0; i < m_components.size(); ++i )
+	{
+		if( m_components[ i ]->type == type )
+			return removeComponentAtIndex( i );
+	}
+	return false;
+}
+
+bool UIControl::removeComponentAtIndex( int i )
+{
+	if( i < 0 || i >= m_components.size() )
+		return false;
+	sgsVariable rmev;
+	UI_CreateEvent( C, rmev, EV_RemComponent );
+	niComponentMsg( i, rmev );
+	VREMOVEAT( m_components, i );
+	return true;
+}
+
+bool UIControl::niComponentMsg( int i, sgsVariable ev )
+{
+	if( i < 0 || i >= m_components.size() )
+		return false;
+	// [this], [event], [component] | [func]
+	SGS_SCOPE;
+	Handle( this ).push( C );
+	ev.push( C );
+	m_components[ i ].push( C );
+	m_components[ i ]->func.push( C );
+	sgs_ThisCall( C, 2, 1 );
+	return sgs_GetBool( C, -1 );
+}
+
+bool UIControl::niComponentMsgAll( sgsVariable ev )
+{
+	for( size_t i = 0; i < m_components.size(); ++i )
+	{
+		if( niComponentMsg( i, ev ) )
+			return true;
+	}
+	return false;
 }
 
 
@@ -2599,6 +2699,7 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 		|| NEQ( minWidth ) || NEQ( maxWidth ) || NEQ( minHeight ) || NEQ( maxHeight )
 		|| NEQ( marginLeft ) || NEQ( marginRight ) || NEQ( marginTop ) || NEQ( marginBottom )
 		|| NEQ( paddingLeft ) || NEQ( paddingRight ) || NEQ( paddingTop ) || NEQ( paddingBottom )
+		|| NEQ( posMode ) || NEQ( stackMode );
 	;
 	// TODO: event-based rendering
 //	bool updatedRenderFunc = NEQ( renderfunc );
@@ -2689,15 +2790,12 @@ void UIControl::_updateChildRects()
 {
 	for( UIControl::HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
-		if( (*it)->_parentAffectsLayout )
+		if( (*it)->_layoutRectOverride )
+			(*it)->onLayoutChange();
+		else
 		{
-			if( (*it)->_layoutRectOverride )
-				(*it)->onLayoutChange();
-			else
-			{
-				(*it)->_updateFullRect();
-				(*it)->_updateChildRects();
-			}
+			(*it)->_updateFullRect();
+			(*it)->_updateChildRects();
 		}
 	}
 }
