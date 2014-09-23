@@ -1759,6 +1759,11 @@ void UIControl::ppgLayoutChange( UIControl* from )
 	}
 	_updateFullRect();
 	
+	sgsVariable ev;
+	UIEvent* chgev = UI_CreateEvent( C, ev, EV_Changed );
+	chgev->key = EV_Changed_Box;
+	niEvent( ev, true );
+	
 	// STACK NEXT CONTROLS (start from `from`/i)
 	for( ; i < m_children.size(); ++i )
 	{
@@ -2718,6 +2723,23 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	if( updatedLayout ) onLayoutChange();
 	if( ( updatedBox || updatedOrder ) && frame.not_null() )
 		frame->handleMouseMove( true );
+	
+	// emit change event
+	int changes =
+		( updatedFont ? EV_Changed_Font : 0 ) |
+		( updatedImage ? EV_Changed_Image : 0 ) |
+		( updatedIcon ? EV_Changed_Icon : 0 ) |
+		( updatedCursor ? EV_Changed_Cursor : 0 ) |
+		( updatedOrder ? EV_Changed_Order : 0 ) |
+		( updatedBox ? EV_Changed_Box : 0 )
+	;
+	if( changes && !updatedLayout )
+	{
+		sgsVariable ev;
+		UIEvent* chgev = UI_CreateEvent( C, ev, EV_Changed );
+		chgev->key = changes;
+		niEvent( ev, true );
+	}
 }
 
 sgsVariable UIControl::_getMatchedSelectors()

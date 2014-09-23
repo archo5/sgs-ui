@@ -131,8 +131,7 @@ sgs_RegIntConst g_iconsts[] =
 	FN( UI_Stack_Bottom ),
 	FN( UI_Stack_Right  ),
 	
-	{ "EV_Layout", 2 },
-//	FN( EV_Layout       ),
+	FN( EV_Changed      ),
 	FN( EV_ChgTheme     ),
 	FN( EV_KeyDown      ),
 	FN( EV_KeyUp        ),
@@ -151,8 +150,18 @@ sgs_RegIntConst g_iconsts[] =
 	FN( EV_HitTest      ),
 	FN( EV_AddChild     ),
 	FN( EV_RemChild     ),
+	{ "EV_RemoveChild", EV_RemChild },
 	FN( EV_AddComponent ),
 	FN( EV_RemComponent ),
+	{ "EV_RemoveComponent", EV_RemComponent },
+	
+	FN( EV_Changed_Font   ),
+	FN( EV_Changed_Image  ),
+	FN( EV_Changed_Icon   ),
+	FN( EV_Changed_Cursor ),
+	FN( EV_Changed_Order  ),
+	FN( EV_Changed_Box    ),
+	FN( EV_Changed_Layout ),
 	
 	FN( Mouse_ButtonL ),
 	FN( Mouse_ButtonR ),

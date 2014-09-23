@@ -4,6 +4,7 @@
 #define __SGS_UI_UTILS__
 
 
+#define SGS_CPPBC_WITH_STD_VECTOR
 #include <sgs_cppbc.h>
 
 #include <assert.h>

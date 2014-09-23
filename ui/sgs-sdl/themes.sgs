@@ -170,6 +170,9 @@ global SS_UI_Theme_Default =
 				}
 			}
 		},
+		// - components
+		".is-scrollable > .scroll-v" = { width = 12, visible = false, anchorMode = UI_Anchor_Vert | UI_Anchor_Right },
+		".is-scrollable > .scroll-h" = { height = 12, visible = false, anchorMode = UI_Anchor_Hor | UI_Anchor_Bottom },
 		// - input
 		"form" = { anchorMode = UI_Anchor_All },
 		"checkbox" =

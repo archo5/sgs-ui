@@ -197,7 +197,7 @@ function UI_CreateScrollbar( parent, vertical, space, window, position )
 	function Scroll.callback( event ) use( ocb, btnCS )
 	{
 		data = this.data;
-		if( event.type == EV_Layout )
+		if( event.type == EV_Changed )
 		{
 			ret = this!ocb( event );
 			

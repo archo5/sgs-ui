@@ -22,3 +22,67 @@ function UI_CreateHoverAnimator( ctrl, state0, state1, time )
 	ctrl.addComponent( "hoveranimator", UI_HoverAnimator_Proc, { state0 = state0, state1 = state1, time = time } );
 }
 
+
+function UI_Scrollable_Proc( event, com )
+{
+	if( event.type == EV_AddComponent )
+	{
+		this.addClass( "is-scrollable" );
+	}
+	else if( event.type == EV_RemComponent )
+	{
+		this.removelass( "is-scrollable" );
+		com.data.scrH.destroy(true);
+		com.data.scrV.destroy(true);
+	}
+	else if( event.type == EV_Changed && event.subtype & EV_Changed_Box )
+	{
+	println("============"$event.subtype);
+		data = com.data;
+		scrV = data.scrV;
+		scrH = data.scrH;
+		(x0,y0,x1,y1) = this.getChildAABB( false );
+		
+		iw = x1 - x0;
+		ih = y1 - y0;
+		println({iw=iw,ih=ih});
+		
+		showV = if( data.vscroll === "auto", ih > this.clientHeight, data.vscroll );
+		showH = if( data.hscroll === "auto", iw > this.clientWidth, data.hscroll );
+		
+		scrV.visible = showV;
+		scrH.visible = showH;
+		scrV.data.space = ih;
+		scrH.data.space = iw;
+		fs = this.filteredStyle;
+		this.nonClientRight = fs.nonClientRight + if( showV, scrV.realWidth, 0 );
+		this.nonClientBottom = fs.nonClientBottom + if( showH, scrH.realHeight, 0 );
+	}
+	else if( event.type == EV_MouseWheel )
+	{
+		if( com.data.scrV.visible )
+			com.data.scrV.callback( event );
+		if( com.data.scrH.visible )
+		{
+			event.y = event.x;
+			com.data.scrH.callback( event );
+		}
+		return 1; // stop bubbling
+	}
+}
+
+function UI_MakeScrollable( ctrl, vscroll, hscroll )
+{
+	vscroll = if( vscroll === null, "auto", vscroll );
+	hscroll = if( hscroll === null, "auto", hscroll );
+	
+	scrV = UI_CreateVScrollbar( ctrl )[]{ nonclient = true };
+	scrH = UI_CreateHScrollbar( ctrl )[]{ nonclient = true };
+	scrV.addClass( "scroll-v" );
+	scrH.addClass( "scroll-h" );
+	scrV.bindEvent( "change", function(){ this.parent.scroll_y = -this.data.position; } );
+	scrH.bindEvent( "change", function(){ this.parent.scroll_x = -this.data.position; } );
+	
+	ctrl.addComponent( "scrollable", UI_Scrollable_Proc, { scrV = scrV, scrH = scrH, hscroll = hscroll, vscroll = vscroll } );
+}
+

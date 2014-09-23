@@ -42,6 +42,7 @@
 #define UI_Stack_Bottom  2
 #define UI_Stack_Right   3
 
+#define EV_Changed      1
 #define EV_ChgTheme     3
 #define EV_KeyDown      10
 #define EV_KeyUp        11
@@ -62,6 +63,14 @@
 #define EV_RemChild     34
 #define EV_AddComponent 40
 #define EV_RemComponent 41
+
+#define EV_Changed_Font   0x0001
+#define EV_Changed_Image  0x0002
+#define EV_Changed_Icon   0x0004
+#define EV_Changed_Cursor 0x0008
+#define EV_Changed_Order  0x0010
+#define EV_Changed_Box    0x0020
+#define EV_Changed_Layout (EV_Changed_Font|EV_Changed_Order|EV_Changed_Box)
 
 #define Mouse_ButtonL 0
 #define Mouse_ButtonR 1
@@ -203,6 +212,7 @@ struct UIEvent
 	
 	SGS_PROPERTY int type;
 	SGS_PROPERTY int key;
+	SGS_PROPERTY_FUNC( READ WRITE VARNAME subtype ) SGS_ALIAS( int key );
 	SGS_PROPERTY_FUNC( READ WRITE VARNAME button ) SGS_ALIAS( int key );
 	SGS_PROPERTY uint32_t uchar;
 	SGS_PROPERTY_FUNC( READ WRITE VARNAME clicks ) SGS_ALIAS( uint32_t uchar );
