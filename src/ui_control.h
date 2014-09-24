@@ -624,24 +624,25 @@ typedef sgsHandle< UIComponent > CmptHandle;
 typedef std::vector< CmptHandle > CmptArray;
 
 
+// Animation tools
+struct UIAnimation
+{
+	sgsVariable prevState;
+	sgsVariable currState;
+	float time, end;
+	sgsVariable func; /* args: v0, v1, q, tend;  ret = interpolated */
+	sgsVariable oncomplete; /* this = control */
+	
+	void gcmark(){ prevState.gcmark(); currState.gcmark(); func.gcmark(); oncomplete.gcmark(); }
+};
+template<> inline SGSRESULT sgs_GCMarkVar<UIAnimation>( SGS_CTX, UIAnimation& v ){ v.gcmark(); return SGS_SUCCESS; }
+typedef std::vector< UIAnimation > UIAnimArray;
+
+
 struct UIControl
 {
 	typedef sgsHandle< UIControl > Handle;
 	typedef std::vector< Handle > HandleArray;
-	
-	
-	// Animation tools
-	struct Animation
-	{
-		sgsVariable prevState;
-		sgsVariable currState;
-		float time, end;
-		sgsVariable func; /* args: v0, v1, q, tend;  ret = interpolated */
-		sgsVariable oncomplete; /* this = control */
-		
-		void gcmark(){ prevState.gcmark(); currState.gcmark(); func.gcmark(); oncomplete.gcmark(); }
-	};
-	typedef std::vector< Animation > AnimArray;
 	
 	
 	SGS_OBJECT;
@@ -734,15 +735,14 @@ struct UIControl
 	
 	SGS_IFUNC(GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop );
 	SGS_IFUNC(SETINDEX) int sgs_setindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, sgs_Variable* val, int isprop );
-	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
 	
 	/// PRIMARY DATA
 	SGS_PROPERTY READ uint32_t id;
 	SGS_PROPERTY sgsString name;
 	SGS_PROPERTY sgsString caption;
 	SGS_PROPERTY sgsString type;
-	SGS_PROPERTY READ Handle parent;
-	SGS_PROPERTY READ UIFrame::Handle frame;
+	SGS_PROPERTY READ Handle parent; SGS_GCREF( parent );
+	SGS_PROPERTY READ UIFrame::Handle frame; SGS_GCREF( frame );
 	
 	sgsString classes;
 	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK _classUpdated VARNAME class ) SGS_ALIAS( sgsString classes );
@@ -762,11 +762,11 @@ struct UIControl
 	static void _trimClass( const char** str, size_t* size );
 	
 	/// STYLES
-	SGS_PROPERTY Handle styleParent;
+	SGS_PROPERTY Handle styleParent; SGS_GCREF( styleParent );
 	UIControl* getStyleParentPtr(){ return styleParent.not_null() ? styleParent : parent; }
 	UIStyleCache computedStyle; // active style data (after merging rule style and local override, on applying changes)
-	SGS_PROPERTY READ UIStyle filteredStyle; // calculated from style rules
-	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK _remergeStyle ) UIStyle style; // local override
+	SGS_PROPERTY READ UIStyle filteredStyle; SGS_GCREF( filteredStyle ); // calculated from style rules
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK _remergeStyle ) UIStyle style; SGS_GCREF( style ); // local override
 	void _refilterStyles( UIFilteredStyleArray& styles );
 	void _remergeStyle();
 	void _applyStyle( const UIStyleCache& nsc );
@@ -904,14 +904,14 @@ struct UIControl
 	SGS_PROPERTY_FUNC( READ get_offsetTop WRITE set_offsetTop ) SGS_ALIAS( float offsetTop );
 	SGS_PROPERTY_FUNC( READ get_offsetBottom WRITE set_offsetBottom ) SGS_ALIAS( float offsetBottom );
 	
-	SGS_PROPERTY sgsVariable _cachedFont;
+	SGS_PROPERTY sgsVariable _cachedFont; SGS_GCREF( _cachedFont );
 	SGS_METHOD void setFont( const sgsString& newFont, float newFontSize ){ style.font = newFont; set_fontSize( newFontSize ); }
-	SGS_PROPERTY sgsVariable _cachedImage;
-	SGS_PROPERTY sgsVariable _cachedIcon;
+	SGS_PROPERTY sgsVariable _cachedImage; SGS_GCREF( _cachedImage );
+	SGS_PROPERTY sgsVariable _cachedIcon; SGS_GCREF( _cachedIcon );
 	
-	SGS_PROPERTY sgsVariable callback;
-	SGS_PROPERTY sgsVariable data;
-	SGS_PROPERTY sgsVariable _interface;
+	SGS_PROPERTY sgsVariable callback; SGS_GCREF( callback );
+	SGS_PROPERTY sgsVariable data; SGS_GCREF( data );
+	SGS_PROPERTY sgsVariable _interface; SGS_GCREF( _interface );
 	
 	// these are writable to allow controls with manual layouts to accept parameters from style rules and undo auto layouts
 	// full rect
@@ -957,11 +957,11 @@ struct UIControl
 	SGS_PROPERTY READ bool keyboardFocus : 1;
 	SGS_PROPERTY READ int clicked;
 	
-	HandleArray m_children;
+	HandleArray m_children; SGS_GCREF( m_children );
 	HandleArray m_sorted;
-	sgsVariable m_events;
-	CmptArray m_components;
-	AnimArray m_animQueue;
+	sgsVariable m_events; SGS_GCREF( m_events );
+	CmptArray m_components; SGS_GCREF( m_components );
+	UIAnimArray m_animQueue; SGS_GCREF( m_animQueue );
 };
 
 
@@ -972,7 +972,6 @@ struct UIQuery
 	SGS_OBJECT;
 	SGS_IFUNC(CONVERT) int sgs_convert( SGS_CTX, sgs_VarObj* obj, int type );
 	SGS_IFUNC(GETINDEX) int sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int isprop );
-	SGS_IFUNC(GCMARK) int sgs_gcmark( SGS_CTX, sgs_VarObj* obj );
 	
 	// utility functions
 	bool _parseArgs( sgs_StkIdx stacksize );
@@ -1014,9 +1013,9 @@ struct UIQuery
 	SGS_METHOD UIQuery::Handle show(){ return setVisible( true ); }
 	SGS_METHOD UIQuery::Handle hide(){ return setVisible( false ); }
 	
-	SGS_PROPERTY READ UIFrame::Handle m_frame;
+	SGS_PROPERTY READ UIFrame::Handle m_frame; SGS_GCREF( m_frame );
 	StyleSelArray m_selectors;
-	UIControl::HandleArray m_items;
+	UIControl::HandleArray m_items; SGS_GCREF( m_items );
 	
 	// ArrayIterator interface
 	static const char* IteratorTypeName;

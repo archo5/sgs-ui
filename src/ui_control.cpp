@@ -2317,7 +2317,7 @@ UIControl::Handle UIControl::animate( sgsVariable state, float length, sgsVariab
 	sgs_SetStackSize( C, orig );
 	
 	// PUSH ANIMATION
-	Animation A =
+	UIAnimation A =
 	{
 		prevState,
 		currState,
@@ -2376,7 +2376,7 @@ void UIControl::_advanceAnimation( float dt )
 {
 	while( dt > 0 && m_animQueue.size() )
 	{
-		Animation& A = m_animQueue[0];
+		UIAnimation& A = m_animQueue[0];
 		
 		A.time += dt;
 		dt = A.time - A.end;
@@ -2393,7 +2393,7 @@ void UIControl::_advanceAnimation( float dt )
 
 void UIControl::_applyCurAnimState()
 {
-	Animation& A = m_animQueue[0];
+	UIAnimation& A = m_animQueue[0];
 	
 	float q = A.time;
 	if( A.end > 0.001f )
@@ -2440,7 +2440,7 @@ void UIControl::_finishCurAnim()
 {
 	_applyCurAnimState();
 	
-	Animation& A = m_animQueue[0];
+	UIAnimation& A = m_animQueue[0];
 	if( A.oncomplete.not_null() )
 	{
 		sgs_StkIdx orig = sgs_StackSize( C );
@@ -2458,7 +2458,7 @@ void UIControl::_finishCurAnim()
 
 void UIControl::_startCurAnim()
 {
-	Animation& A = m_animQueue[0];
+	UIAnimation& A = m_animQueue[0];
 	
 	UIControl::Handle( this ).push( C );
 	sgsVariable me( C, -1 );
@@ -2501,28 +2501,6 @@ int UIControl::sgs_setindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, sgs_Va
 	SGSRESULT ret = UIControl::_sgs_setindex( C, obj, key, val, isprop );
 	sgs_Cntl( C, SGS_CNTL_APILEV, el );
 	return ret;
-}
-
-int UIControl::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
-{
-	UIControl* ctrl = static_cast<UIControl*>(obj->data);
-	for( HandleArray::iterator it = ctrl->m_children.begin(), itend = ctrl->m_children.end(); it != itend; ++it )
-		it->gcmark();
-	/* m_sorted = m_children */
-	ctrl->parent.gcmark();
-	ctrl->frame.gcmark();
-	ctrl->_cachedFont.gcmark();
-	ctrl->_cachedImage.gcmark();
-	ctrl->_cachedIcon.gcmark();
-	ctrl->filteredStyle.gcmark();
-	ctrl->style.gcmark();
-	ctrl->callback.gcmark();
-	ctrl->data.gcmark();
-	ctrl->_interface.gcmark();
-	ctrl->m_events.gcmark();
-	for( AnimArray::iterator it = ctrl->m_animQueue.begin(), itend = ctrl->m_animQueue.end(); it != itend; ++it )
-		it->gcmark();
-	return SGS_SUCCESS;
 }
 
 
@@ -2886,15 +2864,6 @@ int UIQuery::sgs_getindex( SGS_CTX, sgs_VarObj* obj, sgs_Variable* key, int ispr
 		return SGS_SUCCESS;
 	}
 	return UIQuery::_sgs_getindex( C, obj, key, isprop );
-}
-
-int UIQuery::sgs_gcmark( SGS_CTX, sgs_VarObj* obj )
-{
-	UIQuery* Q = (UIQuery*) obj->data;
-	Q->m_frame.gcmark();
-	for( size_t i = 0; i < Q->m_items.size(); ++i )
-		Q->m_items[ i ].gcmark();
-	return SGS_SUCCESS;
 }
 
 bool UIQuery::_parseArgs( sgs_StkIdx stacksize )
