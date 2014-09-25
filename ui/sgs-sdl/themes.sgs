@@ -534,7 +534,7 @@ global SS_UI_Theme_Default =
 		"editablelist > scrollable > autolayout > item:hover" = { backgroundColor = UIColor(0.9,1) },
 		"editablelist > scrollable > autolayout > item:active" = { backgroundColor = UIColor(0.75,1) },
 		"groupblock" = { stackMode = UI_Stack_Top },
-		"groupblock .groupblk-title" =
+		"groupblock > .groupblk-title" =
 		{
 			anchorMode = UI_Anchor_Hor,
 			height = 24,
@@ -576,8 +576,8 @@ global SS_UI_Theme_Default =
 				}
 			}
 		},
-		"groupblock .groupblk-title:hover" = { backgroundColor = UIColor(0.35,0.55,0.75,1) },
-		"groupblock .groupblk-title:active" = { backgroundColor = UIColor(0.25,0.45,0.65,1) },
+		"groupblock > .groupblk-title:hover" = { backgroundColor = UIColor(0.35,0.55,0.75,1) },
+		"groupblock > .groupblk-title:active" = { backgroundColor = UIColor(0.25,0.45,0.65,1) },
 		"groupblock.groupblk-open .groupblk-title" = { icon = "icons/bullet_arrow_down.png" },
 		"groupblock.groupblk-closed .groupblk-title" = { icon = "icons/bullet_arrow_up.png" },
 		"groupblock .groupblk-cont" = { anchorMode = UI_Anchor_Hor, y = 24, stackMode = UI_Stack_AutoSizeTop, posMode = UI_Pos_SideA },

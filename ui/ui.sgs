@@ -11,6 +11,8 @@ function UI_ConfigControl( control, params )
 		
 		if( key == "children" )
 			UI_BuildControls( control, val );
+		else if( key == "container" )
+			UI_BuildControls( control.getContainer(), val );
 		else if( key == "contents" )
 			val( control );
 		else if( key == "type" )

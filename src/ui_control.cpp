@@ -1720,6 +1720,8 @@ void UIControl::updateIcon()
 
 void UIControl::ppgLayoutChange( UIControl* from )
 {
+	if( !from )
+		puts("\n");
 	printf( "updating layout for %s|%s (from %s|%s)\n", caption.c_str(), classes.c_str(), from ? from->caption.c_str() : "event", from ? from->classes.c_str() : "-" );
 	printf( "parent: %p, stacked: %s\n", (UIControl*) parent, isStacked() ? "yes" : "no" );
 	if( parent.not_null() && isStacked() && parent != from )
@@ -1771,7 +1773,10 @@ void UIControl::ppgLayoutChange( UIControl* from )
 		{
 			UI_StackLayoutDo_TopLR( &sls_prev, &sls_prev, m_children[ i ], this );
 			m_children[ i ]->m_stackedLayout = sls_prev;
+			m_children[ i ]->set_x( sls_prev.cx );
+			m_children[ i ]->set_y( sls_prev.cy );
 			m_children[ i ]->_updateFullRect();
+			m_children[ i ]->_updateChildRects();
 			printf( "stacked child (%s|%s) placed at %g;%g\n", m_children[ i ]->caption.c_str(), m_children[ i ]->classes.c_str(), sls_prev.cx, sls_prev.cy );
 		}
 	}
