@@ -259,8 +259,7 @@ function UI_DataEdit._recreateFromSchema( schema, defval )
 function UI_DataEdit._push_node_wrapper( name )
 {
 	pp = this.data.OpConts.last;
-	ctrl = pp.frame.createControl( "container" )[]{ name = "__wrap__" $ name, posMode = UI_Pos_SideA };
-	pp.addChild( ctrl );
+	ctrl = UI_CreateControl( pp, "container" )[]{ name = "__wrap__" $ name, posMode = UI_Pos_SideA };
 	this.data.OpConts.push( ctrl );
 }
 

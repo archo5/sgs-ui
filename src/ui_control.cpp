@@ -1952,9 +1952,12 @@ void UIControl::destroyAllChildren( bool hard, int clientness )
 	{
 		if( !clientness || m_children[0]->nonclient == notcli )
 		{
+			m_children[0]->destroy( hard );
+		}
+		else
+		{
 			hatmp.push_back( m_children[0] );
 			m_children.erase( m_children.begin() );
-			m_children[0]->destroy( hard );
 		}
 	}
 	for( size_t i = 0; i < hatmp.size(); ++i )
@@ -2464,11 +2467,10 @@ void UIControl::_finishCurAnim()
 	UIAnimation& A = m_animQueue[0];
 	if( A.oncomplete.not_null() )
 	{
-		sgs_StkIdx orig = sgs_StackSize( C );
+		SGS_SCOPE;
 		UIControl::Handle( this ).push( C );
 		A.oncomplete.push( C );
 		sgs_ThisCall( C, 0, 0 );
-		sgs_SetStackSize( C, orig );
 	}
 	
 	m_animQueue.erase( m_animQueue.begin() );
@@ -2752,14 +2754,6 @@ sgsVariable UIControl::_getMatchedSelectors()
 	}
 	sgs_PushArray( C, fsa.size() );
 	return sgsVariable( C, -1 );
-}
-
-float UIControl::calcWidth()
-{
-}
-
-float UIControl::calcHeight()
-{
 }
 
 void UIControl::_updateFullRect()

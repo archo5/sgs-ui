@@ -293,8 +293,8 @@ function UI_GroupBlock.setOpen( is )
 	this.addRemClass( "groupblk-open", is );
 	this.addRemClass( "groupblk-closed", !is );
 	this.stackMode &= ~UI_Stack_AutoSize;
-	function gpblk_oncomplete(){ if(this) this.stackMode = null; }
-	this.animate({ height = this._getHeight() }, this.data.time, if( is, gpblk_oncomplete, null ) );
+	function gpblk_oncomplete(){ this.stackMode |= UI_Stack_AutoSize; }
+	this.animate({ height = this._getHeight() }, this.data.time, null, if( is, gpblk_oncomplete, null ) );
 }
 
 function UI_GroupBlock.isOpen(){ return this.hasClass( "groupblk-open" ); }

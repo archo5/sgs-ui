@@ -266,6 +266,7 @@ function sgs_ui_example_menu()
 	}
 	
 	FRAME.addStyleSheet(UI_BuildStyleSheet({
+		"imagebutton, scoreitem, levelentry" = { posMode = UI_Pos_SideA },
 		"*button" = { renderfunc = MenuButton_Render, backgroundColor = UIColor(0.7,0.2) },
 		"**" = { font = "fonts/armata-regular.ttf", fontSize = 16 },
 		".framed" = { renderfunc = DrawStaticControl },
@@ -388,7 +389,7 @@ function sgs_ui_example_menu()
 		{ type = "static", class = "main-menu-frame", children =
 		[
 			{ type = "static", class = "title", caption = "Example Menu" },
-			{ type = "autolayout", class = "main-menu auto-menu", children =
+			{ type = "control", class = "main-menu auto-menu", children =
 			[
 				{ type = "imagebutton", name = "start", caption = "Start", image = "icons/control_play.png", class = "act-close-info act-close-options act-open-start act-menu-shrink" },
 				{ type = "imagebutton", name = "info", caption = "Info", image = "icons/information.png", class = "act-close-start act-close-options act-open-info act-menu-shrink" },
@@ -399,16 +400,12 @@ function sgs_ui_example_menu()
 		{ type = "static", class = "framed screen-panel start-screen", children =
 		[
 			{ type = "static", class = "framed title", caption = "Level selection" },
-			{ type = "scrollingautolayout", class = "level-list", contents = function( cont )
-			{
-				UI_BuildControls
-				( cont.getContainer(), // needed for ScrollingAutoLayout
-				[
-					{ type = "levelentry", name = "01-picture", caption = "The Picture", image = "icons/picture.png" },
-					{ type = "levelentry", name = "02-report", caption = "The Report", image = "icons/report.png" },
-				]);
-			}},
-			{ type = "autolayout", class = "level-score", children =
+			{ type = "control", class = "level-list", contents = function( cont ){ UI_MakeScrollable( cont, "auto", false ); }, children =
+			[
+				{ type = "levelentry", name = "01-picture", caption = "The Picture", image = "icons/picture.png" },
+				{ type = "levelentry", name = "02-report", caption = "The Report", image = "icons/report.png" },
+			]},
+			{ type = "control", class = "level-score", children =
 			[
 				{ type = "scoreitem", key = "completed", label = "Completed:", value = "-" },
 				{ type = "scoreitem", key = "secretsfound", label = "Secrets found:", value = "-" },
@@ -425,7 +422,7 @@ function sgs_ui_example_menu()
 		[
 			{ type = "static", class = "framed title", caption = "Options" },
 			{ type = "imagebutton", class = "btn-back act-close-options act-menu-grow", caption = "Back", image = "icons/resultset_previous.png" },
-			{ type = "autolayout", class = "options-submenu auto-menu", children =
+			{ type = "control", class = "options-submenu auto-menu", children =
 			[
 				{ type = "imagebutton", name = "game", caption = "Game", image = "icons/lightning.png", class = "opt-sub-btn active" },
 				{ type = "imagebutton", name = "graphics", caption = "Graphics", image = "icons/monitor.png", class = "opt-sub-btn" },

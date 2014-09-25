@@ -1,4 +1,20 @@
 
+function UI_CreateControl( parent, typename )
+{
+	ctrl = parent.frame.createControl( typename || "control" );
+	ctrl.updateTheme();
+	parent.addChild( ctrl );
+	return ctrl;
+}
+
+UI_Controls.control_params = ["typename"];
+function UI_Controls.control( parent, params )
+{
+	ctrl = UI_CreateControl( parent, @params.typename );
+	UI_ConfigControl( ctrl, params );
+}
+
+
 global UI_Static = {};
 
 function UI_CreateStatic( parent )

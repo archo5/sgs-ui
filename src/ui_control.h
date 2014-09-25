@@ -949,8 +949,6 @@ struct UIControl
 	float get_paddedHeight(){ return py1 - py0; }
 	SGS_PROPERTY_FUNC( READ get_paddedHeight ) float paddedHeight;
 	
-	SGS_METHOD float calcWidth();
-	SGS_METHOD float calcHeight();
 	SGS_METHOD void _updateFullRect();
 	SGS_METHOD void _updateChildRects();
 	SGS_METHOD void _changedFullRect();
