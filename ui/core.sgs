@@ -241,6 +241,7 @@ function UI_CreateScrollbar( parent, vertical, space, window, position )
 				btnCS.width = bar_length;
 			}
 			
+			this._updateChildRects();
 			return ret;
 		}
 		else if( event.type == EV_ChgTheme )

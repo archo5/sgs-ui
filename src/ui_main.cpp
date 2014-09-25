@@ -130,6 +130,11 @@ sgs_RegIntConst g_iconsts[] =
 	FN( UI_Stack_Left   ),
 	FN( UI_Stack_Bottom ),
 	FN( UI_Stack_Right  ),
+	FN( UI_Stack_AutoSize       ),
+	FN( UI_Stack_AutoSizeTop    ),
+	FN( UI_Stack_AutoSizeLeft   ),
+	FN( UI_Stack_AutoSizeBottom ),
+	FN( UI_Stack_AutoSizeRight  ),
 	
 	FN( EV_Changed      ),
 	FN( EV_ChgTheme     ),

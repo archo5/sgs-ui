@@ -76,7 +76,7 @@ function UI_Controls.autolayout( parent, params )
 	ctrl = UI_CreateAutoLayout( parent );
 	UI_ConfigControl( ctrl, params );
 }
-*/
+
 
 global UI_Scrollable = {};
 
@@ -199,7 +199,7 @@ function UI_Controls.scrollable( parent, params )
 	ctrl = UI_CreateScrollable( parent, @params.vscroll, @params.hscroll );
 	UI_ConfigControl( ctrl, params );
 }
-
+*/
 
 global UI_SplitPane = {};
 function UI_SplitPane.getPaneA(){ return this.data.PaneA; }

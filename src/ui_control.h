@@ -41,6 +41,11 @@
 #define UI_Stack_Left    1
 #define UI_Stack_Bottom  2
 #define UI_Stack_Right   3
+#define UI_Stack_AutoSize 0x10
+#define UI_Stack_AutoSizeTop (UI_Stack_AutoSize|UI_Stack_Top)
+#define UI_Stack_AutoSizeLeft (UI_Stack_AutoSize|UI_Stack_Left)
+#define UI_Stack_AutoSizeBottom (UI_Stack_AutoSize|UI_Stack_Bottom)
+#define UI_Stack_AutoSizeRight (UI_Stack_AutoSize|UI_Stack_Right)
 
 #define EV_Changed      1
 #define EV_ChgTheme     3
@@ -673,7 +678,7 @@ struct UIControl
 	SGS_METHOD bool removeAllChildren();
 	SGS_METHOD void detach();
 	SGS_METHOD void destroy( bool hard ); /* the goal here is to minimize the possibility of circular references */
-	SGS_METHOD void destroyAllChildren( bool hard );
+	SGS_METHOD void destroyAllChildren( bool hard, int clientness );
 	SGS_METHOD bool swapChild( UIControl::Handle ch, UIControl::Handle nch );
 	SGS_METHOD UIControl::Handle findChild( sgsString name );
 	SGS_METHOD sgsVariable children( bool nonclient );
@@ -914,6 +919,8 @@ struct UIControl
 	SGS_PROPERTY sgsVariable _interface; SGS_GCREF( _interface );
 	
 	// these are writable to allow controls with manual layouts to accept parameters from style rules and undo auto layouts
+	SGS_PROPERTY READ float autoWidth;
+	SGS_PROPERTY READ float autoHeight;
 	// full rect
 	SGS_PROPERTY float rx0;
 	SGS_PROPERTY float rx1;
@@ -942,6 +949,8 @@ struct UIControl
 	float get_paddedHeight(){ return py1 - py0; }
 	SGS_PROPERTY_FUNC( READ get_paddedHeight ) float paddedHeight;
 	
+	SGS_METHOD float calcWidth();
+	SGS_METHOD float calcHeight();
 	SGS_METHOD void _updateFullRect();
 	SGS_METHOD void _updateChildRects();
 	SGS_METHOD void _changedFullRect();

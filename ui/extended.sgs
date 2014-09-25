@@ -281,7 +281,7 @@ function UI_GroupBlock._getHeight()
 	data = this.data;
 	totalheight = data.Title.realHeight + this.paddingTop + this.paddingBottom + this.nonClientTop + this.nonClientBottom;
 	if( this.hasClass( "groupblk-open" ) )
-		totalheight += data.AutoLayout.realHeight;
+		totalheight += data.AutoLayout.autoHeight;
 	return totalheight;
 }
 
@@ -292,7 +292,9 @@ function UI_GroupBlock.setOpen( is )
 	
 	this.addRemClass( "groupblk-open", is );
 	this.addRemClass( "groupblk-closed", !is );
-	this.animate({ height = this._getHeight() }, this.data.time );
+	this.stackMode &= ~UI_Stack_AutoSize;
+	function gpblk_oncomplete(){ if(this) this.stackMode = null; }
+	this.animate({ height = this._getHeight() }, this.data.time, if( is, gpblk_oncomplete, null ) );
 }
 
 function UI_GroupBlock.isOpen(){ return this.hasClass( "groupblk-open" ); }
@@ -316,24 +318,13 @@ function UI_CreateGroupBlock( parent, name, time, closed )
 	
 	GroupBlock.data.Title = UI_CreateButton( GroupBlock )[]{ caption = if( name !== null, name, "" ), class = "groupblk-title" }
 		.bindEvent( "click", function(){ this.parent.toggle(); } );
-	GroupBlock.data.AutoLayout = grpblk_auto = UI_CreateAutoLayout( GroupBlock )[]{ class = "groupblk-cont" };
-	
-	al_ocb = grpblk_auto.callback;
-	function grpblk_auto.callback( event ) use( al_ocb )
-	{
-		if( event.type == EV_Layout && this.parent && !this.parent.queueSize() )
-		{
-			res = this!al_ocb( event );
-			this.parent.height = this.parent._getHeight();
-			return res;
-		}
-		return this!al_ocb( event );
-	}
+	GroupBlock.data.AutoLayout = grpblk_auto = parent.frame.createControl( "container" )[]{ class = "groupblk-cont" };
+	GroupBlock.appendChild( grpblk_auto );
 	
 	GroupBlock.updateTheme();
 	parent.addChild( GroupBlock );
 	
-	GroupBlock.height = GroupBlock._getHeight();
+	GroupBlock.stackMode |= UI_Stack_AutoSize;
 	
 	return GroupBlock;
 }

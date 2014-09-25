@@ -533,13 +533,14 @@ global SS_UI_Theme_Default =
 		},
 		"editablelist > scrollable > autolayout > item:hover" = { backgroundColor = UIColor(0.9,1) },
 		"editablelist > scrollable > autolayout > item:active" = { backgroundColor = UIColor(0.75,1) },
-		"groupblock" = { anchorMode = UI_Anchor_Hor },
+		"groupblock" = { stackMode = UI_Stack_Top },
 		"groupblock .groupblk-title" =
 		{
 			anchorMode = UI_Anchor_Hor,
 			height = 24,
 			backgroundColor = UIColor(0.3,0.5,0.7,1),
 			textColor = UIColor(1,1),
+			posMode = UI_Pos_SideA,
 			renderfunc = function SS_UI_Theme_Default_groupblock_titlebutton_renderfunc()
 			{
 				data = this.data;
@@ -579,7 +580,7 @@ global SS_UI_Theme_Default =
 		"groupblock .groupblk-title:active" = { backgroundColor = UIColor(0.25,0.45,0.65,1) },
 		"groupblock.groupblk-open .groupblk-title" = { icon = "icons/bullet_arrow_down.png" },
 		"groupblock.groupblk-closed .groupblk-title" = { icon = "icons/bullet_arrow_up.png" },
-		"groupblock .groupblk-cont" = { anchorMode = UI_Anchor_Hor, y = 24 },
+		"groupblock .groupblk-cont" = { anchorMode = UI_Anchor_Hor, y = 24, stackMode = UI_Stack_AutoSizeTop, posMode = UI_Pos_SideA },
 		"listboxmenu scrollable" = { anchorMode = UI_Anchor_All },
 		"listboxmenu autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
 		"listboxmenu autolayout button" =
@@ -687,10 +688,9 @@ global SS_UI_Theme_Default =
 		"filebrowser fbentry.type-code" = { icon = "icons/page_white_text.png" },
 		"filebrowser fbentry.type-archive" = { icon = "icons/page_white_zip.png" },
 		// type icons -- end --
-		"dataedit scrollable" = { anchorMode = UI_Anchor_All },
-		"dataedit autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
-		"dataedit .label" = { width = 120, height = 24, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
-		"dataedit .value" = { width = 120, height = 24 },
+		"dataedit container" = { anchorMode = UI_Anchor_All },
+		"dataedit .label" = { width = 120, height = 24, posMode = UI_Pos_SideA, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
+		"dataedit .value" = { width = 120, height = 24, posMode = UI_Pos_SideA },
 		"dataedit .separator" = { anchorMode = UI_Anchor_Hor, height = 24, textColor = UIColor(1), backgroundColor = UIColor(0.6,1) },
 		"dataedit button.value" = { q1x = 1 },
 		"dataedit groupblock > autolayout" = { nonClient = 4 },

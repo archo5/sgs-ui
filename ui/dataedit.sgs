@@ -259,7 +259,8 @@ function UI_DataEdit._recreateFromSchema( schema, defval )
 function UI_DataEdit._push_node_wrapper( name )
 {
 	pp = this.data.OpConts.last;
-	ctrl = UI_CreateAutoLayout( pp )[]{ name = "__wrap__" $ name };
+	ctrl = pp.frame.createControl( "container" )[]{ name = "__wrap__" $ name, posMode = UI_Pos_SideA };
+	pp.addChild( ctrl );
 	this.data.OpConts.push( ctrl );
 }
 
@@ -332,7 +333,7 @@ function UI_DataEdit.setData( dataobj, schema )
 	data = this.data;
 	data.schema = schema;
 	data.dataobj = this._deepCloneDataItem( dataobj );
-	data.AutoLayout.destroyAllChildren(true);
+	data.AutoLayout.destroyAllChildren( true, 1 );
 	name = schema."$root";
 	this._addCtrls( schema.(name), [name] );
 }
@@ -379,11 +380,10 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 		dataedit.callEvent( "change", e );
 	});
 	
-	Scrollable = UI_CreateScrollable( Form, "auto", false );
-	DataEdit.data.Scrollable = Scrollable;
+	DataEdit.data.AutoLayout = AutoLayout = parent.frame.createControl( "container" )[]{ posMode = UI_Pos_SideA };
+	Form.addChild( AutoLayout );
+	UI_MakeScrollable( AutoLayout, "auto", false );
 	
-	AutoLayout = UI_CreateAutoLayout( Scrollable );
-	DataEdit.data.AutoLayout = AutoLayout;
 	DataEdit.data.OpConts = [ AutoLayout ];
 	
 	parent.addChild( DataEdit );

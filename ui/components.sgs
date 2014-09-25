@@ -1,4 +1,7 @@
 
+//
+// HOVER ANIMATOR
+//
 
 function UI_HoverAnimator_Proc( event, com )
 {
@@ -23,6 +26,10 @@ function UI_CreateHoverAnimator( ctrl, state0, state1, time )
 }
 
 
+//
+// SCROLLABLE
+//
+
 function UI_Scrollable_Proc( event, com )
 {
 	if( event.type == EV_AddComponent )
@@ -45,7 +52,7 @@ function UI_Scrollable_Proc( event, com )
 		
 		iw = x1 - x0;
 		ih = y1 - y0;
-		println({iw=iw,ih=ih});
+		println({iw=iw,ih=ih,x0=x0,y0=y0,x1=x1,y1=y1});
 		
 		showV = if( data.vscroll === "auto", ih > this.clientHeight, data.vscroll );
 		showH = if( data.hscroll === "auto", iw > this.clientWidth, data.hscroll );
@@ -57,6 +64,8 @@ function UI_Scrollable_Proc( event, com )
 		fs = this.filteredStyle;
 		this.nonClientRight = fs.nonClientRight + if( showV, scrV.realWidth, 0 );
 		this.nonClientBottom = fs.nonClientBottom + if( showH, scrH.realHeight, 0 );
+		this._updateFullRect();
+		this._updateChildRects();
 	}
 	else if( event.type == EV_MouseWheel )
 	{
@@ -84,5 +93,115 @@ function UI_MakeScrollable( ctrl, vscroll, hscroll )
 	scrH.bindEvent( "change", function(){ this.parent.scroll_x = -this.data.position; } );
 	
 	ctrl.addComponent( "scrollable", UI_Scrollable_Proc, { scrV = scrV, scrH = scrH, hscroll = hscroll, vscroll = vscroll } );
+}
+
+
+//
+// RESIZABLE
+//
+
+function UI_Resizable_Proc( event, com )
+{
+	data = com.data;
+	ML = if( data.margin_l === null, this.nonClientLeft, data.margin_l );
+	MT = if( data.margin_t === null, this.nonClientLeft, data.margin_t );
+	MR = if( data.margin_r === null, this.nonClientLeft, data.margin_r );
+	MB = if( data.margin_b === null, this.nonClientLeft, data.margin_b );
+	if( event.type == EV_ButtonDown )
+	{
+		if( event.button == Mouse_ButtonL )
+		{
+			// test for resizing
+			rsz = 0;
+			if( event.x >= this.rx0 && event.x <= this.rx0 + ML ) rsz |= 0b0001;
+			if( event.x >= this.rx1 - MR && event.x <= this.rx1 ) rsz |= 0b0010;
+			if( event.y >= this.ry0 && event.y <= this.ry0 + MT ) rsz |= 0b0100;
+			if( event.y >= this.ry1 - MB && event.y <= this.ry1 ) rsz |= 0b1000;
+			if( rsz )
+				data.setDragging( this, rsz, event );
+		}
+	}
+	else if( event.type == EV_ButtonUp )
+	{
+		if( event.button == Mouse_ButtonL )
+			data.setDragging( this, null );
+	}
+	else if( event.type == EV_MouseMove )
+	{
+		this.cursor = true;
+		rsz = 0;
+		if( event.x >= this.rx0 && event.x <= this.rx0 + ML ) rsz |= 0b0001;
+		if( event.x >= this.rx1 - MR && event.x <= this.rx1 ) rsz |= 0b0010;
+		if( event.y >= this.ry0 && event.y <= this.ry0 + MT ) rsz |= 0b0100;
+		if( event.y >= this.ry1 - MB && event.y <= this.ry1 ) rsz |= 0b1000;
+		
+		if( rsz == 0b0101 || rsz == 0b1010 ) this.cursor = UI_Cursor_SizeNWSE;
+		else if( rsz == 0b0110 || rsz == 0b1001 ) this.cursor = UI_Cursor_SizeNESW;
+		else if( rsz == 0b0001 || rsz == 0b0010 ) this.cursor = UI_Cursor_SizeWE;
+		else if( rsz == 0b0100 || rsz == 0b1000 ) this.cursor = UI_Cursor_SizeNS;
+		
+		data.handleDragging( this, event );
+	}
+}
+
+function UI_MakeResizable( ctrl, left, top, right, bottom )
+{
+	Resizable_data =
+	{
+		margin_l = left,
+		margin_t = top,
+		margin_r = right,
+		margin_b = bottom,
+		dragging = null,
+		dragorig_x = null,
+		dragorig_y = null,
+		dragstart_x = null,
+		dragstart_y = null,
+	};
+	
+	function Resizable_data.setDragging( Resizable, type, cursor )
+	{
+		this.dragging = type;
+		if( type !== null )
+		{
+			if( type & 0b0010 )
+				this.dragorig_x = Resizable.width;
+			else
+				this.dragorig_x = Resizable.x;
+			
+			if( type & 0b1000 )
+				this.dragorig_y = Resizable.height;
+			else
+				this.dragorig_y = Resizable.y;
+			
+			this.dragstart_x = cursor.x;
+			this.dragstart_y = cursor.y;
+		}
+	}
+	
+	function Resizable_data.handleDragging( Resizable, cursor )
+	{
+		if( this.dragging === null )
+			return;
+		if( this.dragging === 0 )
+		{
+			Resizable.x = this.dragorig_x + cursor.x - this.dragstart_x;
+			Resizable.y = this.dragorig_y + cursor.y - this.dragstart_y;
+		}
+		else
+		{
+			if( this.dragging & 0b0010 )
+				Resizable.width = this.dragorig_x + cursor.x - this.dragstart_x;
+			else if( this.dragging & 0b0001 )
+				Resizable.offsetLeft = this.dragorig_x + cursor.x - this.dragstart_x;
+			
+			if( this.dragging & 0b1000 )
+				Resizable.height = this.dragorig_y + cursor.y - this.dragstart_y;
+			else if( this.dragging & 0b0100 )
+				Resizable.offsetTop = this.dragorig_y + cursor.y - this.dragstart_y;
+		}
+	}
+	
+	ctrl.addComponent( "resizable", UI_Resizable_Proc, Resizable_data );
 }
 

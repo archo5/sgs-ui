@@ -1479,8 +1479,8 @@ void UI_StackLayoutDo_TopLR( UIStackLayoutState* out, UIStackLayoutState* src, U
 {
 	*out = *src;
 	float maxwidth = cont->get_clientWidth();
-	float c_w = TMAX( ch->rx1 - ch->rx0, ch->get_minWidth() );
-	float c_h = TMAX( ch->ry1 - ch->ry0, ch->get_minHeight() );
+	float c_w = TMAX( ch->get_realWidth(), ch->get_minWidth() );
+	float c_h = TMAX( ch->get_realHeight(), ch->get_minHeight() );
 	
 	if( out->xc0 > 0 && out->xc0 + c_w + TMAX( out->xc1 - out->xc0, ch->get_marginLeft() )
 		- ( ch->_roundedCoords || cont->_roundedCoords ) > maxwidth )
@@ -1501,13 +1501,14 @@ void UI_StackLayoutDo_TopLR( UIStackLayoutState* out, UIStackLayoutState* src, U
 	
 	out->xc0 = out->cx + c_w;
 	out->xc1 = out->xc0 + ch->get_marginRight();
-	out->yn0 = TMAX( out->yn0, out->cy + ch->get_height() );
+	out->yn0 = TMAX( out->yn0, out->cy + c_h );
 	out->yn1 = TMAX( out->yn1, out->yn0 + ch->get_marginBottom() );
 }
 
 
 UIControl::UIControl() :
 	id( UI_NO_ID ), scroll_x(0.0f), scroll_y(0.0f), nonclient(false),
+	autoWidth(0.0f), autoHeight(0.0f),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
 	_updatingLayout(false), _roundedCoords(true),
 	_childAffectsLayout(false),
@@ -1719,7 +1720,7 @@ void UIControl::updateIcon()
 
 void UIControl::ppgLayoutChange( UIControl* from )
 {
-	printf( "updating layout for %s (from %s)\n", caption.c_str(), from ? from->caption.c_str() : "event" );
+	printf( "updating layout for %s|%s (from %s|%s)\n", caption.c_str(), classes.c_str(), from ? from->caption.c_str() : "event", from ? from->classes.c_str() : "-" );
 	printf( "parent: %p, stacked: %s\n", (UIControl*) parent, isStacked() ? "yes" : "no" );
 	if( parent.not_null() && isStacked() && parent != from )
 	{
@@ -1759,26 +1760,35 @@ void UIControl::ppgLayoutChange( UIControl* from )
 	}
 	_updateFullRect();
 	
-	sgsVariable ev;
-	UIEvent* chgev = UI_CreateEvent( C, ev, EV_Changed );
-	chgev->key = EV_Changed_Box;
-	niEvent( ev, true );
+	// UPDATE CHILD CONTROLS
+	for( UIControl::HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
+		(*it)->ppgLayoutChange( this );
 	
 	// STACK NEXT CONTROLS (start from `from`/i)
 	for( ; i < m_children.size(); ++i )
 	{
 		if( m_children[ i ]->isStacked() )
 		{
-			m_children[ i ]->_updateFullRect();
 			UI_StackLayoutDo_TopLR( &sls_prev, &sls_prev, m_children[ i ], this );
 			m_children[ i ]->m_stackedLayout = sls_prev;
-			printf( "stacked child (%s) placed at %g;%g\n", m_children[ i ]->caption.c_str(), sls_prev.cx, sls_prev.cy );
+			m_children[ i ]->_updateFullRect();
+			printf( "stacked child (%s|%s) placed at %g;%g\n", m_children[ i ]->caption.c_str(), m_children[ i ]->classes.c_str(), sls_prev.cx, sls_prev.cy );
 		}
 	}
 	
-	// UPDATE CHILD CONTROLS
-	for( UIControl::HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
-		(*it)->ppgLayoutChange( this );
+	autoWidth = 0;
+	autoHeight = sls_prev.yn0;
+	if( get_stackMode() & UI_Stack_AutoSize )
+	{
+		printf( "AutoSIZE for %s|%s: %g\n", caption.c_str(), classes.c_str(), autoHeight );
+		set_height( autoHeight );
+		_updateFullRect();
+	}
+	
+	sgsVariable ev;
+	UIEvent* chgev = UI_CreateEvent( C, ev, EV_Changed );
+	chgev->key = EV_Changed_Box;
+	niEvent( ev, true );
 	
 	_updatingLayout = false;
 }
@@ -1934,10 +1944,21 @@ void UIControl::destroy( bool hard )
 	}
 }
 
-void UIControl::destroyAllChildren( bool hard )
+void UIControl::destroyAllChildren( bool hard, int clientness )
 {
+	HandleArray hatmp;
+	bool notcli = clientness < 0 ? true : false;
 	while( m_children.size() )
-		m_children[0]->destroy( hard );
+	{
+		if( !clientness || m_children[0]->nonclient == notcli )
+		{
+			hatmp.push_back( m_children[0] );
+			m_children.erase( m_children.begin() );
+			m_children[0]->destroy( hard );
+		}
+	}
+	for( size_t i = 0; i < hatmp.size(); ++i )
+		m_children.push_back( hatmp[i] );
 }
 
 bool UIControl::swapChild( UIControl::Handle ch, UIControl::Handle nch )
@@ -2731,6 +2752,14 @@ sgsVariable UIControl::_getMatchedSelectors()
 	}
 	sgs_PushArray( C, fsa.size() );
 	return sgsVariable( C, -1 );
+}
+
+float UIControl::calcWidth()
+{
+}
+
+float UIControl::calcHeight()
+{
 }
 
 void UIControl::_updateFullRect()

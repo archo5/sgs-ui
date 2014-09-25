@@ -757,14 +757,29 @@ function sgs_ui_example_stack()
 
 function sgs_ui_example_cmpt()
 {
+	// HOVER ANIMATIONS
 	cont = UI_CreateStatic( FRAME.root )[]{ caption = "TestRoot" };
 	UI_CreateHoverAnimator( cont,
 		{ x = 100, y = 100, width = 100, height = 100, backgroundColor = UIColor(0.3,0.4,0.5) },
 		{ x = 50, y = 50, width = 200, height = 200, backgroundColor = UIColor(0.5,0.4,0.3) },
 		0.4 );
 	
-	cont2 = UI_CreateStatic( FRAME.root )[]{ caption = "TestRoot2", x = 300, y = 50, width = 200, height = 200 };
+	// SCROLLING / RESIZING
+	cont1 = UI_CreateStatic( FRAME.root )[]{ x = 300, y = 50, width = 200, height = 200, backgroundColor = UIColor(0.3,0.02,0.01) };
+	UI_MakeResizable( cont1, 4, 4, 4, 4 );
+	cont2 = UI_CreateStatic( cont1 )[]{ caption = "TestRoot2", anchorMode = UI_Anchor_All, offsetLeft = 4, offsetTop = 4, offsetRight = 4, offsetBottom = 4 };
 	UI_MakeScrollable( cont2 );
-	UI_CreateStatic( cont2 )[]{ caption = "ScrollThis", width = 300, height = 300 };
+	UI_CreateStatic( cont2 )[]{ caption = "ScrollThis", width = 300, height = 300, posMode = UI_Pos_SideA };
+	
+	// GROUP BLOCK
+	grp = UI_CreateGroupBlock( FRAME.root )[]{ x = 600, y = 200, width = 100, anchorMode = UI_Anchor_Left | UI_Anchor_Top };
+	UI_CreateStatic( grp.getContainer() )[]{ caption = "InGroup", posMode = UI_Pos_SideA, width = 80, height = 50, backgroundColor = UIColor(0.3,0.4,0.5) };
+	UI_CreateStatic( grp.getContainer() )[]{ caption = "InGroup2", posMode = UI_Pos_SideA, width = 80, height = 50, backgroundColor = UIColor(0.4,0.5,0.3) };
+	
+	// GROUP BLOCK 2
+	grp2 = UI_CreateGroupBlock( FRAME.root )[]{ x = 800, y = 200, width = 100, anchorMode = UI_Anchor_Left | UI_Anchor_Top };
+	grp21 = UI_CreateGroupBlock( grp2.getContainer() )[]{ width = 100, anchorMode = UI_Anchor_Left | UI_Anchor_Top, posMode = UI_Pos_SideA };
+	UI_CreateStatic( grp21.getContainer() )[]{ caption = "InGroup", posMode = UI_Pos_SideA, width = 80, height = 50, backgroundColor = UIColor(0.3,0.4,0.5) };
+	UI_CreateStatic( grp2.getContainer() )[]{ caption = "InGroup2", posMode = UI_Pos_SideA, width = 80, height = 50, backgroundColor = UIColor(0.4,0.5,0.3) };
 }
 
