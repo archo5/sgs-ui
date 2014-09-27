@@ -259,7 +259,7 @@ function UI_DataEdit._recreateFromSchema( schema, defval )
 function UI_DataEdit._push_node_wrapper( name )
 {
 	pp = this.data.OpConts.last;
-	ctrl = UI_CreateControl( pp, "container" )[]{ name = "__wrap__" $ name, posMode = UI_Pos_SideA };
+	ctrl = UI_CreateControl( pp, "wrapper" )[]{ name = "__wrap__" $ name, posMode = UI_Pos_SideA };
 	this.data.OpConts.push( ctrl );
 }
 
@@ -280,9 +280,9 @@ function UI_DataEdit._addCtrls( schema, path )
 	if( !@this.( "_create_" $ type ) )
 		return WARNING( "no such data edit element: " $ type );
 	
-//	this._push_node_wrapper( name );
+	this._push_node_wrapper( name );
 	last = this.( "_create_" $ type )( name, schema, value, path );
-//	this._pop_node_wrapper();
+	this._pop_node_wrapper();
 	
 	if( null != ( cont = @last.getContainer() ) )
 	{
@@ -379,7 +379,7 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 		dataedit.callEvent( "change", e );
 	});
 	
-	DataEdit.data.AutoLayout = AutoLayout = UI_CreateControl( Form, "container" )[]{ posMode = UI_Pos_SideA };
+	DataEdit.data.AutoLayout = AutoLayout = UI_CreateControl( Form, "datacontainer" )[]{ posMode = UI_Pos_SideA };
 	UI_MakeScrollable( AutoLayout, "auto", false );
 	
 	DataEdit.data.OpConts = [ AutoLayout ];

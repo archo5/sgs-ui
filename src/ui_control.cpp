@@ -1782,7 +1782,7 @@ void UIControl::ppgLayoutChange( UIControl* from )
 	}
 	
 	autoWidth = 0;
-	autoHeight = sls_prev.yn0;
+	autoHeight = sls_prev.yn0 + get_nonClientTop() + get_nonClientBottom();
 	if( get_stackMode() & UI_Stack_AutoSize )
 	{
 		printf( "AutoSIZE for %s|%s: %g\n", caption.c_str(), classes.c_str(), autoHeight );

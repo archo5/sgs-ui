@@ -688,16 +688,19 @@ global SS_UI_Theme_Default =
 		"filebrowser fbentry.type-code" = { icon = "icons/page_white_text.png" },
 		"filebrowser fbentry.type-archive" = { icon = "icons/page_white_zip.png" },
 		// type icons -- end --
-		"dataedit container" = { anchorMode = UI_Anchor_All, posMode = UI_Pos_SideA },
-		"dataedit .label" = { width = 120, height = 24, posMode = UI_Pos_SideA, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
-		"dataedit .value" = { width = 120, height = 24, posMode = UI_Pos_SideA },
-		"dataedit .separator" = { anchorMode = UI_Anchor_Hor, posMode = UI_Pos_SideA, height = 24, textColor = UIColor(1), backgroundColor = UIColor(0.6,1) },
-		"dataedit button.value" = { q1x = 1 },
+		"dataedit datacontainer" = { anchorMode = UI_Anchor_All, backgroundColor = UIColor(0.8,1),
+			renderfunc = function SS_UI_Theme_Default_static_renderfunc()
+			{
+				c = this.backgroundColor;
+				SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, c.r, c.g, c.b, c.a );
+			}
+		},
 		"dataedit groupblock" = { anchorMode = UI_Anchor_Hor, posMode = UI_Pos_SideA },
-		"dataedit groupblock > autolayout" = { nonClient = 4 },
-		"dataedit groupblock groupblock" = { nonClientLeft = 12 },
-		"dataedit .array > autolayout > autolayout > groupblock" = { nonClientLeft = 4 },
-		"dataedit .array_size" = { width = 80, height = 24 }, // TODO
+		"dataedit groupblock > container" = { nonClient = 4, nonClientRight = 0 },
+		"dataedit wrapper" = { anchorMode = UI_Anchor_Hor, stackMode = UI_Stack_AutoSizeTop, posMode = UI_Pos_SideA, margin = 4 },
+		"dataedit .label" = { width = 120, height = 24, margin = 4, posMode = UI_Pos_SideA, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
+		"dataedit .value" = { width = 120, height = 24, margin = 4, posMode = UI_Pos_SideA },
+		"dataedit .array_size" = { width = 80, height = 24, posMode = UI_Pos_SideA },
 	}),
 	
 	// BUTTON

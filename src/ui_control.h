@@ -777,6 +777,8 @@ struct UIControl
 	void _applyStyle( const UIStyleCache& nsc );
 	SGS_METHOD sgsVariable _getMatchedSelectors();
 	
+	SGS_NODUMP( parent styleParent frame );
+	
 #define UIC_DEFINE_ACCESSORS( ty, nm ) \
 	ty get_##nm() const { return computedStyle.nm; } \
 	void set_##nm( sgsMaybe<ty> nm ){ style.nm = nm; _remergeStyle(); }
@@ -964,7 +966,7 @@ struct UIControl
 	SGS_PROPERTY READ bool keyboardFocus : 1;
 	SGS_PROPERTY READ int clicked;
 	
-	HandleArray m_children; SGS_GCREF( m_children );
+	HandleArray m_children; SGS_GCREF( m_children ); SGS_DUMP( m_children );
 	HandleArray m_sorted;
 	sgsVariable m_events; SGS_GCREF( m_events );
 	CmptArray m_components; SGS_GCREF( m_components );
