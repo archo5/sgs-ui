@@ -409,8 +409,8 @@ function UI_Textbox.setText( text )
 
 function UI_CreateTextbox( parent, name, caption, text )
 {
-	caption ||= "";
-	text ||= "";
+	caption ??= "";
+	text ??= "";
 	text = tostring( text );
 	
 	Textbox = parent.frame.createControl( "textbox" );

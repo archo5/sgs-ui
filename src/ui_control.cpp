@@ -381,7 +381,7 @@ const char* UI_ParseSelector( UIStyleSelector* sel, sgsString sgsstr, const char
 			if( text >= textend ) return text; // unexpected end of string
 			
 			char spc = 0;
-			if( *text == '^' || *text == '$' || *text == '~' )
+			if( *text == '^' || *text == '$' || *text == '~' || *text == '=' )
 			{
 				spc = *text++;
 				if( text >= textend ) return text; // unexpected end of string
@@ -1720,10 +1720,9 @@ void UIControl::updateIcon()
 
 void UIControl::ppgLayoutChange( UIControl* from )
 {
-	if( !from )
-		puts("\n");
-	printf( "updating layout for %s|%s (from %s|%s)\n", caption.c_str(), classes.c_str(), from ? from->caption.c_str() : "event", from ? from->classes.c_str() : "-" );
-	printf( "parent: %p, stacked: %s\n", (UIControl*) parent, isStacked() ? "yes" : "no" );
+//	if( !from ) puts("\n");
+//	printf( "updating layout for %s|%s (from %s|%s)\n", caption.c_str(), classes.c_str(), from ? from->caption.c_str() : "event", from ? from->classes.c_str() : "-" );
+//	printf( "parent: %p, stacked: %s\n", (UIControl*) parent, isStacked() ? "yes" : "no" );
 	if( parent.not_null() && isStacked() && parent != from )
 	{
 		parent->ppgLayoutChange( this );
@@ -1777,7 +1776,7 @@ void UIControl::ppgLayoutChange( UIControl* from )
 			m_children[ i ]->set_y( sls_prev.cy );
 			m_children[ i ]->_updateFullRect();
 			m_children[ i ]->_updateChildRects();
-			printf( "stacked child (%s|%s) placed at %g;%g\n", m_children[ i ]->caption.c_str(), m_children[ i ]->classes.c_str(), sls_prev.cx, sls_prev.cy );
+//			printf( "stacked child (%s|%s) placed at %g;%g\n", m_children[ i ]->caption.c_str(), m_children[ i ]->classes.c_str(), sls_prev.cx, sls_prev.cy );
 		}
 	}
 	
@@ -1785,7 +1784,7 @@ void UIControl::ppgLayoutChange( UIControl* from )
 	autoHeight = sls_prev.yn0 + get_nonClientTop() + get_nonClientBottom();
 	if( get_stackMode() & UI_Stack_AutoSize )
 	{
-		printf( "AutoSIZE for %s|%s: %g\n", caption.c_str(), classes.c_str(), autoHeight );
+//		printf( "AutoSIZE for %s|%s: %g\n", caption.c_str(), classes.c_str(), autoHeight );
 		set_height( autoHeight );
 		_updateFullRect();
 	}

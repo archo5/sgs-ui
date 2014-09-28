@@ -44,7 +44,6 @@ function UI_Scrollable_Proc( event, com )
 	}
 	else if( event.type == EV_Changed && event.subtype & EV_Changed_Box )
 	{
-	println("============"$event.subtype);
 		data = com.data;
 		scrV = data.scrV;
 		scrH = data.scrH;
@@ -52,7 +51,7 @@ function UI_Scrollable_Proc( event, com )
 		
 		iw = x1 - x0;
 		ih = y1 - y0;
-		println({iw=iw,ih=ih,x0=x0,y0=y0,x1=x1,y1=y1});
+	//	println({iw=iw,ih=ih,x0=x0,y0=y0,x1=x1,y1=y1});
 		
 		showV = if( data.vscroll === "auto", ih > this.clientHeight, data.vscroll );
 		showH = if( data.hscroll === "auto", iw > this.clientWidth, data.hscroll );
@@ -124,7 +123,7 @@ function UI_Resizable_Proc( event, com )
 	else if( event.type == EV_ButtonUp )
 	{
 		if( event.button == Mouse_ButtonL )
-			data.setDragging( this, null );
+			data.setDragging( this, null, null, event );
 	}
 	else if( event.type == EV_MouseMove )
 	{
@@ -157,9 +156,10 @@ function UI_MakeResizable( ctrl, left, top, right, bottom )
 		dragorig_y = null,
 		dragstart_x = null,
 		dragstart_y = null,
+		hasdragged = false,
 	};
 	
-	function Resizable_data.setDragging( Resizable, type, cursor )
+	function Resizable_data.setDragging( Resizable, type, cursor, event )
 	{
 		this.dragging = type;
 		if( type !== null )
@@ -176,29 +176,38 @@ function UI_MakeResizable( ctrl, left, top, right, bottom )
 			
 			this.dragstart_x = cursor.x;
 			this.dragstart_y = cursor.y;
+			this.hasdragged = false;
+		}
+		else if( this.hasdragged )
+		{
+			if( !event )
+				event = UI_CreateEvent();
+			Resizable.callEvent( "onresize", event );
 		}
 	}
 	
-	function Resizable_data.handleDragging( Resizable, cursor )
+	function Resizable_data.handleDragging( Resizable, event )
 	{
 		if( this.dragging === null )
 			return;
+		Resizable.callEvent( "oneditsize", event );
+		this.hasdragged = true;
 		if( this.dragging === 0 )
 		{
-			Resizable.x = this.dragorig_x + cursor.x - this.dragstart_x;
-			Resizable.y = this.dragorig_y + cursor.y - this.dragstart_y;
+			Resizable.x = this.dragorig_x + event.x - this.dragstart_x;
+			Resizable.y = this.dragorig_y + event.y - this.dragstart_y;
 		}
 		else
 		{
 			if( this.dragging & 0b0010 )
-				Resizable.width = this.dragorig_x + cursor.x - this.dragstart_x;
+				Resizable.width = this.dragorig_x + event.x - this.dragstart_x;
 			else if( this.dragging & 0b0001 )
-				Resizable.offsetLeft = this.dragorig_x + cursor.x - this.dragstart_x;
+				Resizable.offsetLeft = this.dragorig_x + event.x - this.dragstart_x;
 			
 			if( this.dragging & 0b1000 )
-				Resizable.height = this.dragorig_y + cursor.y - this.dragstart_y;
+				Resizable.height = this.dragorig_y + event.y - this.dragstart_y;
 			else if( this.dragging & 0b0100 )
-				Resizable.offsetTop = this.dragorig_y + cursor.y - this.dragstart_y;
+				Resizable.offsetTop = this.dragorig_y + event.y - this.dragstart_y;
 		}
 	}
 	

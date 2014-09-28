@@ -11,17 +11,6 @@
 // basic rules:
 // - all property names correspond to actual properties inside the data (doing type1.prop2.prop3 in data and schema works and returns related data)
 
-function FNN()
-{
-	for( i = 0, cnt = va_arg_count(); i < cnt; ++i )
-	{
-		arg = va_get_arg( i );
-		if( arg !== null )
-			return arg;
-	}
-	return null;
-}
-
 global UI_DataEdit = {};
 
 function UI_DataEdit._create_label( text )
@@ -31,12 +20,12 @@ function UI_DataEdit._create_label( text )
 
 function UI_DataEdit._createDefaultLabel( name, schema )
 {
-	return this._create_label( FNN( @schema."$name", name ) );
+	return this._create_label( @schema."$name" ?? name );
 }
 
 function UI_DataEdit._create_separator( name, schema, value, path )
 {
-	return UI_CreateStatic( this.data.OpConts.last )[]{ caption = FNN( @schema."$name", value, name ) }.addClass( "separator" );
+	return UI_CreateStatic( this.data.OpConts.last )[]{ caption = @schema."$name" ?? value ?? name }.addClass( "separator" );
 }
 
 function UI_DataEdit._create_checkbox( name, schema, value, path )
@@ -45,6 +34,7 @@ function UI_DataEdit._create_checkbox( name, schema, value, path )
 	ctrl = UI_CreateCheckbox( this.data.OpConts.last, name, null, !!value ).addClass( "value" );
 	return ctrl;
 }
+function UI_DataEdit._update_checkbox( ctrl, value ){ ctrl.setChecked( value ); }
 
 function UI_DataEdit._create_intbox( name, schema, value, path )
 {
@@ -52,6 +42,7 @@ function UI_DataEdit._create_intbox( name, schema, value, path )
 	ctrl = UI_CreateIntegerBox( this.data.OpConts.last, name, value ).addClass( "value" );
 	return ctrl;
 }
+function UI_DataEdit._update_intbox( ctrl, value ){ ctrl.setValue( value ); }
 
 function UI_DataEdit._create_slider( name, schema, value, path )
 {
@@ -59,6 +50,7 @@ function UI_DataEdit._create_slider( name, schema, value, path )
 	ctrl = UI_CreateSlider( this.data.OpConts.last, name, @schema.min, @schema.max, @schema.stopsize, false, value ).addClass( "value" );
 	return ctrl;
 }
+function UI_DataEdit._update_slider( ctrl, value ){ ctrl.setValue( value ); }
 
 function UI_DataEdit._create_textbox( name, schema, value, path )
 {
@@ -66,6 +58,7 @@ function UI_DataEdit._create_textbox( name, schema, value, path )
 	ctrl = UI_CreateTextbox( this.data.OpConts.last, name, @schema.textbox_caption, value ).addClass( "value" );
 	return ctrl;
 }
+function UI_DataEdit._update_textbox( ctrl, value ){ ctrl.setText( value ); }
 
 function UI_DataEdit._create_switchbutton( name, schema, value, path )
 {
@@ -73,6 +66,7 @@ function UI_DataEdit._create_switchbutton( name, schema, value, path )
 	ctrl = UI_CreateSwitchButton( this.data.OpConts.last, name, @schema.items, @schema.sidebuttons, value ).addClass( "value" );
 	return ctrl;
 }
+function UI_DataEdit._update_switchbutton( ctrl, value ){ ctrl.setValue( value ); }
 
 function UI_DataEdit._create_selectbox( name, schema, value, path )
 {
@@ -80,22 +74,25 @@ function UI_DataEdit._create_selectbox( name, schema, value, path )
 	ctrl = UI_CreateSelectBox( this.data.OpConts.last, name, @schema.items, value ).addClass( "value" );
 	return ctrl;
 }
+function UI_DataEdit._update_selectbox( ctrl, value ){ ctrl.setValue( value ); }
 
 function UI_DataEdit._create_button( name, schema, value, path )
 {
-	ctrl = UI_CreateButton( this.data.OpConts.last )[]{ caption = FNN( @schema."$name" || path.last ), icon = @schema.icon, class = "value" };
+	ctrl = UI_CreateButton( this.data.OpConts.last )[]{ caption = @schema."$name" ?? path.last, icon = @schema.icon, class = "value" };
 	ctrl.bindEvent( "click", @schema.func || value );
 	return ctrl;
 }
+function UI_DataEdit._update_button( ctrl, value ){} // nothing to update
 
 function UI_DataEdit._create_object( name, schema, value, path )
 {
-	return UI_CreateGroupBlock( this.data.OpConts.last, FNN( @schema."$name", path.last, @schema."$type", "object" ) )[]{ name = name };
+	return UI_CreateGroupBlock( this.data.OpConts.last, @schema."$name" ?? path.last ?? @schema."$type" ?? "object" )[]{ name = name };
 }
+function UI_DataEdit._update_object( ctrl, value ){} // nothing to update
 
 function UI_DataEdit._create_array( name, schema, value, path )
 {
-	ctrl = UI_CreateGroupBlock( this.data.OpConts.last, FNN( @schema."$name", path.last ) )[]{ name = name };
+	ctrl = UI_CreateGroupBlock( this.data.OpConts.last, @schema."$name" ?? path.last )[]{ name = name };
 	ctrl.addClass( "array" );
 	cont = ctrl.getContainer();
 	
@@ -107,9 +104,9 @@ function UI_DataEdit._create_array( name, schema, value, path )
 	ctrl.data.dataedit = this;
 	
 	UI_CreateStatic( cont )[]{ caption = "Size" }.addClass( "label" );
-	ibox = UI_CreateIntegerBox( cont, "__ibox__" $ name, @value.size || 0 )[]{ class = "array_size" };
+	ibox = ctrl.data.ibox = UI_CreateIntegerBox( cont, "__ibox__" $ name, @value.size ?? 0 )[]{ class = "array_size" };
 	
-	ibox.bindEvent( "change", function array_ibox_change_handler()
+	ibox.bindEvent( "change", function array_ibox_change_handler( e )
 	{
 		rootarr = this.parent;
 		while( !rootarr.hasClass( "array" ) )
@@ -117,6 +114,7 @@ function UI_DataEdit._create_array( name, schema, value, path )
 		elements = rootarr.data.elements;
 		dataedit = rootarr.data.dataedit;
 		
+		rootarr._updatingLayout = true;
 		newsize = this.getValue();
 		while( elements.size > newsize )
 		{
@@ -128,12 +126,15 @@ function UI_DataEdit._create_array( name, schema, value, path )
 			// - DATA
 			rootarr.data.value.pop();
 			// - EVENT
+			dataedit._arrayEvent( false, rootarr.name, rootarr.data.value.size, e );
 		}
 		while( elements.size < newsize )
 		{
 			// ADD ITEM
+			// - EVENT
+			dataedit._arrayEvent( true, rootarr.name, rootarr.data.value.size, e );
 			// - DATA
-			newdata = dataedit._recreateFromSchema( rootarr.data.subschema );
+			newdata = dataedit._recreateFromSchema( rootarr.data.subschema, dataedit.data.item_added );
 			rootarr.data.value.push( newdata );
 			// - CONTROLS
 			dataedit.data.OpConts.push( rootarr.getContainer() );
@@ -141,8 +142,11 @@ function UI_DataEdit._create_array( name, schema, value, path )
 			ctrl = dataedit._addCtrls( rootarr.data.subschema, npath );
 			elements.push( ctrl );
 			dataedit.data.OpConts.pop();
-			// - EVENT
+			// - cleanup
+			dataedit.data.item_added = null;
 		}
+		rootarr._updatingLayout = false;
+		rootarr.onLayoutChange();
 	});
 	if( value )
 	{
@@ -157,36 +161,33 @@ function UI_DataEdit._create_array( name, schema, value, path )
 	}
 	return ctrl;
 }
-
-function UI_DataEdit._deepCloneDataItem( item )
+function UI_DataEdit._update_array( ctrl, value, schema, path )
 {
-	copy = clone( item );
-	if( @get_iterator( copy ) )
+	ctrl.data.ibox.setValue( value.size );
+	foreach( i, v : value )
 	{
-		foreach( k, v : copy )
-		{
-			copy[ k ] = this._deepCloneDataItem( v );
-		}
+		npath = clone( path ).push( i );
+		this._updateCtrls( schema."$subtype", npath );
 	}
-	return copy;
 }
 
-function UI_DataEdit._getDataByPath( path )
+function UI_DataEdit._getDataByPathFrom( obj, path )
 {
-	o = this.data.dataobj;
 	foreach( item : path.part(1) )
-		o = o[ item ];
-	return o;
+		obj = obj[ item ];
+	return obj;
 }
 
-function UI_DataEdit._setDataByPath( path, value )
+function UI_DataEdit._setDataByPathTo( obj, path, value )
 {
-	o = this.data.dataobj;
 	foreach( item : path.part(1,path.size-2) )
-		o = o[ item ];
-	o[ path.last ] = value;
+		obj = obj[ item ];
+	obj[ path.last ] = value;
 	return true;
 }
+
+function UI_DataEdit._getDataByPath( path ){ return this._getDataByPathFrom( this.data.dataobj, path ); }
+function UI_DataEdit._setDataByPath( path, value ){ return this._setDataByPathTo( this.data.dataobj, path, value ); }
 
 function UI_DataEdit._pickCtrlType( schema )
 {
@@ -198,8 +199,8 @@ function UI_DataEdit._pickCtrlType( schema )
 	type = @schema."$type";
 	hint = @schema."$hint";
 	
-	if( type == "string" )
-		return "textbox";
+	if( type == "string" ) return "textbox";
+	if( type == "int" ) return "intbox";
 	return type;
 }
 
@@ -252,7 +253,19 @@ function UI_DataEdit._recreateFromSchema( schema, defval )
 		}
 		return out;
 	}
-	else if( type == "array" ) return [];
+	else if( type == "array" )
+	{
+		out = [];
+		subschema = schema."$subtype";
+		if( typeof( defval ) == "array" )
+		{
+			foreach( v : defval )
+			{
+				out.push( this._recreateFromSchema( subschema, v ) );
+			}
+		}
+		return out;
+	}
 	return WARNING( "unsupported type in schema" );
 }
 
@@ -270,20 +283,28 @@ function UI_DataEdit._pop_node_wrapper()
 
 function UI_DataEdit._addCtrls( schema, path )
 {
+	// retrieve data
 	(name,path) = this._placePath( path );
 	value = this._getDataByPath( path );
 	
+	// retrieve type/schema
 	(type,newschema) = this._pickCtrlType( schema );
 	if( newschema )
 		schema = newschema;
 	
-	if( !@this.( "_create_" $ type ) )
-		return WARNING( "no such data edit element: " $ type );
+	// store schema
+	this.data.schemap[ name ] = schema;
 	
+	// validate availability
+	if( !@this.( "_create_" $ type ) )
+		return WARNING( "no such data edit element (create): " $ type );
+	
+	// create control
 	this._push_node_wrapper( name );
 	last = this.( "_create_" $ type )( name, schema, value, path );
 	this._pop_node_wrapper();
 	
+	// create child controls
 	if( null != ( cont = @last.getContainer() ) )
 	{
 		this.data.OpConts.push( cont );
@@ -300,17 +321,49 @@ function UI_DataEdit._addCtrls( schema, path )
 	return last;
 }
 
-function UI_DataEdit._setValueByName( name, value )
+function UI_DataEdit._updateCtrls( schema, path )
 {
-	pmap = this.data.pathmap;
-	if( isset( pmap, name ) )
-		return this._setDataByPath( pmap[ name ], value );
-	return false;
+	// retrieve data
+	(name,path) = this._placePath( path );
+	value = this._getDataByPath( path );
+	
+	// retrieve type/schema
+	(type,newschema) = this._pickCtrlType( schema );
+	if( newschema )
+		schema = newschema;
+	
+	// validate availability
+	if( !@this.( "_update_" $ type ) )
+		return WARNING( "no such data edit element (update): " $ type );
+	
+	// find and update relevant control
+	ctrl = this._getControlByName( name );
+	if( !ctrl )
+		return WARNING( "control not found: " $ name );
+	this.( "_update_" $ type )( ctrl, value, schema, path );
+	
+	// update child controls
+	foreach( key, subschema : schema )
+	{
+		if( key[0] == "$" )
+			continue;
+		npath = clone(path).push( key );
+		this._updateCtrls( subschema, npath );
+	}
 }
 
+function UI_DataEdit._getControlByName( name )
+{
+	q = this.frame.find( this.data.Form );
+	return @q.find( "@=" $ name )[0];
+}
+
+function UI_DataEdit.getChangedSchema(){ return this.data.changed_schema; }
 function UI_DataEdit.getChangedProperty(){ return this.data.changed_prop; }
+function UI_DataEdit.getChangedIndex(){ return this.data.changed_index; }
 function UI_DataEdit.getChangeType(){ return this.data.change_type; }
-function UI_DataEdit.getLastChange(){ return this.data.changed_prop, this.data.change_type; }
+function UI_DataEdit.getLastChange(){ return this.data.changed_prop, this.data.change_type, this.data.changed_index, this.data.changed_schema; }
+function UI_DataEdit.getPathByName( name ){ return @this.data.pathmap[ name ]; }
 
 function UI_DataEdit.getValueByName( name )
 {
@@ -320,21 +373,86 @@ function UI_DataEdit.getValueByName( name )
 	return null, false;
 }
 
-function UI_DataEdit.getData()
+function UI_DataEdit._setValueByName( name, value )
 {
-	return this.data.dataobj;
+	pmap = this.data.pathmap;
+	if( isset( pmap, name ) )
+		return this._setDataByPath( pmap[ name ], value );
+	return false;
 }
+
+function UI_DataEdit.applyChangeToObject( obj )
+{
+	data = this.data;
+	cs = data.changed_schema;
+	cp = data.changed_prop;
+	ci = data.changed_index;
+	ct = data.change_type;
+	pmap = this.data.pathmap;
+	if( isset( pmap, cp ) )
+	{
+		path = pmap[ cp ];
+		if( ct == "add" )
+		{
+			arr = this._getDataByPathFrom( obj, path );
+			arr.insert( ci, this._recreateFromSchema( cs ) );
+		}
+		else if( ct == "remove" )
+		{
+			arr.erase( ci );
+		}
+		else
+		{
+			this._setDataByPathTo( obj, path, this._getDataByPath( path ) );
+		}
+	}
+}
+
+function UI_DataEdit.setItemAdded( obj )
+{
+	this.data.item_added = obj;
+}
+
+function UI_DataEdit.getSchema(){ return this.data.schema; }
+function UI_DataEdit.getData(){ return this.data.dataobj; }
 
 function UI_DataEdit.setData( dataobj, schema )
 {
 	if( !schema )
 		return;
 	data = this.data;
-	data.schema = schema;
-	data.dataobj = this._deepCloneDataItem( dataobj );
 	data.AutoLayout.destroyAllChildren( true, 1 );
+	data.schema = schema;
+	data.pathmap = {};
+	data.schemap = {};
 	name = schema."$root";
+	data.dataobj = this._recreateFromSchema( schema.(name), dataobj );
 	this._addCtrls( schema.(name), [name] );
+}
+
+function UI_DataEdit.updateData( dataobj )
+{
+	data = this.data;
+	if( !data.schema )
+		return WARNING( "no data set previously" );
+	schema = data.schema;
+	name = schema."$root";
+	data.dataobj = this._recreateFromSchema( schema.(name), dataobj );
+	this._updateCtrls( schema.(name), [name] );
+}
+
+function UI_DataEdit._arrayEvent( addrem, name, idx, event )
+{
+	if( !event )
+		event = UI_CreateEvent();
+	data = this.data;
+	data.changed_schema = @data.schemap[ name ];
+	data.changed_prop = name;
+	data.changed_index = idx;
+	data.change_type = if( addrem, "add", "remove" );
+	data.item_added = null;
+	this.callEvent( "edit", event );
+	this.callEvent( "change", event );
 }
 
 function UI_CreateDataEdit( parent, dataobj, schema )
@@ -347,9 +465,13 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 		schema = schema,
 		
 		pathmap = {},
+		schemap = {},
 		
+		changed_schema = null,
 		changed_prop = null,
+		changed_index = null,
 		change_type = null,
+		item_added = null,
 	};
 	
 	Form = UI_CreateForm( DataEdit );
@@ -360,8 +482,12 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 		chgname = this.getLastChange();
 		if( chgname[0] == "_" )
 			return;
-		dataedit.data.changed_prop = chgname;
-		dataedit.data.change_type = "edit";
+		data = dataedit.data;
+		data.changed_schema = @data.schemap[ chgname ];
+		data.changed_prop = chgname;
+		data.changed_index = null;
+		data.change_type = "edit";
+		data.item_added = null;
 		dataedit._setValueByName( chgname, this.getString( chgname ) );
 		dataedit.callEvent( "edit", e );
 	});
@@ -373,8 +499,12 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 			return;
 		if( chgname[0] == "_" )
 			return;
-		dataedit.data.changed_prop = chgname;
-		dataedit.data.change_type = "edit";
+		data = dataedit.data;
+		data.changed_schema = @data.schemap[ chgname ];
+		data.changed_prop = chgname;
+		data.changed_index = null;
+		data.change_type = "edit";
+		data.item_added = null;
 		dataedit._setValueByName( chgname, this.getString( chgname ) );
 		dataedit.callEvent( "change", e );
 	});

@@ -679,7 +679,7 @@ function sgs_ui_example_filebrowse()
 
 
 //
-// DATAEDIT EXAMPLE
+// DATAEDIT EXAMPLE [0]
 // - tests complex data editing features
 //
 
@@ -728,6 +728,137 @@ function sgs_ui_example_dataedit()
 	de = UI_CreateDataEdit( FRAME.root, dataobj, schema )[]{ anchorMode = UI_Anchor_All };
 	de.bindEvent( "edit", function(){ println( "edited "${key=this.getChangedProperty(),val=this.getValueByName(this.getChangedProperty())} ); } );
 	de.bindEvent( "change", function(){ println( "CHANGED "${key=this.getChangedProperty(),val=this.getValueByName(this.getChangedProperty())} ); } );
+}
+
+
+//
+// DATAEDIT EXAMPLE 1
+// - tests basic actual one-way editing
+//
+
+function sgs_ui_example_ded1()
+{
+	dataobj = UI_CreateStatic( FRAME.root )[]{ x = 200, y = 200, width = 300, height = 200, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit me" };
+	schema =
+	{
+		CONTROL =
+		{
+			"$type" = "object",
+			x = { "$type" = "int" },
+			y = { "$type" = "int" },
+			width = { "$type" = "int" },
+			height = { "$type" = "int" },
+			caption = { "$type" = "string" },
+		},
+		"$root" = "CONTROL",
+	};
+	de = UI_CreateDataEdit( FRAME.root, dataobj, schema )[]{ anchorMode = UI_Anchor_All, q0x = 0.7 };
+	de.bindEvent( "change", function() use( dataobj )
+	{
+		this.applyChangeToObject( dataobj );
+	});
+}
+
+
+//
+// DATAEDIT EXAMPLE 2
+// - tests basic actual two-way editing
+//
+
+function sgs_ui_example_ded2()
+{
+	dataobj = UI_CreateStatic( FRAME.root )[]{ x = 200, y = 200, width = 300, height = 200, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me" };
+	UI_MakeResizable( dataobj, 4, 4, 4, 4 );
+	schema =
+	{
+		CONTROL =
+		{
+			"$type" = "object",
+			x = { "$type" = "int" },
+			y = { "$type" = "int" },
+			width = { "$type" = "int" },
+			height = { "$type" = "int" },
+			caption = { "$type" = "string" },
+		},
+		"$root" = "CONTROL",
+	};
+	de = UI_CreateDataEdit( FRAME.root, dataobj, schema )[]{ anchorMode = UI_Anchor_All, q0x = 0.7 };
+	dataobj.bindEvent( "oneditsize", function( e ) use( de )
+	{
+		de.updateData( this );
+	});
+	de.bindEvent( "change", function() use( dataobj )
+	{
+		this.applyChangeToObject( dataobj );
+	});
+}
+
+
+//
+// DATAEDIT EXAMPLE 3
+// - tests two-way editing with one-way arrays
+//
+
+function sgs_ui_example_ded3()
+{
+	dataobj =
+	[
+		UI_CreateStatic( FRAME.root )[]{ x = 100, y = 100, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me" },
+		UI_CreateStatic( FRAME.root )[]{ x = 400, y = 200, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me too" },
+	];
+	foreach( ctrl : dataobj )
+	{
+		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
+		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
+	}
+	schema =
+	{
+		CONTROL =
+		{
+			"$type" = "object",
+			x = { "$type" = "int" },
+			y = { "$type" = "int" },
+			width = { "$type" = "int" },
+			height = { "$type" = "int" },
+			caption = { "$type" = "string" },
+		},
+		CONTROL_ARRAY =
+		{
+			"$name" = "Controls",
+			"$type" = "array",
+			"$subtype" = "CONTROL",
+		},
+		"$root" = "CONTROL_ARRAY",
+	};
+	de = UI_CreateDataEdit( FRAME.root, dataobj, schema )[]{ anchorMode = UI_Anchor_All, q0x = 0.7 };
+	function updateDataCb( e ) use( de, dataobj )
+	{
+		de.updateData( dataobj );
+	}
+	foreach( ctrl : dataobj )
+	{
+		ctrl.bindEvent( "oneditsize", updateDataCb );
+	}
+	de.bindEvent( "change", function() use( dataobj, updateDataCb )
+	{
+		type = this.getChangeType();
+		idx = this.getChangedIndex();
+		if( type == "add" )
+		{
+			ctrl = UI_CreateStatic( FRAME.root )[]{ x = 10, y = 10, width = 100, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "<untitled>" };
+			UI_MakeResizable( ctrl, 4, 4, 4, 4 );
+			ctrl.bindEvent( "oneditsize", updateDataCb );
+			dataobj.insert( idx, ctrl );
+			this.setItemAdded( ctrl );
+		}
+		else if( type == "remove" )
+		{
+			dataobj[ idx ].destroy(true);
+			dataobj.erase( idx );
+		}
+		else
+			this.applyChangeToObject( dataobj );
+	});
 }
 
 
