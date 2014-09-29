@@ -3,8 +3,7 @@
 // D&D kit
 function UI_CreatePlaceholder( src )
 {
-	Pch = src.frame.createControl( "placeholder" );
-	Pch[]
+	Pch = src.frame.createControl( "placeholder" )[]
 	{
 		x = src.x,
 		y = src.y,
@@ -14,6 +13,8 @@ function UI_CreatePlaceholder( src )
 		q0y = src.q0y,
 		q1x = src.q1x,
 		q1y = src.q1y,
+		posMode = src.posMode,
+		stackMode = src.stackMode,
 	};
 	
 	Pch.updateTheme();
@@ -32,44 +33,6 @@ function UI_PreDetachPreserveControl( ctrl )
 		q0x = 0, q1x = 0, q0y = 0, q1y = 0,
 		styleParent = ctrl.parent,
 	};
-}
-
-
-global UI_ScrollingAutoLayout = {};
-
-function UI_ScrollingAutoLayout.getContainer()
-{
-	return this.data.OpCont;
-}
-
-function UI_CreateScrollingAutoLayout( parent )
-{
-	ScrollingAutoLayout = parent.frame.createControl( "scrollingautolayout" );
-	ScrollingAutoLayout._interface = UI_ScrollingAutoLayout;
-	ScrollingAutoLayout.data =
-	{
-		options = [],
-	};
-	
-	Scrollable = UI_CreateScrollable( ScrollingAutoLayout, "auto", false );
-	ScrollingAutoLayout.data.Scrollable = Scrollable;
-	
-	AutoLayout = UI_CreateAutoLayout( Scrollable );
-	ScrollingAutoLayout.data.AutoLayout = AutoLayout;
-	ScrollingAutoLayout.data.OpCont = AutoLayout;
-	
-	ScrollingAutoLayout.updateTheme();
-	parent.addChild( ScrollingAutoLayout );
-	return ScrollingAutoLayout;
-}
-
-UI_Controls.scrollingautolayout_params = ["children"];
-function UI_Controls.scrollingautolayout( parent, params )
-{
-	ctrl = UI_CreateScrollingAutoLayout( parent );
-	UI_ConfigControl( ctrl, params );
-	if( @params.children )
-		UI_BuildControls( ctrl.getContainer(), params.children );
 }
 
 
@@ -138,8 +101,8 @@ function UI_EditableList._initItem( ELItem )
 					this.style = data.originalStyle;
 					this.styleParent = null;
 					this._neverHit = false;
-					this.parent.parent.enableCursorScroll( false );
-					this.parent.parent.parent._notifyReorder( this );
+					this.parent.findComponentByType( "scrollable" ).data.enableCursorScroll( false );
+					this.parent._notifyReorder( this );
 				}
 				data.maydrag = false;
 			}
@@ -153,13 +116,14 @@ function UI_EditableList._initItem( ELItem )
 				data.dragging = true;
 				// D&D BEGINS
 				data.previndex = this.getOrderIndex();
-				this.parent.parent.enableCursorScroll( true );
+				this.parent.findComponentByType( "scrollable" ).data.enableCursorScroll( true );
 				data.dragoff_x = this.rx0 - data.startcp_x;
 				data.dragoff_y = this.ry0 - data.startcp_y;
 				data.originalStyle = this.style;
 				data.placeholder = UI_CreatePlaceholder( this );
 				UI_PreDetachPreserveControl( this );
 				this.swapOutFor( data.placeholder );
+				this.posMode = UI_Pos_Abs;
 				this.frame.root.addChild( this );
 				this._neverHit = true;
 				this.frame.handleMouseMove();
@@ -170,7 +134,7 @@ function UI_EditableList._initItem( ELItem )
 				this.y = data.dragoff_y + event.y;
 				
 				cuc = this.frame.getControlUnderCursor();
-				item = this.frame.find( cuc ).closest( "editablelist > scrollable > autolayout > item" );
+				item = this.frame.find( cuc ).closest( "editablelist > item" );
 				if( item.size && item[0].parent == this.styleParent )
 				{
 					data.placeholder.moveToIndex( item[0].getOrderIndex() );
@@ -182,9 +146,11 @@ function UI_EditableList._initItem( ELItem )
 }
 
 function UI_EditableList.getContainer(){ return this.data.OpCont; }
-function UI_EditableList.getItemCount(){ return this.data.OpCont.getAllChildCount(); }
+function UI_EditableList.getItemCount(){ return this.data.value.size; }
 function UI_EditableList.insertAt( pos, name )
 {
+	if( pos < 0 || pos > this.getItemCount() )
+		return WARNING( "item index out of bounds" ) || false;
 	item = this.frame.createControl( "item" );
 	this._initItem( item );
 	if( name !== null )
@@ -239,12 +205,10 @@ function UI_CreateEditableList( parent, name )
 	};
 	EditableList.name = name;
 	
-	Scrollable = UI_CreateScrollable( EditableList, "auto", false );
-	EditableList.data.Scrollable = Scrollable;
+//	EditableList.data.AutoLayout = AutoLayout = UI_CreateControl( EditableList, "datacontainer" )[]{ posMode = UI_Pos_SideA };
 	
-	AutoLayout = UI_CreateAutoLayout( Scrollable );
-	EditableList.data.AutoLayout = AutoLayout;
-	EditableList.data.OpCont = AutoLayout;
+	EditableList.data.OpCont = EditableList;
+	UI_MakeScrollable( EditableList, "auto", false );
 	
 	ocb = EditableList.callback;
 	function EditableList.callback( event ) use( ocb )
@@ -359,11 +323,7 @@ function UI_ListBoxMenu.removeOptions()
 
 function UI_ListBoxMenu.refit()
 {
-	data = this.data;
-	real_height = data.AutoLayout.ry1 - data.AutoLayout.ry0;
-	real_height += data.Scrollable.nonClientTop + data.Scrollable.nonClientBottom;
-	real_height += this.paddingTop + this.paddingBottom;
-	real_height += this.nonClientTop + this.nonClientBottom;
+	real_height = this.autoHeight;
 	if( real_height > this.maxHeight )
 		real_height = this.maxHeight;
 	this.height = real_height;
@@ -413,12 +373,10 @@ function UI_CreateListBoxMenu( parent, popup_remove_callback )
 		}
 	}
 	
-	Scrollable = UI_CreateScrollable( ListBoxMenu, "auto", false );
-	ListBoxMenu.data.Scrollable = Scrollable;
+//	ListBoxMenu.data.AutoLayout = AutoLayout = UI_CreateControl( ListBoxMenu, "datacontainer" )[]{ posMode = UI_Pos_SideA };
 	
-	AutoLayout = UI_CreateAutoLayout( Scrollable );
-	ListBoxMenu.data.AutoLayout = AutoLayout;
-	ListBoxMenu.data.OpCont = AutoLayout;
+	ListBoxMenu.data.OpCont = ListBoxMenu;
+	UI_MakeScrollable( ListBoxMenu, "auto", false );
 	
 	ListBoxMenu.updateTheme();
 	parent.addChild( ListBoxMenu );
@@ -510,7 +468,7 @@ function UI_PropertyGrid.setData( input_values, options )
 	data = this.data;
 	data.options = options;
 	data.values = all_values = {};
-	data.AutoLayout.destroyAllChildren(true);
+	data.AutoLayout.destroyAllChildren( true, 1 );
 	foreach( option : options )
 	{
 		name = @option.name;
@@ -568,11 +526,9 @@ function UI_CreatePropertyGrid( parent, values, options )
 	PropertyGrid.data.Form = Form;
 	Form.bindEvent( "change", function( e ){ this.parent._updateData(); this.parent.callEvent( "change", e ); } );
 	
-	Scrollable = UI_CreateScrollable( Form, "auto", false );
-	PropertyGrid.data.Scrollable = Scrollable;
+	PropertyGrid.data.AutoLayout = AutoLayout = UI_CreateControl( Form, "datacontainer" )[]{ posMode = UI_Pos_SideA };
+	UI_MakeScrollable( AutoLayout, "auto", false );
 	
-	AutoLayout = UI_CreateAutoLayout( Scrollable );
-	PropertyGrid.data.AutoLayout = AutoLayout;
 	PropertyGrid.data.OpCont = AutoLayout;
 	
 	parent.addChild( PropertyGrid );

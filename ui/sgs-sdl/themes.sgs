@@ -423,20 +423,6 @@ global SS_UI_Theme_Default =
 			}
 		},
 		// - panels
-		"scrollable" =
-		{
-			nonClient = 1,
-			padding = 20,
-			backgroundColor = UIColor( 0.8, 1 ),
-			renderfunc = function SS_UI_Theme_Default_scrollable_renderfunc()
-			{
-				c = this.backgroundColor;
-				SS_DrawColorRect( this.rx0, this.ry0, this.rx1, this.ry1, c.r-0.2, c.g-0.2, c.b-0.2, c.a );
-				SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, c.r, c.g, c.b, c.a );
-			}
-		},
-		"scrollable > .scroll-vertical" = { x = 1, y = -1, width = 12, visible = false, anchorMode = UI_Anchor_Vert | UI_Anchor_Right },
-		"scrollable > .scroll-horizontal" = { x = -1, y = 1, height = 12, visible = false, anchorMode = UI_Anchor_Hor | UI_Anchor_Bottom },
 		"splitpane > pane" = { anchorMode = UI_Anchor_All },
 		"splitpane > split" = { anchorMode = UI_Anchor_All, nonClientV = 1, backgroundColor = UIColor( 0.8, 1 ) },
 		"splitpane.horizontal > .pane-a" = { y = 0, height = -3 },
@@ -518,12 +504,10 @@ global SS_UI_Theme_Default =
 				}
 			}
 		},
-		"scrollingautolayout > scrollable" = { anchorMode = UI_Anchor_All },
-		"scrollingautolayout > scrollable > autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
-		"editablelist > scrollable" = { anchorMode = UI_Anchor_All },
-		"editablelist > scrollable > autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
-		"editablelist > scrollable > autolayout > item" =
+		"editablelist" = { padding = 32 },
+		"editablelist > item" =
 		{
+			posMode = UI_Pos_SideA,
 			backgroundColor = UIColor(0.85,1),
 			renderfunc = function SS_UI_Theme_Default_editablelistitem_renderfunc()
 			{
@@ -531,8 +515,8 @@ global SS_UI_Theme_Default =
 				SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, c.r, c.g, c.b, c.a );
 			}
 		},
-		"editablelist > scrollable > autolayout > item:hover" = { backgroundColor = UIColor(0.9,1) },
-		"editablelist > scrollable > autolayout > item:active" = { backgroundColor = UIColor(0.75,1) },
+		"editablelist > item:hover" = { backgroundColor = UIColor(0.9,1) },
+		"editablelist > item:active" = { backgroundColor = UIColor(0.75,1) },
 		"groupblock" = { stackMode = UI_Stack_Top },
 		"groupblock > .groupblk-title" =
 		{
@@ -581,10 +565,9 @@ global SS_UI_Theme_Default =
 		"groupblock.groupblk-open .groupblk-title" = { icon = "icons/bullet_arrow_down.png" },
 		"groupblock.groupblk-closed .groupblk-title" = { icon = "icons/bullet_arrow_up.png" },
 		"groupblock .groupblk-cont" = { anchorMode = UI_Anchor_Hor, y = 24, stackMode = UI_Stack_AutoSizeTop, posMode = UI_Pos_SideA },
-		"listboxmenu scrollable" = { anchorMode = UI_Anchor_All },
-		"listboxmenu autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
-		"listboxmenu autolayout button" =
+		"listboxmenu > button" =
 		{
+			posMode = UI_Pos_SideA,
 			height = 24,
 			q1x = 1,
 			backgroundColor = UIColor(0.9,1),
@@ -618,13 +601,20 @@ global SS_UI_Theme_Default =
 				}
 			}
 		},
-		"listboxmenu autolayout button:hover" = { backgroundColor = UIColor(0.4,0.6,0.8,1), textColor = UIColor(1,1) },
-		"listboxmenu autolayout button:active" = { backgroundColor = UIColor(0.3,0.5,0.7,1), textColor = UIColor(1,1) },
+		"listboxmenu > button:hover" = { backgroundColor = UIColor(0.4,0.6,0.8,1), textColor = UIColor(1,1) },
+		"listboxmenu > button:active" = { backgroundColor = UIColor(0.3,0.5,0.7,1), textColor = UIColor(1,1) },
 		"listboxmenu.select-list" = { maxHeight = 300 },
-		"propertygrid scrollable" = { anchorMode = UI_Anchor_All },
-		"propertygrid autolayout" = { anchorMode = UI_Anchor_Hor | UI_Anchor_Top },
-		"propertygrid .label" = { q1x = 0.5, height = 24, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
-		"propertygrid .value" = { q1x = 0.5, height = 24 },
+		"propertygrid datacontainer" = { anchorMode = UI_Anchor_All, backgroundColor = UIColor(0.8,1),
+			renderfunc = function SS_UI_Theme_Default_static_renderfunc()
+			{
+				c = this.backgroundColor;
+				SS_DrawColorRect( this.cx0, this.cy0, this.cx1, this.cy1, c.r, c.g, c.b, c.a );
+			}
+		},
+		"propertygrid groupblock" = { anchorMode = UI_Anchor_Hor, posMode = UI_Pos_SideA },
+		"propertygrid groupblock > container" = { nonClient = 4, nonClientRight = 0 },
+		"propertygrid .label" = { q1x = 0.5, height = 24, marginV = 4, posMode = UI_Pos_SideA, nonClientRight = 4, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
+		"propertygrid .value" = { q1x = 0.5, height = 24, marginV = 4, posMode = UI_Pos_SideA },
 		"propertygrid .separator" = { anchorMode = UI_Anchor_Hor, height = 24, textColor = UIColor(1), backgroundColor = UIColor(0.6,1) },
 		"propertygrid button.value" = { q1x = 1 },
 		"window" =
@@ -698,8 +688,8 @@ global SS_UI_Theme_Default =
 		"dataedit groupblock" = { anchorMode = UI_Anchor_Hor, posMode = UI_Pos_SideA },
 		"dataedit groupblock > container" = { nonClient = 4, nonClientRight = 0 },
 		"dataedit wrapper" = { anchorMode = UI_Anchor_Hor, stackMode = UI_Stack_AutoSizeTop, posMode = UI_Pos_SideA, margin = 4 },
-		"dataedit .label" = { width = 120, height = 24, margin = 4, posMode = UI_Pos_SideA, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
-		"dataedit .value" = { width = 120, height = 24, margin = 4, posMode = UI_Pos_SideA },
+		"dataedit .label" = { q1x = 0.5, height = 24, marginV = 4, posMode = UI_Pos_SideA, nonClientRight = 4, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
+		"dataedit .value" = { q1x = 0.5, height = 24, marginV = 4, posMode = UI_Pos_SideA },
 		"dataedit .array_size" = { width = 80, height = 24, posMode = UI_Pos_SideA },
 	}),
 	

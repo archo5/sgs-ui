@@ -103,6 +103,7 @@ function UI_Controls.button( parent, params )
 function UI_CreateImageButton( parent, image, scale, align_x, align_y )
 {
 	Button = UI_CreateButton( parent );
+	Button.addClass( "imagebutton" );
 	UI_CreateImage( Button, image, scale, align_x, align_y );
 	return Button;
 }
@@ -395,7 +396,7 @@ function UI_BuildMenu( parent, x, y, items, default )
 			}
 			return 0;
 		}
-		else if( event.type == EV_Layout )
+		else if( event.type == EV_Changed )
 		{
 			ht = 0;
 			foreach( i, item : data.items )

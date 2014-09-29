@@ -30,8 +30,39 @@ function UI_CreateHoverAnimator( ctrl, state0, state1, time )
 // SCROLLABLE
 //
 
+function UI_Scrollable_doScrolling( factor, ctrl )
+{
+	factor ??= 1;
+	data = this.data;
+	if( data.cursor_scroll )
+	{
+		curx = data.cursor_x;
+		cury = data.cursor_y;
+		if( data.scrV.visible && curx >= ctrl.cx0 && curx < ctrl.cx1 )
+		{
+			scrfac = 0;
+			if( cury >= ctrl.cy0 && cury < ctrl.py0 ) scrfac--;
+			if( cury >= ctrl.py1 && cury < ctrl.cy1 ) scrfac++;
+			if( scrfac )
+				data.scrV.moveRel( data.scrV.data.mousemove_step * scrfac * factor );
+		}
+		if( data.scrH.visible && cury >= ctrl.cy0 && cury < ctrl.cy1 )
+		{
+			scrfac = 0;
+			if( curx >= ctrl.cx0 && curx < ctrl.px0 ) scrfac--;
+			if( curx >= ctrl.px1 && curx < ctrl.cx1 ) scrfac++;
+			if( scrfac )
+				data.scrH.moveRel( data.scrH.data.mousemove_step * scrfac * factor );
+		}
+		
+		me = this;
+		ctrl.frame.setTimeout( 1/60, function() use( me, ctrl ){ me!UI_Scrollable_doScrolling( 1/60, ctrl ); } );
+	}
+}
+
 function UI_Scrollable_Proc( event, com )
 {
+	data = com.data;
 	if( event.type == EV_AddComponent )
 	{
 		this.addClass( "is-scrollable" );
@@ -39,12 +70,11 @@ function UI_Scrollable_Proc( event, com )
 	else if( event.type == EV_RemComponent )
 	{
 		this.removelass( "is-scrollable" );
-		com.data.scrH.destroy(true);
-		com.data.scrV.destroy(true);
+		data.scrH.destroy(true);
+		data.scrV.destroy(true);
 	}
 	else if( event.type == EV_Changed && event.subtype & EV_Changed_Box )
 	{
-		data = com.data;
 		scrV = data.scrV;
 		scrH = data.scrH;
 		(x0,y0,x1,y1) = this.getChildAABB( false );
@@ -68,14 +98,20 @@ function UI_Scrollable_Proc( event, com )
 	}
 	else if( event.type == EV_MouseWheel )
 	{
-		if( com.data.scrV.visible )
-			com.data.scrV.callback( event );
-		if( com.data.scrH.visible )
+		if( data.scrV.visible )
+			data.scrV.callback( event );
+		if( data.scrH.visible )
 		{
 			event.y = event.x;
-			com.data.scrH.callback( event );
+			data.scrH.callback( event );
 		}
 		return 1; // stop bubbling
+	}
+	else if( event.type == EV_MouseMove )
+	{
+		data.cursor_x = event.x;
+		data.cursor_y = event.y;
+		com!UI_Scrollable_doScrolling( 0, this );
 	}
 }
 
@@ -91,7 +127,17 @@ function UI_MakeScrollable( ctrl, vscroll, hscroll )
 	scrV.bindEvent( "change", function(){ this.parent.scroll_y = -this.data.position; } );
 	scrH.bindEvent( "change", function(){ this.parent.scroll_x = -this.data.position; } );
 	
-	ctrl.addComponent( "scrollable", UI_Scrollable_Proc, { scrV = scrV, scrH = scrH, hscroll = hscroll, vscroll = vscroll } );
+	ctrl.addComponent( "scrollable", UI_Scrollable_Proc, {
+		scrV = scrV,
+		scrH = scrH,
+		hscroll = hscroll,
+		vscroll = vscroll,
+		cursor_scroll = false,
+		cursor_x = null,
+		cursor_y = null,
+		
+		enableCursorScroll = function( v ){ this.cursor_scroll = v; },
+	});
 }
 
 

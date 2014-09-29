@@ -93,10 +93,11 @@ function sgs_ui_example_default()
 	UI_CreateVScrollbar( STAT, 1000, 300, 37 )[]{ x = 400, y = 100, width = 16, height = 300 }.bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
 	UI_CreateHScrollbar( STAT, 1000, 300, 137 )[]{ x = 100, y = 400, width = 300, height = 16 }.bindEvent( "change", function(){ println( "Scrolled to: " $ this.data.position ); } );
 	
-	SCROLL = UI_CreateScrollable( STAT )[]{ x = 500, y = 100, width = 200, height = 300 };
+	SCROLL = UI_CreateStatic( STAT )[]{ x = 500, y = 100, width = 200, height = 300 };
+	UI_MakeScrollable( SCROLL );
 	text = string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] );
 	text = string_part( text, 0, 1024 );
-	UI_CreateStatic( SCROLL )[]{ width = 20, height = 500, anchorMode = UI_Anchor_Hor, backgroundColor = UIColor( 0.9, 1 ), caption = text, align = UI_Align_Left | UI_Align_Top };
+	UI_CreateStatic( SCROLL )[]{ width = 20, height = 500, anchorMode = UI_Anchor_Hor, backgroundColor = UIColor( 0.9, 1 ), caption = text, align = UI_Align_Left | UI_Align_Top, posMode = UI_Pos_SideA };
 	
 	SELECT = UI_CreateSelectBox( STAT, "sBoX",
 		[
@@ -106,10 +107,10 @@ function sgs_ui_example_default()
 		]
 	)[]{ x = 500, y = 50, width = 180, height = 24 };
 	
-	AUTOLAYOUT = UI_CreateAutoLayout( STAT )[]{ x = 840, y = 30, width = 100 };
-	UI_CreateButton( AUTOLAYOUT )[]{ width = 32, height = 32, icon = "icons/page.png" };
-	UI_CreateButton( AUTOLAYOUT )[]{ height = 32, icon = "icons/disk.png", name = "hovertest" };
-	UI_CreateButton( AUTOLAYOUT )[]{ width = 32, height = 32, icon = "icons/disk_multiple.png" };
+	AUTOLAYOUT = UI_CreateStatic( STAT )[]{ x = 840, y = 30, width = 100, stackMode = UI_Stack_AutoSizeTop };
+	UI_CreateButton( AUTOLAYOUT )[]{ posMode = UI_Pos_SideA, width = 32, height = 32, icon = "icons/page.png" };
+	UI_CreateButton( AUTOLAYOUT )[]{ posMode = UI_Pos_SideA, height = 32, icon = "icons/disk.png", name = "hovertest" };
+	UI_CreateButton( AUTOLAYOUT )[]{ posMode = UI_Pos_SideA, width = 32, height = 32, icon = "icons/disk_multiple.png" };
 	
 	FRAME.addStyleSheet( UI_CreateStyleSheet()
 		.addRule( UI_CreateStyleRule()[]{ style = UI_CreateStyle()[]{ width = 32 } }.addSelector( "@hovertest" ) )
@@ -266,11 +267,10 @@ function sgs_ui_example_menu()
 	}
 	
 	FRAME.addStyleSheet(UI_BuildStyleSheet({
-		"imagebutton, scoreitem, levelentry" = { posMode = UI_Pos_SideA },
+		".auto-menu .imagebutton, .score-item, .level-entry" = { posMode = UI_Pos_SideA, margin = 4 },
 		"*button" = { renderfunc = MenuButton_Render, backgroundColor = UIColor(0.7,0.2) },
 		"**" = { font = "fonts/armata-regular.ttf", fontSize = 16 },
 		".framed" = { renderfunc = DrawStaticControl },
-		"*scrollingautolayout button static" = { font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 },
 		"*scrollbar" = { renderfunc = DrawStaticControl, backgroundColor = UIColor(0.01,0.5) },
 		"*scrollbar button" = { backgroundColor = UIColor(0.8,0.3) },
 		"****slider .sdr-rail" = { renderfunc = DrawStaticControl, backgroundColor = UIColor(0.4,0.2), nonClientV = 4, paddingV = 4, nonClientH = 8, paddingH = 2 },
@@ -298,9 +298,10 @@ function sgs_ui_example_menu()
 		".screen-panel .btn-fwd image" = { q0x = 0.7, q0y = 0, q1x = 1, q1y = 1 },
 		// - level list
 		".screen-panel .level-list" = { q0x = 0.05, q0y = 0.15, q1x = 0.45, q1y = 0.8 },
-		".screen-panel .level-list scrollable" = { backgroundColor = UIColor(0.1,0.2,0.3,0.1) },
+		".screen-panel .level-list datacontainer" = { backgroundColor = UIColor(0.1,0.2,0.3,0.1) },
 		".screen-panel .level-list .level-entry" = { height = 48, anchorMode = UI_Anchor_Hor },
 		".screen-panel .level-list .level-entry .le-name" = { halign = UI_Align_Left },
+		".screen-panel .level-list button static" = { font = "fonts/lato-regular.ttf", fontSize = 12, paddingLeft = 72 },
 		".screen-panel .level-list .level-entry.active" = { backgroundColor = UIColor(0.1,0.2,0.4,0.6) },
 		".screen-panel .level-list .level-entry static" = { anchorMode = UI_Anchor_All, backgroundColor = UIColor(0), textColor = UIColor(0.8,1), fontSize = 14 },
 		".screen-panel .level-list .level-entry image" = { width = 64, anchorMode = UI_Anchor_Vert },
@@ -313,9 +314,9 @@ function sgs_ui_example_menu()
 		".options-submenu" = { q0x = 0.03, q0y = 0.15, q1x = 0.23, q1y = 0.8, overflow = true },
 		".opt-sub-btn.active" = { backgroundColor = UIColor(0.5,0.02,0.01,0.4) },
 		".opt-pg" = { q0x = 0.3, q0y = 0.15, q1x = 0.9, q1y = 0.8, visible = false },
-		".opt-pg scrollable" = { backgroundColor = UIColor(0) },
-		".opt-pg .label" = { backgroundColor = UIColor(0.4,0.3), textColor = UIColor(0.95,1), height = 36, renderfunc = DrawStaticControl, padding = 8, nonClientBottom = 4 },
-		".opt-pg .value" = { height = 36, nonClientBottom = 4 },
+		".opt-pg datacontainer" = { backgroundColor = UIColor(0) },
+		".opt-pg .label" = { backgroundColor = UIColor(0.4,0.3), textColor = UIColor(0.95,1), height = 36, renderfunc = DrawStaticControl, padding = 8 },
+		".opt-pg .value" = { height = 36 },
 		// loading screen
 		".load-screen-frame" = { anchorMode = UI_Anchor_All, backgroundColor = UIColor(0), visible = false },
 		".load-screen" = { anchorMode = UI_Anchor_All, renderfunc = function LOAD_SCREEN_Renderfunc(){ SS_DrawColor2VRect( this.rx0, this.ry0, this.rx1, this.ry1, 0.3, 0.4, 0.5, 1, 0.1, 0.1, 0.1, 1 ); } },
