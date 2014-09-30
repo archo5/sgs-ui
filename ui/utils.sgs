@@ -1,0 +1,142 @@
+
+
+global UndoLayer = {};
+
+function UndoLayer.create()
+{
+	data =
+	{
+		object_types = {},
+		feedback_out = {},
+		
+		undo_states = [],
+		current_pos = 0,
+		
+		change = null,
+	};
+	class( data, UndoLayer );
+	
+	data.registerFeedbackOutput( "undolayer", this._registerChange );
+	
+	return data;
+}
+
+//  S E T U P
+
+function UndoLayer.registerObject( obj, fnobj, fn_add, fn_rem, fn_getstate, fn_getprop, fn_setprop )
+{
+	if( @this.object_types[ obj ] )
+		return WARNING( "object already registered: " $ obj );
+	this.object_types[ obj ] =
+	{
+		fnobj = fnobj,
+		add = fn_add,
+		rem = fn_rem,
+		getstate = fn_getstate,
+		getprop = fn_getprop,
+		setprop = fn_setprop
+	};
+}
+
+function UndoLayer.registerFeedbackOutput( name, func )
+{
+	this.feedback_out[ name ] = func;
+}
+
+function UndoLayer.unregisterFeedbackOutput( name )
+{
+	unset( this.feedback_out, name );
+}
+
+//  U N D O - using
+
+function UndoLayer.undo()
+{
+}
+
+function UndoLayer.redo()
+{
+}
+
+function UndoLayer.getCurrentPos(){ return this.current_pos; }
+function UndoLayer.getStateCount(){ return this.undo_states.size; }
+function UndoLayer.setCurrentPos( pos )
+{
+	if( pos < 0 || pos > this.undo_states.size )
+		return WARNING( "undo position out of bounds" );
+	
+	while( pos > this.current_pos )
+		this.redo();
+	while( pos < this.current_pos )
+		this.undo();
+}
+
+//  U N D O - building
+
+function UndoLayer.beginChange()
+{
+	if( this.change !== null )
+		return WARNING( "already making change" );
+	this.change = [];
+}
+
+function UndoLayer.discardChange()
+{
+	if( this.change === null )
+		return WARNING( "not making change" );
+	this.change = null;
+}
+
+function UndoLayer.revertDiscardChange()
+{
+	if( this.change === null )
+		return WARNING( "not making change" );
+	
+	this.commitChange( "__tmp__" );
+	this.undo();
+	this.pop();
+}
+
+function UndoLayer.commitChange( name )
+{
+	if( this.change === null )
+		return WARNING( "not making change" );
+	
+	undo_states.push({ name = name, changes = this.change });
+	this.change = null;
+}
+
+function UndoLayer.isMakingChange(){ return this.change !== null; }
+
+//  E D I T I N G
+
+function UndoLayer.doAdd( src, objtype, props )
+{
+	OT = @this.object_types[ objtype ];
+	if( !OT )
+		return WARNING( "object type not registered: " $ objtype );
+	
+	fnobj = OT.fnobj;
+	fn_add = OT.fn_add;
+	fn_getstate = OT.fn_getstate;
+	id = fnobj!fn_add( props );
+	state = fnobj!fn_getstate( id );
+	
+	this._invokeFeedback( src, "add", objtype, id, state );
+}
+
+//  L O O P BA C K
+
+function UndoLayer._registerChange( src, action, objtype, id, state )
+{
+	if( src == "undolayer" )
+		return;
+	if( this.change === null )
+		return WARNING( "not making change" );
+	
+	if( action == "add" )
+	{
+		this.change.push({ type = "add", id = id, state = state });
+	}
+}
+

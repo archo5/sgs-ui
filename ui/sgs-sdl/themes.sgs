@@ -642,7 +642,7 @@ global SS_UI_Theme_Default =
 		"filebrowser .sub-block" = { y = -32, height = 32, anchorMode = UI_Anchor_Hor | UI_Anchor_Bottom },
 		"filebrowser .sub-block .sub-text" = { width = -160, nonClient = 2, anchorMode = UI_Anchor_All },
 		"filebrowser .sub-block .btn-submit" = { x = - 160, width = 160, nonClient = 2, anchorMode = UI_Anchor_Vert | UI_Anchor_Right, icon = "icons/page_white_go.png" },
-		"filebrowser .file-scroll" = { y = 32, height = -64, anchorMode = UI_Anchor_All, backgroundColor = UIColor(0.95,1) },
+		"filebrowser .file-scroll" = { y = 32, height = -64, anchorMode = UI_Anchor_All, backgroundColor = UIColor(0.95,1), padding = 4 },
 		"filebrowser fbentry" =
 		{
 			margin = 4,

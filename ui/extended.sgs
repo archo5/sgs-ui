@@ -205,8 +205,6 @@ function UI_CreateEditableList( parent, name )
 	};
 	EditableList.name = name;
 	
-//	EditableList.data.AutoLayout = AutoLayout = UI_CreateControl( EditableList, "datacontainer" )[]{ posMode = UI_Pos_SideA };
-	
 	EditableList.data.OpCont = EditableList;
 	UI_MakeScrollable( EditableList, "auto", false );
 	
@@ -372,8 +370,6 @@ function UI_CreateListBoxMenu( parent, popup_remove_callback )
 			return this!orig_callback( event );
 		}
 	}
-	
-//	ListBoxMenu.data.AutoLayout = AutoLayout = UI_CreateControl( ListBoxMenu, "datacontainer" )[]{ posMode = UI_Pos_SideA };
 	
 	ListBoxMenu.data.OpCont = ListBoxMenu;
 	UI_MakeScrollable( ListBoxMenu, "auto", false );
@@ -908,7 +904,7 @@ function UI_FileBrowser.refillFileList()
 			return 0;
 		});
 		data.FileCont._updatingLayout = true;
-		data.FileCont.destroyAllChildren( true );
+		data.FileCont.destroyAllChildren( true, 1 );
 		foreach( info : filelist )
 		{
 			this.addFile( info );
@@ -1047,7 +1043,8 @@ function UI_CreateFileBrowser( parent, defpath, filesystem )
 	// - TODO
 	
 	// file list
-	FileScroll = UI_CreateScrollable( FileBrowser )[]{ class = "file-scroll" };
+	FileScroll = UI_CreateStatic( FileBrowser )[]{ class = "file-scroll" };
+	UI_MakeScrollable( FileScroll );
 	fbdata.FileCont = FileScroll;
 	
 	FileBrowser.setPath( defpath );
