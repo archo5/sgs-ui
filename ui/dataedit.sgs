@@ -100,8 +100,8 @@ function UI_DataEdit._create_array( name, schema, value, path )
 	ctrl.data.schema = schema;
 	ctrl.data.subschema = schema."$subtype";
 	ctrl.data.path = path;
-	ctrl.data.value = value;
 	ctrl.data.dataedit = this;
+	ctrl.data.updating = false;
 	
 	UI_CreateStatic( cont )[]{ caption = "Size" }.addClass( "label" );
 	ibox = ctrl.data.ibox = UI_CreateIntegerBox( cont, "__ibox__" $ name, @value.size ?? 0 )[]{ class = "array_size" };
@@ -113,6 +113,7 @@ function UI_DataEdit._create_array( name, schema, value, path )
 			rootarr = rootarr.parent;
 		elements = rootarr.data.elements;
 		dataedit = rootarr.data.dataedit;
+		value = dataedit._getDataByPath( rootarr.data.path );
 		
 		rootarr._updatingLayout = true;
 		newsize = this.getValue();
@@ -123,19 +124,25 @@ function UI_DataEdit._create_array( name, schema, value, path )
 			// - CONTROLS
 		//	dataedit._evictPath( ctrl.name );
 			ctrl.parent.destroy(true);
-			// - DATA
-			rootarr.data.value.pop();
-			// - EVENT
-			dataedit._arrayEvent( false, rootarr.name, rootarr.data.value.size, e );
+			if( !rootarr.data.updating )
+			{
+				// - DATA
+				value.pop();
+				// - EVENT
+				dataedit._arrayEvent( false, rootarr.name, value.size, e );
+			}
 		}
 		while( elements.size < newsize )
 		{
 			// ADD ITEM
-			// - EVENT
-			dataedit._arrayEvent( true, rootarr.name, rootarr.data.value.size, e );
-			// - DATA
-			newdata = dataedit._recreateFromSchema( rootarr.data.subschema, dataedit.data.item_added );
-			rootarr.data.value.push( newdata );
+			if( !rootarr.data.updating )
+			{
+				// - EVENT
+				dataedit._arrayEvent( true, rootarr.name, value.size, e );
+				// - DATA
+				newdata = dataedit._recreateFromSchema( rootarr.data.subschema, dataedit.data.item_added );
+				value.push( newdata );
+			}
 			// - CONTROLS
 			dataedit.data.OpConts.push( rootarr.getContainer() );
 			npath = clone( rootarr.data.path ).push( elements.size );
@@ -163,12 +170,14 @@ function UI_DataEdit._create_array( name, schema, value, path )
 }
 function UI_DataEdit._update_array( ctrl, value, schema, path )
 {
+	ctrl.data.updating = true;
 	ctrl.data.ibox.setValue( value.size );
 	foreach( i, v : value )
 	{
 		npath = clone( path ).push( i );
 		this._updateCtrls( schema."$subtype", npath );
 	}
+	ctrl.data.updating = false;
 }
 
 function UI_DataEdit._getDataByPathFrom( obj, path )

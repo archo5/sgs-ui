@@ -222,7 +222,6 @@ function UI_MakeResizable( ctrl, left, top, right, bottom )
 			
 			this.dragstart_x = cursor.x;
 			this.dragstart_y = cursor.y;
-			this.hasdragged = false;
 		}
 		else if( this.hasdragged )
 		{
@@ -230,6 +229,7 @@ function UI_MakeResizable( ctrl, left, top, right, bottom )
 				event = UI_CreateEvent();
 			Resizable.callEvent( "onresize", event );
 		}
+		this.hasdragged = false;
 	}
 	
 	function Resizable_data.handleDragging( Resizable, event )

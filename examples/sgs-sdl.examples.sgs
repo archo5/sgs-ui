@@ -871,17 +871,9 @@ function sgs_ui_example_ded3()
 function sgs_ui_example_ded4()
 {
 	DE = UI_CreateDataEdit( FRAME.root )[]{ anchorMode = UI_Anchor_All, q0x = 0.7 };
+	LS = UI_CreateStatic( FRAME.root )[]{ anchorMode = UI_Anchor_Vert, q0x = 0.6, q1x = 0.7 };
+	UI_CreateStatic( LS )[]{ anchorMode = UI_Anchor_Hor, height = 20, caption = "-- start --", posMode = UI_Pos_SideA };
 	UL = UndoLayer.create();
-//	dataobj =
-//	[
-//		UI_CreateStatic( FRAME.root )[]{ x = 100, y = 100, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me" },
-//		UI_CreateStatic( FRAME.root )[]{ x = 400, y = 200, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me too" },
-//	];
-//	foreach( ctrl : dataobj )
-//	{
-//		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
-//		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
-//	}
 	DS =
 	{
 		controls = [],
@@ -903,26 +895,30 @@ function sgs_ui_example_ded4()
 		ctrl.name = id = DS.auto_id++;
 		ctrl.bindEvent( "onbeforesize", function( e ) use( UL )
 		{
-			println( "Change: begin" );
+			println( "Change: do/begin" );
 			UL.beginChange();
+			println( "Change: do/change(0)" );
+			UL.doChange( "view", "control", this.name, { x = this.x, y = this.y, width = this.width, height = this.height } );
 		});
 		ctrl.bindEvent( "oneditsize", function( e ) use( UL )
 		{
-			println( "Change: add" );
+			println( "Change: do/change" );
 			UL.doChange( "view", "control", this.name, { x = this.x, y = this.y, width = this.width, height = this.height } );
 		});
 		ctrl.bindEvent( "onresize", function( e ) use( UL )
 		{
-			println( "Change: commit" );
-			UL.commitChange( "control resize" );
-			printvar_ext(UL.undo_states,9);
+			println( "Change: do/commit" );
+			if( UL.isMakingChange() )
+				UL.commitChange( "control resize" );
 		});
 		DS.controls.push( ctrl );
 		return id;
 	}
 	function control_rem( id ) use( DS )
 	{
-		DS.controls.remove( DS.find( id ) );
+		ctrl = DS.find( id );
+		ctrl.destroy( true );
+		DS.controls.remove( ctrl );
 		if( DS.auto_id - 1 == id )
 			DS.auto_id--;
 	}
@@ -972,39 +968,89 @@ function sgs_ui_example_ded4()
 	{
 		type = this.getChangeType();
 		idx = this.getChangedIndex();
+		prop = this.getChangedProperty();
+		path = this.getPathByName( prop );
+		println(path);
+		
+		if( !UL.enabled )
+			return;
+		
 		if( type == "add" )
 		{
 			println( "Change: begin" );
 			UL.beginChange();
 			
-			println( "Change: add" );
+			println( "Change: do/add" );
 			(id,state) = UL.doAdd( "ui", "control", { x = 10, y = 10, width = 100, height = 100, caption = "<untitled>" } );
 			this.setItemAdded( state );
 			
 			println( "Change: commit" );
 			UL.commitChange( "control added" );
-			printvar_ext(UL.undo_states,9);
 		}
 		else if( type == "remove" )
 		{
 			println( "Change: begin" );
 			UL.beginChange();
 			
-			println( "Change: add" );
+			println( "Change: do/remove" );
 			UL.doRemove( "ui", "control", DS.controls[ idx ].name );
 			
 			println( "Change: commit" );
 			UL.commitChange( "control removed" );
-			printvar_ext(UL.undo_states,9);
 		}
 		else
-			;//this.applyChangeToObject( dataobj );
+		{
+			println( "Change: begin" );
+			UL.beginChange();
+			
+			println( "Change: do/change" );
+			changes = {};
+			changes[ path.last ] = this.getValueByName( prop );
+			UL.doChange( "ui", "control", DS.controls[ path[1] /* hardcoded */ ].name, changes );
+			
+			println( "Change: commit" );
+			UL.commitChange( "control modified" );
+		}
 	});
 	UL.registerFeedbackOutput( "ui", function( src, action, objtype, id, state, state_to ) use( DE, DS )
 	{
 		if( src == "ui" )
 			return;
+		this.enabled = false; // prevent feedback loop
 		DE.updateData( DS.controls );
+		this.enabled = true;
+	});
+	UL.registerStatusCallback( "ui", function( action ) use( LS )
+	{
+		if( action == "commit" )
+		{
+			UI_CreateStatic( LS )[]{ anchorMode = UI_Anchor_Hor, height = 20, caption = this.getLastStateName(), posMode = UI_Pos_SideA };
+		}
+		if( action == "move" || action == "commit" )
+		{
+			cp = this.getCurrentPos();
+			foreach( i, ch : LS.children() )
+			{
+				if( i == cp )
+					ch.backgroundColor = UIColor(0.6,0.7,0.8);
+				else
+					ch.backgroundColor = null;
+			}
+		}
+		if( action == "resize" )
+		{
+			// crop items to fit count
+			while( LS.getChildCount() > this.getStateCount() + 1 )
+				LS.children().last.destroy(true);
+		}
+	});
+	LS.bindEvent( "click", function( e ) use( UL )
+	{
+		if( e.target != this )
+		{
+			pos = e.target.getOrderIndex();
+			UL.setCurrentPos( pos );
+		}
 	});
 	DE.setData( DS.controls, schema );
 }

@@ -1,6 +1,11 @@
 
 
-global UndoLayer = {};
+global UndoLayer =
+{
+	// common error strings
+	ERROR_DISABLED = "undo layer disabled (feedback loop prevention)",
+	ERROR_NOTMAKINGCHANGE = "not making change",
+};
 
 function UndoLayer.create()
 {
@@ -8,11 +13,14 @@ function UndoLayer.create()
 	{
 		object_types = {},
 		feedback_out = {},
+		status_cb = {},
 		
 		undo_states = [],
 		current_pos = 0,
 		
 		change = null,
+		
+		enabled = true,
 	};
 	class( data, UndoLayer );
 	
@@ -38,15 +46,10 @@ function UndoLayer.registerObject( obj, fnobj, fn_add, fn_rem, fn_getstate, fn_g
 	};
 }
 
-function UndoLayer.registerFeedbackOutput( name, func )
-{
-	this.feedback_out[ name ] = func;
-}
-
-function UndoLayer.unregisterFeedbackOutput( name )
-{
-	unset( this.feedback_out, name );
-}
+function UndoLayer.registerFeedbackOutput( name, func ){ this.feedback_out[ name ] = func; }
+function UndoLayer.unregisterFeedbackOutput( name ){ unset( this.feedback_out, name ); }
+function UndoLayer.registerStatusCallback( name, func ){ this.status_cb[ name ] = func; }
+function UndoLayer.unregisterStatusCallback( name ){ unset( this.status_cb, name ); }
 
 function UndoLayer._invokeFeedback( src, action, objtype, id, state, state_to )
 {
@@ -56,65 +59,108 @@ function UndoLayer._invokeFeedback( src, action, objtype, id, state, state_to )
 	}
 }
 
+function UndoLayer._invokeStatusCallback( action )
+{
+	foreach( scb : this.status_cb )
+	{
+		this!scb( action );
+	}
+}
+
 //  U N D O - using
 
-function UndoLayer.undo()
+function UndoLayer.canUndo(){ return this.current_pos > 0; }
+function UndoLayer.canRedo(){ return this.current_pos < this.undo_states.size; }
+function UndoLayer.getCurrentPos(){ return this.current_pos; }
+function UndoLayer.getStateCount(){ return this.undo_states.size; }
+function UndoLayer.getState( i ){ return @this.undo_states[ i ]; }
+function UndoLayer.getLastStateName(){ return @this.undo_states.last.name; }
+
+function UndoLayer._undo()
 {
+	if( this.change !== null )
+		return WARNING( "cannot undo - making change" );
 	if( this.current_pos == 0 )
 		return WARNING( "cannot undo - limit reached" );
 	
 	cp = --this.current_pos;
 	state = this.undo_states[ cp ];
+	changes = state.changes;
 	
-	if( state.type == "add" )
-		this.doRemove( "undolayer", state.objtype, state.id );
-	else if( state.type == "remove" )
+	for( i = changes.size - 1; i >= 0; --i )
 	{
-		id = this.doAdd( "undolayer", state.objtype, state.state );
-		if( id != state.id )
-			return WARNING( "data link error: returned object ID mismatch" );
+		change = changes[ i ];
+		if( change.type == "add" )
+			this.doRemove( "undolayer", change.objtype, change.id );
+		else if( change.type == "remove" )
+		{
+			id = this.doAdd( "undolayer", change.objtype, change.state );
+			if( id != change.id )
+				return WARNING( "data link error: returned object ID mismatch" );
+		}
+		else if( change.type == "change" )
+			this.doChange( "undolayer", change.objtype, change.id, change.state_from );
 	}
-	else if( state.type == "change" )
-		this.doChange( "undolayer", state.objtype, state.id, state.state_from );
+}
+
+function UndoLayer._redo()
+{
+	if( this.change !== null )
+		return WARNING( "cannot undo - making change" );
+	if( this.current_pos == this.undo_states.size )
+		return WARNING( "cannot redo - limit reached" );
+	
+	cp = this.current_pos++;
+	state = this.undo_states[ cp ];
+	changes = state.changes;
+	
+	for( i = 0; i < changes.size; ++i )
+	{
+		change = changes[ i ];
+		if( change.type == "add" )
+		{
+			id = this.doAdd( "undolayer", change.objtype, change.state );
+			if( id != change.id )
+				return WARNING( "data link error: returned object ID mismatch" );
+		}
+		else if( change.type == "remove" )
+			this.doRemove( "undolayer", change.objtype, change.id );
+		else if( change.type == "change" )
+			this.doChange( "undolayer", change.objtype, change.id, change.state_to );
+	}
+}
+
+function UndoLayer.undo()
+{
+	this._undo();
+	this._invokeStatusCallback( "move" );
 }
 
 function UndoLayer.redo()
 {
-	if( this.current_pos == this.undo_states.size )
-		return WARNING( "cannot undo - limit reached" );
-	
-	cp = ++this.current_pos;
-	state = this.undo_states[ cp ];
-	
-	if( state.type == "add" )
-	{
-		id = this.doAdd( "undolayer", state.objtype, state.state );
-		if( id != state.id )
-			return WARNING( "data link error: returned object ID mismatch" );
-	}
-	else if( state.type == "remove" )
-		this.doRemove( "undolayer", state.objtype, state.id );
-	else if( state.type == "change" )
-		this.doChange( "undolayer", state.objtype, state.id, state.state_to );
+	this._redo();
+	this._invokeStatusCallback( "move" );
 }
 
-function UndoLayer.getCurrentPos(){ return this.current_pos; }
-function UndoLayer.getStateCount(){ return this.undo_states.size; }
 function UndoLayer.setCurrentPos( pos )
 {
 	if( pos < 0 || pos > this.undo_states.size )
 		return WARNING( "undo position out of bounds" );
 	
 	while( pos > this.current_pos )
-		this.redo();
+		this._redo();
 	while( pos < this.current_pos )
-		this.undo();
+		this._undo();
+	
+	this._invokeStatusCallback( "move" );
 }
 
 //  U N D O - building
 
 function UndoLayer.beginChange()
 {
+	if( !this.enabled )
+		return WARNING( this.ERROR_DISABLED );
 	if( this.change !== null )
 		return WARNING( "already making change" );
 	this.change = [];
@@ -122,15 +168,19 @@ function UndoLayer.beginChange()
 
 function UndoLayer.discardChange()
 {
+	if( !this.enabled )
+		return WARNING( this.ERROR_DISABLED );
 	if( this.change === null )
-		return WARNING( "not making change" );
+		return WARNING( this.ERROR_NOTMAKINGCHANGE );
 	this.change = null;
 }
 
 function UndoLayer.revertDiscardChange()
 {
+	if( !this.enabled )
+		return WARNING( this.ERROR_DISABLED );
 	if( this.change === null )
-		return WARNING( "not making change" );
+		return WARNING( this.ERROR_NOTMAKINGCHANGE );
 	
 	this.commitChange( "__tmp__" );
 	this.undo();
@@ -139,12 +189,21 @@ function UndoLayer.revertDiscardChange()
 
 function UndoLayer.commitChange( name )
 {
+	if( !this.enabled )
+		return WARNING( this.ERROR_DISABLED );
 	if( this.change === null )
-		return WARNING( "not making change" );
+		return WARNING( this.ERROR_NOTMAKINGCHANGE );
 	
-	this.undo_states.resize( this.current_pos++ );
+	if( this.undo_states.size != this.current_pos )
+	{
+		this.undo_states.resize( this.current_pos );
+		this._invokeStatusCallback( "resize" );
+	}
+	this.current_pos++;
 	this.undo_states.push({ name = name, changes = this.change });
 	this.change = null;
+	
+	this._invokeStatusCallback( "commit" );
 }
 
 function UndoLayer.isMakingChange(){ return this.change !== null; }
@@ -153,6 +212,8 @@ function UndoLayer.isMakingChange(){ return this.change !== null; }
 
 function UndoLayer.doAdd( src, objtype, props )
 {
+	if( !this.enabled )
+		return WARNING( this.ERROR_DISABLED );
 	OT = @this.object_types[ objtype ];
 	if( !OT )
 		return WARNING( "object type not registered: " $ objtype );
@@ -169,6 +230,8 @@ function UndoLayer.doAdd( src, objtype, props )
 
 function UndoLayer.doRemove( src, objtype, id )
 {
+	if( !this.enabled )
+		return WARNING( this.ERROR_DISABLED );
 	OT = @this.object_types[ objtype ];
 	if( !OT )
 		return WARNING( "object type not registered: " $ objtype );
@@ -185,6 +248,8 @@ function UndoLayer.doRemove( src, objtype, id )
 
 function UndoLayer.doChange( src, objtype, id, changes )
 {
+	if( !this.enabled )
+		return WARNING( this.ERROR_DISABLED );
 	OT = @this.object_types[ objtype ];
 	if( !OT )
 		return WARNING( "object type not registered: " $ objtype );
@@ -206,7 +271,7 @@ function UndoLayer._registerChange( src, action, objtype, id, state, state_to )
 	if( src == "undolayer" )
 		return;
 	if( this.change === null )
-		return WARNING( "not making change" );
+		return WARNING( this.ERROR_NOTMAKINGCHANGE );
 	
 	if( action == "add" )
 	{
@@ -227,7 +292,7 @@ function UndoLayer._registerChange( src, action, objtype, id, state, state_to )
 			chg.state_to = get_merged( chg.state_to, state_to );
 			return;
 		}
-		this.change.push({ objtype = objtype, type = "change", state_from = state, state_to = state_to });
+		this.change.push({ objtype = objtype, type = "change", id = id, state_from = state, state_to = state_to });
 	}
 }
 
