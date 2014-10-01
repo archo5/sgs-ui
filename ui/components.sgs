@@ -236,8 +236,11 @@ function UI_MakeResizable( ctrl, left, top, right, bottom )
 	{
 		if( this.dragging === null )
 			return;
-		Resizable.callEvent( "oneditsize", event );
-		this.hasdragged = true;
+		if( !this.hasdragged )
+		{
+			Resizable.callEvent( "onbeforesize", event );
+			this.hasdragged = true;
+		}
 		if( this.dragging === 0 )
 		{
 			Resizable.x = this.dragorig_x + event.x - this.dragstart_x;
@@ -255,6 +258,7 @@ function UI_MakeResizable( ctrl, left, top, right, bottom )
 			else if( this.dragging & 0b0100 )
 				Resizable.offsetTop = this.dragorig_y + event.y - this.dragstart_y;
 		}
+		Resizable.callEvent( "oneditsize", event );
 	}
 	
 	ctrl.addComponent( "resizable", UI_Resizable_Proc, Resizable_data );

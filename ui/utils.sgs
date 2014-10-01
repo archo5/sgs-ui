@@ -30,11 +30,11 @@ function UndoLayer.registerObject( obj, fnobj, fn_add, fn_rem, fn_getstate, fn_g
 	this.object_types[ obj ] =
 	{
 		fnobj = fnobj,
-		add = fn_add,
-		rem = fn_rem,
-		getstate = fn_getstate,
-		getprops = fn_getprops,
-		setprops = fn_setprops
+		fn_add = fn_add,
+		fn_rem = fn_rem,
+		fn_getstate = fn_getstate,
+		fn_getprops = fn_getprops,
+		fn_setprops = fn_setprops
 	};
 }
 
@@ -142,7 +142,8 @@ function UndoLayer.commitChange( name )
 	if( this.change === null )
 		return WARNING( "not making change" );
 	
-	undo_states.push({ name = name, changes = this.change });
+	this.undo_states.resize( this.current_pos++ );
+	this.undo_states.push({ name = name, changes = this.change });
 	this.change = null;
 }
 
@@ -163,7 +164,7 @@ function UndoLayer.doAdd( src, objtype, props )
 	state = fnobj!fn_getstate( id );
 	
 	this._invokeFeedback( src, "add", objtype, id, state );
-	return id;
+	return id, state;
 }
 
 function UndoLayer.doRemove( src, objtype, id )
@@ -179,6 +180,7 @@ function UndoLayer.doRemove( src, objtype, id )
 	fnobj!fn_rem( id );
 	
 	this._invokeFeedback( src, "remove", objtype, id, state );
+	return id, state;
 }
 
 function UndoLayer.doChange( src, objtype, id, changes )
@@ -194,6 +196,7 @@ function UndoLayer.doChange( src, objtype, id, changes )
 	fnobj!fn_setprops( id, changes );
 	
 	this._invokeFeedback( src, "change", objtype, id, state, changes );
+	return id, changes, state;
 }
 
 //  L O O P B A C K
@@ -215,6 +218,15 @@ function UndoLayer._registerChange( src, action, objtype, id, state, state_to )
 	}
 	else if( action == "change" )
 	{
+		foreach( chg : this.change )
+		{
+			if( chg.objtype != objtype || chg.type != "change" )
+				continue;
+			
+			chg.state_from = get_merged( state, chg.state_from );
+			chg.state_to = get_merged( chg.state_to, state_to );
+			return;
+		}
 		this.change.push({ objtype = objtype, type = "change", state_from = state, state_to = state_to });
 	}
 }

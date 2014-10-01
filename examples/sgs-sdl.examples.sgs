@@ -870,36 +870,85 @@ function sgs_ui_example_ded3()
 
 function sgs_ui_example_ded4()
 {
-	global UL = UndoLayer.create();
-	dataobj =
-	[
-		UI_CreateStatic( FRAME.root )[]{ x = 100, y = 100, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me" },
-		UI_CreateStatic( FRAME.root )[]{ x = 400, y = 200, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me too" },
-	];
-	foreach( ctrl : dataobj )
+	DE = UI_CreateDataEdit( FRAME.root )[]{ anchorMode = UI_Anchor_All, q0x = 0.7 };
+	UL = UndoLayer.create();
+//	dataobj =
+//	[
+//		UI_CreateStatic( FRAME.root )[]{ x = 100, y = 100, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me" },
+//		UI_CreateStatic( FRAME.root )[]{ x = 400, y = 200, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me too" },
+//	];
+//	foreach( ctrl : dataobj )
+//	{
+//		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
+//		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
+//	}
+	DS =
 	{
+		controls = [],
+		auto_id = 1,
+		find = function DS.find( id )
+		{
+			foreach( ctrl : this.controls )
+				if( ctrl.name == id )
+					return ctrl;
+			return null;
+		},
+	};
+	function control_add( props ) use( DS, DE, UL )
+	{
+		ctrl = UI_CreateStatic( FRAME.root )[]{ backgroundColor = UIColor(0.8,0.7,0.6) };
+		foreach( k, v : props )
+			ctrl.(k) = v;
 		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
-		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
+		ctrl.name = id = DS.auto_id++;
+		ctrl.bindEvent( "onbeforesize", function( e ) use( UL )
+		{
+			println( "Change: begin" );
+			UL.beginChange();
+		});
+		ctrl.bindEvent( "oneditsize", function( e ) use( UL )
+		{
+			println( "Change: add" );
+			UL.doChange( "view", "control", this.name, { x = this.x, y = this.y, width = this.width, height = this.height } );
+		});
+		ctrl.bindEvent( "onresize", function( e ) use( UL )
+		{
+			println( "Change: commit" );
+			UL.commitChange( "control resize" );
+			printvar_ext(UL.undo_states,9);
+		});
+		DS.controls.push( ctrl );
+		return id;
 	}
-	function control_add( props )
+	function control_rem( id ) use( DS )
 	{
-		ctrl = UI_CreateStatic( FRAME.root )[]{ x = 100, y = 100, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me" };
-		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
-		return 0;
+		DS.controls.remove( DS.find( id ) );
+		if( DS.auto_id - 1 == id )
+			DS.auto_id--;
 	}
-	function control_rem( id )
+	function control_getstate( id ) use( DS )
 	{
+		src = DS.find( id );
+		out = {};
+		foreach( k : ["x","y","width","height","caption"] )
+			out[ k ] = src[ k ];
+		return out;
 	}
-	function control_getstate( id )
+	function control_getprops( id, tmpl ) use( DS )
 	{
+		src = DS.find( id );
+		out = {};
+		foreach( k ,: tmpl )
+			out[ k ] = src[ k ];
+		return out;
 	}
-	function control_getprops( id, tmpl )
+	function control_setprops( id, props ) use( DS )
 	{
+		src = DS.find( id );
+		foreach( k, v : props )
+			src.(k) = v;
 	}
-	function control_setprops( id, props )
-	{
-	}
-	UL.registerObject( "control", dataobj, control_add, control_rem, control_getstate, control_getprops, control_setprops );
+	UL.registerObject( "control", DS, control_add, control_rem, control_getstate, control_getprops, control_setprops );
 	schema =
 	{
 		CONTROL =
@@ -919,35 +968,45 @@ function sgs_ui_example_ded4()
 		},
 		"$root" = "CONTROL_ARRAY",
 	};
-	de = UI_CreateDataEdit( FRAME.root, dataobj, schema )[]{ anchorMode = UI_Anchor_All, q0x = 0.7 };
-	function updateDataCb( e ) use( de, dataobj )
-	{
-		de.updateData( dataobj );
-	}
-	foreach( ctrl : dataobj )
-	{
-		ctrl.bindEvent( "oneditsize", updateDataCb );
-	}
-	de.bindEvent( "change", function() use( dataobj, updateDataCb )
+	DE.bindEvent( "change", function() use( UL, DS )
 	{
 		type = this.getChangeType();
 		idx = this.getChangedIndex();
 		if( type == "add" )
 		{
-			ctrl = UI_CreateStatic( FRAME.root )[]{ x = 10, y = 10, width = 100, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "<untitled>" };
-			UI_MakeResizable( ctrl, 4, 4, 4, 4 );
-			ctrl.bindEvent( "oneditsize", updateDataCb );
-			dataobj.insert( idx, ctrl );
-			this.setItemAdded( ctrl );
+			println( "Change: begin" );
+			UL.beginChange();
+			
+			println( "Change: add" );
+			(id,state) = UL.doAdd( "ui", "control", { x = 10, y = 10, width = 100, height = 100, caption = "<untitled>" } );
+			this.setItemAdded( state );
+			
+			println( "Change: commit" );
+			UL.commitChange( "control added" );
+			printvar_ext(UL.undo_states,9);
 		}
 		else if( type == "remove" )
 		{
-			dataobj[ idx ].destroy(true);
-			dataobj.erase( idx );
+			println( "Change: begin" );
+			UL.beginChange();
+			
+			println( "Change: add" );
+			UL.doRemove( "ui", "control", DS.controls[ idx ].name );
+			
+			println( "Change: commit" );
+			UL.commitChange( "control removed" );
+			printvar_ext(UL.undo_states,9);
 		}
 		else
-			this.applyChangeToObject( dataobj );
+			;//this.applyChangeToObject( dataobj );
 	});
+	UL.registerFeedbackOutput( "ui", function( src, action, objtype, id, state, state_to ) use( DE, DS )
+	{
+		if( src == "ui" )
+			return;
+		DE.updateData( DS.controls );
+	});
+	DE.setData( DS.controls, schema );
 }
 
 
