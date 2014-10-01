@@ -23,7 +23,7 @@ function UndoLayer.create()
 
 //  S E T U P
 
-function UndoLayer.registerObject( obj, fnobj, fn_add, fn_rem, fn_getstate, fn_getprop, fn_setprop )
+function UndoLayer.registerObject( obj, fnobj, fn_add, fn_rem, fn_getstate, fn_getprops, fn_setprops )
 {
 	if( @this.object_types[ obj ] )
 		return WARNING( "object already registered: " $ obj );
@@ -33,8 +33,8 @@ function UndoLayer.registerObject( obj, fnobj, fn_add, fn_rem, fn_getstate, fn_g
 		add = fn_add,
 		rem = fn_rem,
 		getstate = fn_getstate,
-		getprop = fn_getprop,
-		setprop = fn_setprop
+		getprops = fn_getprops,
+		setprops = fn_setprops
 	};
 }
 
@@ -48,14 +48,54 @@ function UndoLayer.unregisterFeedbackOutput( name )
 	unset( this.feedback_out, name );
 }
 
+function UndoLayer._invokeFeedback( src, action, objtype, id, state, state_to )
+{
+	foreach( fbo : this.feedback_out )
+	{
+		this!fbo( src, action, objtype, id, state, state_to );
+	}
+}
+
 //  U N D O - using
 
 function UndoLayer.undo()
 {
+	if( this.current_pos == 0 )
+		return WARNING( "cannot undo - limit reached" );
+	
+	cp = --this.current_pos;
+	state = this.undo_states[ cp ];
+	
+	if( state.type == "add" )
+		this.doRemove( "undolayer", state.objtype, state.id );
+	else if( state.type == "remove" )
+	{
+		id = this.doAdd( "undolayer", state.objtype, state.state );
+		if( id != state.id )
+			return WARNING( "data link error: returned object ID mismatch" );
+	}
+	else if( state.type == "change" )
+		this.doChange( "undolayer", state.objtype, state.id, state.state_from );
 }
 
 function UndoLayer.redo()
 {
+	if( this.current_pos == this.undo_states.size )
+		return WARNING( "cannot undo - limit reached" );
+	
+	cp = ++this.current_pos;
+	state = this.undo_states[ cp ];
+	
+	if( state.type == "add" )
+	{
+		id = this.doAdd( "undolayer", state.objtype, state.state );
+		if( id != state.id )
+			return WARNING( "data link error: returned object ID mismatch" );
+	}
+	else if( state.type == "remove" )
+		this.doRemove( "undolayer", state.objtype, state.id );
+	else if( state.type == "change" )
+		this.doChange( "undolayer", state.objtype, state.id, state.state_to );
 }
 
 function UndoLayer.getCurrentPos(){ return this.current_pos; }
@@ -123,11 +163,42 @@ function UndoLayer.doAdd( src, objtype, props )
 	state = fnobj!fn_getstate( id );
 	
 	this._invokeFeedback( src, "add", objtype, id, state );
+	return id;
 }
 
-//  L O O P BA C K
+function UndoLayer.doRemove( src, objtype, id )
+{
+	OT = @this.object_types[ objtype ];
+	if( !OT )
+		return WARNING( "object type not registered: " $ objtype );
+	
+	fnobj = OT.fnobj;
+	fn_rem = OT.fn_rem;
+	fn_getstate = OT.fn_getstate;
+	state = fnobj!fn_getstate( id );
+	fnobj!fn_rem( id );
+	
+	this._invokeFeedback( src, "remove", objtype, id, state );
+}
 
-function UndoLayer._registerChange( src, action, objtype, id, state )
+function UndoLayer.doChange( src, objtype, id, changes )
+{
+	OT = @this.object_types[ objtype ];
+	if( !OT )
+		return WARNING( "object type not registered: " $ objtype );
+	
+	fnobj = OT.fnobj;
+	fn_setprops = OT.fn_setprops;
+	fn_getprops = OT.fn_getprops;
+	state = fnobj!fn_getprops( id, changes );
+	fnobj!fn_setprops( id, changes );
+	
+	this._invokeFeedback( src, "change", objtype, id, state, changes );
+}
+
+//  L O O P B A C K
+
+function UndoLayer._registerChange( src, action, objtype, id, state, state_to )
 {
 	if( src == "undolayer" )
 		return;
@@ -136,7 +207,15 @@ function UndoLayer._registerChange( src, action, objtype, id, state )
 	
 	if( action == "add" )
 	{
-		this.change.push({ type = "add", id = id, state = state });
+		this.change.push({ objtype = objtype, type = "add", id = id, state = state });
+	}
+	else if( action == "remove" )
+	{
+		this.change.push({ objtype = objtype, type = "remove", id = id, state = state });
+	}
+	else if( action == "change" )
+	{
+		this.change.push({ objtype = objtype, type = "change", state_from = state, state_to = state_to });
 	}
 }
 

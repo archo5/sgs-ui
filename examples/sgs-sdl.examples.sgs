@@ -864,6 +864,94 @@ function sgs_ui_example_ded3()
 
 
 //
+// DATAEDIT EXAMPLE 4
+// - tests two-way editing with one-way arrays and undo layer
+//
+
+function sgs_ui_example_ded4()
+{
+	global UL = UndoLayer.create();
+	dataobj =
+	[
+		UI_CreateStatic( FRAME.root )[]{ x = 100, y = 100, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me" },
+		UI_CreateStatic( FRAME.root )[]{ x = 400, y = 200, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me too" },
+	];
+	foreach( ctrl : dataobj )
+	{
+		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
+		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
+	}
+	function control_add( props )
+	{
+		ctrl = UI_CreateStatic( FRAME.root )[]{ x = 100, y = 100, width = 200, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "Edit or resize me" };
+		UI_MakeResizable( ctrl, 4, 4, 4, 4 );
+		return 0;
+	}
+	function control_rem( id )
+	{
+	}
+	function control_getstate( id )
+	{
+	}
+	function control_getprops( id, tmpl )
+	{
+	}
+	function control_setprops( id, props )
+	{
+	}
+	UL.registerObject( "control", dataobj, control_add, control_rem, control_getstate, control_getprops, control_setprops );
+	schema =
+	{
+		CONTROL =
+		{
+			"$type" = "object",
+			x = { "$type" = "int" },
+			y = { "$type" = "int" },
+			width = { "$type" = "int" },
+			height = { "$type" = "int" },
+			caption = { "$type" = "string" },
+		},
+		CONTROL_ARRAY =
+		{
+			"$name" = "Controls",
+			"$type" = "array",
+			"$subtype" = "CONTROL",
+		},
+		"$root" = "CONTROL_ARRAY",
+	};
+	de = UI_CreateDataEdit( FRAME.root, dataobj, schema )[]{ anchorMode = UI_Anchor_All, q0x = 0.7 };
+	function updateDataCb( e ) use( de, dataobj )
+	{
+		de.updateData( dataobj );
+	}
+	foreach( ctrl : dataobj )
+	{
+		ctrl.bindEvent( "oneditsize", updateDataCb );
+	}
+	de.bindEvent( "change", function() use( dataobj, updateDataCb )
+	{
+		type = this.getChangeType();
+		idx = this.getChangedIndex();
+		if( type == "add" )
+		{
+			ctrl = UI_CreateStatic( FRAME.root )[]{ x = 10, y = 10, width = 100, height = 100, backgroundColor = UIColor(0.8,0.7,0.6), caption = "<untitled>" };
+			UI_MakeResizable( ctrl, 4, 4, 4, 4 );
+			ctrl.bindEvent( "oneditsize", updateDataCb );
+			dataobj.insert( idx, ctrl );
+			this.setItemAdded( ctrl );
+		}
+		else if( type == "remove" )
+		{
+			dataobj[ idx ].destroy(true);
+			dataobj.erase( idx );
+		}
+		else
+			this.applyChangeToObject( dataobj );
+	});
+}
+
+
+//
 // STACK EXAMPLE
 // - tests built-in stack layout systems
 //
