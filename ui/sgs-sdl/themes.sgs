@@ -231,6 +231,45 @@ function SS_UI_Theme_Default_radiobtn_renderfunc()
 		SS_DrawColorCircle( cx, cy, radius - p2, null, 0.1, 0.2, 0.4, 1 );
 }
 
+function SS_UI_Theme_Default_textbox_renderfunc_inner()
+{
+	data = this.data;
+	
+	PH = this.py1 - this.py0;
+	x0 = this.px0 - data.offset;
+	y0 = this.py0;
+	yc = ( this.py0 + this.py1 ) * 0.5;
+	xh = ( PH - this._cachedFont.size ) * 0.5;
+	
+	txtcol = SS_UI_ConvertColor( this.textColor );
+	
+	if( this.frame.pushScissorRect( this.px0, this.py0, this.px1, this.py1 ) )
+	{
+		if( !data.chars && !this.keyboardFocus )
+		{
+			SS_DrawTextLine_VC( data.caption, this._cachedFont, x0 + xh, yc, txtcol );
+		}
+		
+		SS_DrawTextLine_VC( data.text, this._cachedFont, x0, yc, txtcol );
+		
+		if( data.sel_to !== null )
+		{
+			from = min( data.fsel_from, data.fsel_to );
+			to = max( data.fsel_from, data.fsel_to );
+			if( from != to )
+			{
+			//	selcol = if( this.keyboardFocus, [0.3,0.6,0.9,0.5], [0.8,0.8,0.8,0.5] );
+				SS_Draw({ preset = "tile", position = vec2(x0+from,y0), scale = vec2(to-from,PH), color = SS_UI_ConvertColor( this.backgroundColor ) });
+			}
+			
+			if( this.keyboardFocus && data.show_cursor )
+				SS_Draw({ preset = "tile", position = vec2(x0+data.fsel_to,y0), scale = vec2(1,PH), color = txtcol });
+		}
+		
+		this.frame.popScissorRect();
+	}
+}
+
 function SS_UI_Theme_Default_textbox_renderfunc()
 {
 	data = this.data;
@@ -240,41 +279,12 @@ function SS_UI_Theme_Default_textbox_renderfunc()
 	H = this.cy1 - this.cy0;
 	BW = this.cx1 - this.cx0 - border * 2;
 	BH = this.cy1 - this.cy0 - border * 2;
-	PH = this.py1 - this.py0;
 	
 	SS_Draw({ preset = "tile", position = vec2(this.cx0,this.cy0), scale = vec2(W,H), color = if(this.keyboardFocus,color(0.9,0.6,0.3,1),color(0.6,0.6,0.6,1)) });
 	SS_Draw({ preset = "tile", position = vec2(this.cx0+border,this.cy0+border), scale = vec2(BW,BH), color = color(0.9,0.9,0.9,1) });
 	
-	x0 = this.px0 - data.offset;
-	y0 = this.py0;
-	yc = ( this.py0 + this.py1 ) * 0.5;
-	xh = ( PH - this._cachedFont.size ) * 0.5;
-	
-	if( this.frame.pushScissorRect( this.px0, this.py0, this.px1, this.py1 ) )
-	{
-		if( !data.chars && !this.keyboardFocus )
-		{
-			SS_DrawTextLine_VC( data.caption, this._cachedFont, x0 + xh, yc, color(0.1,0.1,0.1,0.5) );
-		}
-		
-		SS_DrawTextLine_VC( data.text, this._cachedFont, x0, yc, color(0.1,0.1,0.1,1) );
-		
-		if( data.sel_to !== null )
-		{
-			from = min( data.fsel_from, data.fsel_to );
-			to = max( data.fsel_from, data.fsel_to );
-			if( from != to )
-			{
-				selcol = if( this.keyboardFocus, [0.3,0.6,0.9,0.5], [0.8,0.8,0.8,0.5] );
-				SS_Draw({ preset = "tile", position = [x0+from,y0], scale = [to-from,PH], color = selcol });
-			}
-			
-			if( this.keyboardFocus && data.show_cursor )
-				SS_Draw({ preset = "tile", position = [x0+data.fsel_to,y0], scale = [1,PH], color = [0.1,0.1,0.1,1] });
-		}
-		
-		this.frame.popScissorRect();
-	}
+	textbox_render_contents = this.frame.theme.textbox_render_contents;
+	this!textbox_render_contents();
 }
 
 function SS_UI_Theme_Default_slider_horizontal_rail_renderfunc()
@@ -566,7 +576,9 @@ global SS_UI_Theme_Default =
 		"form" = { anchorMode = UI_Anchor_All },
 		"checkbox" = { minWidth = 16, minHeight = 16, maxWidth = 16, maxHeight = 16, renderfunc = SS_UI_Theme_Default_checkbox_renderfunc },
 		"radiobutton" = { minWidth = 16, minHeight = 16, maxWidth = 16, maxHeight = 16, renderfunc = SS_UI_Theme_Default_radiobtn_renderfunc },
-		"textbox" = { cursor = UI_Cursor_Text, padding = 3, renderfunc = SS_UI_Theme_Default_textbox_renderfunc },
+		"textbox" = { cursor = UI_Cursor_Text, padding = 3, renderfunc = SS_UI_Theme_Default_textbox_renderfunc, textColor = UIColor(0.1,0.5), backgroundColor = UIColor(0.8,0.5) },
+		"textbox:focus" = { backgroundColor = UIColor(0.3,0.6,0.9,0.5) },
+		"textbox:focus, textbox.has-text" = { textColor = UIColor(0.1,1) },
 		"integerbox textbox" = { anchorMode = UI_Anchor_All, width = -24 },
 		"integerbox .slider-btn" = { anchorMode = UI_Anchor_Right | UI_Anchor_Vert, x = -24, width = 24 },
 		"integerbox .slider-btn.add" = { q1y = 0.5 },
@@ -627,8 +639,8 @@ global SS_UI_Theme_Default =
 		},
 		"groupblock > .groupblk-title:hover" = { backgroundColor = UIColor(0.35,0.55,0.75,1) },
 		"groupblock > .groupblk-title:active" = { backgroundColor = UIColor(0.25,0.45,0.65,1) },
-		"groupblock.groupblk-open .groupblk-title" = { icon = "icons/bullet_arrow_down.png" },
-		"groupblock.groupblk-closed .groupblk-title" = { icon = "icons/bullet_arrow_up.png" },
+		"groupblock.open .groupblk-title" = { icon = "icons/bullet_arrow_down.png" },
+		"groupblock.closed .groupblk-title" = { icon = "icons/bullet_arrow_up.png" },
 		"groupblock .groupblk-cont" = { anchorMode = UI_Anchor_Hor, y = 24, stackMode = UI_Stack_AutoSizeTop, posMode = UI_Pos_SideA },
 		"listboxmenu > button" =
 		{
@@ -706,25 +718,99 @@ global SS_UI_Theme_Default =
 	
 	// TEXTBOX
 	textbox_border = 1,
+	textbox_render_contents = SS_UI_Theme_Default_textbox_renderfunc_inner,
 };
 
 // inherit from main theme
+function SS_UI_Theme_DarkPixel_button_renderfunc()
+{
+	if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
+		return;
+	
+	theme = this.frame.theme;
+	button_render_contents = theme.button_render_contents;
+	
+	if( this._cachedImage )
+		SS_DrawButton( this._cachedImage, color(1), this.rx0, this.ry0, this.rx1, this.ry1, 4 );
+	
+	this!button_render_contents();
+}
+
+function SS_UI_Theme_DarkPixel_scrollbar_renderfunc()
+{
+	if( this._cachedImage )
+		SS_DrawButton( this._cachedImage, color(1), this.rx0, this.ry0, this.rx1, this.ry1, 4 );
+}
+
 function SS_UI_Theme_DarkPixel_checkbox_renderfunc()
 {
-	theme = this.frame.theme;
-	tex = if( this.clicked, theme.checkbox_image_path_clicked, if( this.mouseOn, theme.checkbox_image_path_hover, theme.checkbox_image_path_normal ) );
-	tex = SS_CreateTexture( tex );
-	// base image
-	cx = round( ( this.cx1 + this.cx0 ) * 0.5 ) - ( @tex.width % 2 ) / 2;
-	cy = round( ( this.cy1 + this.cy0 ) * 0.5 ) - ( @tex.height % 2 ) / 2;
-	SS_Draw({ preset = "box", position = vec2( cx, cy ), scale = vec2( tex.width, tex.height ), texture = tex });
-	// check image
-	if( this.data.checked )
+	tex = this._cachedImage;
+	if( tex )
 	{
-		tex = this._cachedIcon;
 		cx = round( ( this.cx1 + this.cx0 ) * 0.5 ) - ( @tex.width % 2 ) / 2;
 		cy = round( ( this.cy1 + this.cy0 ) * 0.5 ) - ( @tex.height % 2 ) / 2;
 		SS_Draw({ preset = "box", position = vec2( cx, cy ), scale = vec2( tex.width, tex.height ), texture = tex });
+	}
+	tex = this._cachedIcon;
+	if( tex )
+	{
+		cx = round( ( this.cx1 + this.cx0 ) * 0.5 ) - ( @tex.width % 2 ) / 2;
+		cy = round( ( this.cy1 + this.cy0 ) * 0.5 ) - ( @tex.height % 2 ) / 2;
+		SS_Draw({ preset = "box", position = vec2( cx, cy ), scale = vec2( tex.width, tex.height ), texture = tex });
+	}
+}
+
+function SS_UI_Theme_DarkPixel_textbox_renderfunc()
+{
+	data = this.data;
+	
+	if( this._cachedImage )
+		SS_DrawButton( this._cachedImage, color(1), this.rx0, this.ry0, this.rx1, this.ry1, 4 );
+	
+	textbox_render_contents = this.frame.theme.textbox_render_contents;
+	this!textbox_render_contents();
+}
+
+function SS_UI_Theme_DarkPixel_selectbox_renderfunc()
+{
+	data = this.data;
+	icon = this._cachedIcon;
+	text = this.caption;
+	
+	if( this._cachedImage )
+		SS_DrawButton( this._cachedImage, color(1), this.rx0, this.ry0, this.rx1, this.ry1, 4 );
+	
+	if( this.frame.pushScissorRect( this.rx0 + 2, this.ry0 + 2, this.rx1 - 2, this.ry1 - 2 ) )
+	{
+		fullwidth = 0;
+		if( text )
+		{
+			textlen = this._cachedFont.getTextLength( text );
+			fullwidth += textlen;
+		}
+		
+		cy = round( ( this.ry1 + this.ry0 ) * 0.5 );
+		if( icon )
+		{
+			cyi = cy/* + if( this.hasClass("open"), 1, 0 )*/ - ( icon.height % 2 ) / 2;
+			SS_Draw({ preset = "box", position = vec2( this.px1 + icon.width/2, cyi ), scale = vec2( icon.width, icon.height ), texture = icon });
+		}
+		
+		if( text )
+		{
+			SS_DrawTextLine_VC( text, this._cachedFont, this.rx0 + 4, cy, SS_UI_ConvertColor( this.textColor ) );
+		}
+		
+		this.frame.popScissorRect();
+	}
+}
+
+function SS_UI_Theme_DarkPixel_window_renderfunc()
+{
+	if( this._cachedImage )
+	{
+		SS_DrawButtonExt( this._cachedImage, color(1), this.rx0, this.ry0, this.rx1, this.ry1, 4, 24, 4, 4 );
+		SS_DrawTextLine_VC( this.caption, this._cachedFont, this.rx0 + 4, this.ry0 + 12, color(1) );
 	}
 }
 
@@ -733,59 +819,45 @@ global SS_UI_Theme_DarkPixel =
 	stylesheet = SS_UI_Theme_Default.stylesheet.buildCopy
 	({
 		"static" = { backgroundColor = UIColor(64/255,1) },
-		"button" =
-		{
-			renderfunc = function SS_UI_Theme_DarkPixel_button_renderfunc()
-			{
-				if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
-					return;
-				
-				theme = this.frame.theme;
-				button_render_contents = theme.button_render_contents;
-				
-				c = this.backgroundColor;
-				tex = if( this.clicked, theme.button_image_path_clicked, if( this.mouseOn, theme.button_image_path_hover, theme.button_image_path_normal ) );
-				tex = SS_CreateTexture( tex );
-				SS_DrawButton( tex, SS_UI_ConvertColor( c ), this.rx0, this.ry0, this.rx1, this.ry1, 4 );
-				
-				this!button_render_contents();
-			}
-		},
-		"scrollbar" =
-		{
-			renderfunc = function SS_UI_Theme_DarkPixel_scrollbar_renderfunc()
-			{
-				theme = this.frame.theme;
-				c = this.backgroundColor;
-				tex = SS_CreateTexture( theme.scrollbar_background_path );
-				SS_DrawButton( tex, SS_UI_ConvertColor( c ), this.rx0, this.ry0, this.rx1, this.ry1, 4 );
-			}
-		},
+		"button" = { renderfunc = SS_UI_Theme_DarkPixel_button_renderfunc, image = "images/dp_btnN.png" },
+		"button:hover" = { image = "images/dp_btnH.png" },
+		"button:active" = { image = "images/dp_btnC.png" },
+		"scrollbar" = { renderfunc = SS_UI_Theme_DarkPixel_scrollbar_renderfunc, image = "images/dp_insbg.png" },
 		"scrollbar.vertical .btn-slider" = { icon = "images/dp_rgV.png" },
 		"scrollbar.horizontal .btn-slider" = { icon = "images/dp_rgH.png" },
-		"checkbox" = { renderfunc = SS_UI_Theme_DarkPixel_checkbox_renderfunc, icon = "images/dp_cbtick.png" },
-		"radiobutton" = { renderfunc = SS_UI_Theme_DarkPixel_checkbox_renderfunc, icon = "images/dp_rbtick.png" },
-		"window" =
-		{
-			renderfunc = function SS_UI_Theme_Default_window_renderfunc()
-			{
-				c = this.backgroundColor;
-				theme = this.frame.theme;
-				tex = SS_CreateTexture( theme.window_image_path );
-				SS_DrawButtonExt( tex, SS_UI_ConvertColor( c ), this.rx0, this.ry0, this.rx1, this.ry1, 4, 24, 4, 4 );
-				SS_DrawTextLine_VC( this.caption, this._cachedFont, this.rx0 + 4, this.ry0 + 12, color(1) );
-			}
-		},
+		"checkbox" = { renderfunc = SS_UI_Theme_DarkPixel_checkbox_renderfunc, image = "images/dp_cbN.png" },
+		"checkbox:hover" = { image = "images/dp_cbH.png" },
+		"checkbox:active" = { image = "images/dp_cbC.png" },
+		"checkbox.checked" = { icon = "images/dp_cbtick.png" },
+		"radiobutton" = { renderfunc = SS_UI_Theme_DarkPixel_checkbox_renderfunc, image = "images/dp_rbN.png" },
+		"radiobutton:hover" = { image = "images/dp_rbH.png" },
+		"radiobutton:active" = { image = "images/dp_rbC.png" },
+		"radiobutton.checked" = { icon = "images/dp_rbtick.png" },
+		"textbox" = { renderfunc = SS_UI_Theme_DarkPixel_textbox_renderfunc, image = "images/dp_tb.png", textColor = UIColor(0.9,0.5), backgroundColor = UIColor(0.3,0.5) },
+		"textbox:focus" = { renderfunc = SS_UI_Theme_DarkPixel_textbox_renderfunc, image = "images/dp_tbsel.png", backgroundColor = UIColor(0.48,0.11,0.11,0.5) },
+		"textbox:focus, textbox.has-text" = { textColor = UIColor(0.9,1) },
+		"integerbox .slider-btn.add" = { icon = "images/dp_tri_up.png" },
+		"integerbox .slider-btn.sub" = { icon = "images/dp_tri_dn.png" },
+		"selectbox" = { renderfunc = SS_UI_Theme_DarkPixel_selectbox_renderfunc, image = "images/dp_btnN.png", icon = "images/dp_tri_dn.png", textColor = UIColor(0.9,1), paddingRight = 15 },
+		"selectbox:hover" = { image = "images/dp_btnH.png" },
+		"selectbox:active, selectbox.open" = { image = "images/dp_btnC.png" },
+		"window" = { renderfunc = SS_UI_Theme_DarkPixel_window_renderfunc, image = "images/dp_win.png" },
+		
+		"groupblock > .groupblk-title" = { renderfunc = SS_UI_Theme_DarkPixel_selectbox_renderfunc, image = "images/dp_btnN.png", paddingRight = 15 },
+		"groupblock > .groupblk-title:hover" = { image = "images/dp_btnH.png" },
+		"groupblock > .groupblk-title:active" = { image = "images/dp_btnC.png" },
+		"groupblock.open > .groupblk-title" = { icon = "images/dp_tri_dn.png" },
+		"groupblock.closed > .groupblk-title" = { icon = "images/dp_tri_up.png" },
+		"listboxmenu" = { renderfunc = SS_UI_Theme_DarkPixel_scrollbar_renderfunc, image = "images/dp_listbg.png", nonClient = 3 },
+		"listboxmenu > button" = { backgroundColor = UIColor(0.3,1), textColor = UIColor(0.9,1) },
+		"listboxmenu > button:hover" = { backgroundColor = UIColor(0.48,0.11,0.11,0.5), textColor = UIColor(1,1) },
+		"listboxmenu > button:active" = { backgroundColor = UIColor(0.48,0.11,0.11,0.8), textColor = UIColor(1,1) },
+		"propertygrid datacontainer" = { backgroundColor = UIColor(0.2,1) },
+		"propertygrid .label" = { padding = 4, backgroundColor = UIColor(0), textColor = UIColor(0.9,1) },
+		"propertygrid .separator" = { backgroundColor = UIColor(0.3,1), textColor = UIColor(0.8,1) },
+		"dataedit datacontainer" = { backgroundColor = UIColor(0.2,1) },
+		"dataedit .label" = { padding = 4, backgroundColor = UIColor(0), textColor = UIColor(0.9,1) },
 	}),
-	
-	button_image_path_normal = "images/dp_btnN.png",
-	button_image_path_hover = "images/dp_btnH.png",
-	button_image_path_clicked = "images/dp_btnC.png",
-	scrollbar_background_path = "images/dp_insbg.png",
-	checkbox_image_path_normal = "images/dp_cbN.png",
-	checkbox_image_path_hover = "images/dp_cbH.png",
-	checkbox_image_path_clicked = "images/dp_cbC.png",
-	window_image_path = "images/dp_win.png",
 };
 class( SS_UI_Theme_DarkPixel, SS_UI_Theme_Default );
 

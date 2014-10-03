@@ -83,7 +83,7 @@ function SS_UI_ConvertAlignment( halign, valign )
 function SS_UI_CreateFrame()
 {
 	SS_Frame = UI_CreateFrame();
-	SS_Frame.setTheme( SS_UI_Theme_Default );
+	SS_Frame.setTheme( SS_UI_Theme_DarkPixel );
 	function SS_Frame.scissor_func( x0, y0, x1, y1 )
 	{
 		if( x0 === null )

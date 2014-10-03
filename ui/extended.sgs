@@ -242,7 +242,7 @@ function UI_GroupBlock._getHeight()
 {
 	data = this.data;
 	totalheight = data.Title.realHeight + this.paddingTop + this.paddingBottom + this.nonClientTop + this.nonClientBottom;
-	if( this.hasClass( "groupblk-open" ) )
+	if( this.hasClass( "open" ) )
 		totalheight += data.AutoLayout.autoHeight;
 	return totalheight;
 }
@@ -252,14 +252,14 @@ function UI_GroupBlock.setOpen( is )
 	if( is == this.isOpen() )
 		return;
 	
-	this.addRemClass( "groupblk-open", is );
-	this.addRemClass( "groupblk-closed", !is );
+	this.addRemClass( "open", is );
+	this.addRemClass( "closed", !is );
 	this.stackMode &= ~UI_Stack_AutoSize;
 	function gpblk_oncomplete(){ this.stackMode |= UI_Stack_AutoSize; }
 	this.animate({ height = this._getHeight() }, this.data.time, null, if( is, gpblk_oncomplete, null ) );
 }
 
-function UI_GroupBlock.isOpen(){ return this.hasClass( "groupblk-open" ); }
+function UI_GroupBlock.isOpen(){ return this.hasClass( "open" ); }
 function UI_GroupBlock.open(){ this.setOpen( true ); }
 function UI_GroupBlock.close(){ this.setOpen( false ); }
 function UI_GroupBlock.toggle(){ this.setOpen( !this.isOpen() ); }
@@ -276,7 +276,7 @@ function UI_CreateGroupBlock( parent, name, time, closed )
 	GroupBlock = parent.frame.createControl( "groupblock" );
 	GroupBlock._interface = UI_GroupBlock;
 	GroupBlock.data = { time = time };
-	GroupBlock.class = if( closed, "groupblk-closed", "groupblk-open" );
+	GroupBlock.class = if( closed, "closed", "open" );
 	
 	GroupBlock.data.Title = UI_CreateButton( GroupBlock )[]{ caption = if( name !== null, name, "" ), class = "groupblk-title" }
 		.bindEvent( "click", function(){ this.parent.toggle(); } );
