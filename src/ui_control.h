@@ -48,6 +48,7 @@
 #define UI_Stack_AutoSizeRight (UI_Stack_AutoSize|UI_Stack_Right)
 
 #define EV_Changed      1
+#define EV_Stacking     2
 #define EV_ChgTheme     3
 #define EV_KeyDown      10
 #define EV_KeyUp        11
@@ -436,7 +437,8 @@ struct UIStyleSheet
 	SGS_PROPERTY_FUNC( READ _get_ruleCount ) SGS_ALIAS( int ruleCount );
 	
 	SGS_METHOD SGS_MULTRET addRule( UIStyleRule::Handle rule );
-	SGS_METHOD void build( sgsVariable var );
+	SGS_METHOD UIStyleSheet::Handle build( sgsVariable var );
+	SGS_METHOD UIStyleSheet::Handle buildCopy( sgsVariable var );
 };
 typedef std::vector< UIStyleSheet::Handle > StyleSheetArray;
 
@@ -957,7 +959,7 @@ struct UIControl
 	
 	SGS_PROPERTY bool _updatingLayout : 1; /* true if updating layout and don't want to trigger further layout changes */
 	SGS_PROPERTY bool _roundedCoords : 1; /* true if final coords (r[xy][01]) should be rounded */
-	SGS_PROPERTY bool _childAffectsLayout : 1; /* true if child has any influence over the layout and should be updated if child is */
+	SGS_PROPERTY bool _stackingEvent : 1; /* true if child has any influence over the layout and should be updated if child is */
 	SGS_PROPERTY bool _clientRectFromPadded : 1; /* true to calculate relative position for child controls from the padded rect, not client rect */
 	SGS_PROPERTY bool _neverHit : 1; /* true if cannot hit (regardless of hit test) */
 	SGS_PROPERTY bool _layoutRectOverride : 1; /* true if EV_Layout overrides rect placement and default scrolling optimization would not work here */

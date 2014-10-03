@@ -137,6 +137,7 @@ sgs_RegIntConst g_iconsts[] =
 	FN( UI_Stack_AutoSizeRight  ),
 	
 	FN( EV_Changed      ),
+	FN( EV_Stacking     ),
 	FN( EV_ChgTheme     ),
 	FN( EV_KeyDown      ),
 	FN( EV_KeyUp        ),

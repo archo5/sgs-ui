@@ -237,7 +237,7 @@ SGS_MULTRET UIStyleSheet::addRule( UIStyleRule::Handle rule )
 	SGS_RETURN_THIS(C);
 }
 
-void UIStyleSheet::build( sgsVariable var )
+UIStyleSheet::Handle UIStyleSheet::build( sgsVariable var )
 {
 	// key = selectors, value = iterable{ key/value => UIStyle }
 	sgs_StkIdx orig = sgs_StackSize( C );
@@ -300,7 +300,7 @@ void UIStyleSheet::build( sgsVariable var )
 	}
 end:
 	sgs_SetStackSize( C, orig );
-	return;
+	return Handle(this);
 iter_fail:
 	sgs_Msg( C, SGS_WARNING, "passed variable is not iterable" );
 	goto end;
@@ -313,6 +313,12 @@ key_fail:
 int_fail:
 	sgs_Msg( C, SGS_WARNING, "internal UIStyle interface error" );
 	goto end;
+}
+
+UIStyleSheet::Handle UIStyleSheet::buildCopy( sgsVariable var )
+{
+	UIStyleSheet* nss = SGS_PUSHCLASS( C, UIStyleSheet, ( *this ) );
+	return nss->build( var );
 }
 
 #define UIS_FRAG UIStyleSelector::Fragment
@@ -1511,8 +1517,8 @@ UIControl::UIControl() :
 	autoWidth(0.0f), autoHeight(0.0f),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
 	_updatingLayout(false), _roundedCoords(true),
-	_childAffectsLayout(false),
-	_clientRectFromPadded(false), _neverHit(false), _layoutRectOverride(false),
+	_stackingEvent(false),
+	_clientRectFromPadded(false), _neverHit(false),
 	_disableClickBubbling(false),
 	mouseOn(false), keyboardFocus(false), clicked(0)
 {
@@ -1634,13 +1640,8 @@ void UIControl::updateScroll()
 		return;
 	
 	_updatingLayout = true;
-	if( _layoutRectOverride )
-		onLayoutChange();
-	else
-	{
-		_updateFullRect();
-		_updateChildRects();
-	}
+	_updateFullRect();
+	_updateChildRects();
 	if( frame )
 		frame->handleMouseMove( true );
 	_updatingLayout = false;
@@ -1732,6 +1733,13 @@ void UIControl::ppgLayoutChange( UIControl* from )
 	if( _updatingLayout )
 		return;
 	_updatingLayout = true;
+	
+	if( _stackingEvent )
+	{
+		sgsVariable ev;
+		UI_CreateEvent( C, ev, EV_Stacking );
+		niEvent( ev, true );
+	}
 	
 	// FIND PREVIOUS STACKED
 	UIStackLayoutState sls_prev;
@@ -2817,13 +2825,8 @@ void UIControl::_updateChildRects()
 {
 	for( UIControl::HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
 	{
-		if( (*it)->_layoutRectOverride )
-			(*it)->onLayoutChange();
-		else
-		{
-			(*it)->_updateFullRect();
-			(*it)->_updateChildRects();
-		}
+		(*it)->_updateFullRect();
+		(*it)->_updateChildRects();
 	}
 }
 

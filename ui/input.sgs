@@ -216,7 +216,6 @@ function UI_CreateCheckbox( parent, name, value, checked )
 	Checkbox = parent.frame.createControl( "checkbox" );
 	Checkbox.name = name;
 	Checkbox._interface = UI_GenericToggleControl;
-	Checkbox._layoutRectOverride = true;
 	Checkbox._disableClickBubbling = true;
 	Checkbox.data =
 	{
@@ -288,7 +287,6 @@ function UI_CreateRadioButton( parent, name, value, checked )
 	RadioBtn = parent.frame.createControl( "radiobutton" );
 	RadioBtn.name = name;
 	RadioBtn._interface = UI_GenericToggleControl;
-	RadioBtn._layoutRectOverride = true;
 	RadioBtn._disableClickBubbling = true;
 	RadioBtn.data =
 	{

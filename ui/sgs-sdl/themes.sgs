@@ -41,13 +41,14 @@ function SS_UI_Theme_Default_button_render_contents()
 		}
 		if( icon && text ) fullwidth += 4;
 		
-		icon_off = ( this.cx1 - this.cx0 - fullwidth ) / 2;
+		icon_off = round( this.cx1 - this.cx0 - fullwidth ) / 2;
 		text_off = icon_off;
-		cy = round( ( this.cy1 + this.cy0 ) * 0.5 );
+		cy = round( ( this.cy1 + this.cy0 ) * 0.5 ) - ( @icon.height % 2 ) / 2;
 		if( icon )
 		{
+			cx = this.cx0 + round( icon_off + icon.width / 2 ) - ( @icon.width % 2 ) / 2;
 			text_off += icon.width + 4;
-			SS_Draw({ preset = "box", position = vec2( this.cx0 + round( icon_off + icon.width / 2 ), cy ), scale = vec2( icon.width, icon.height ), texture = icon });
+			SS_Draw({ preset = "box", position = vec2( cx, cy ), scale = vec2( icon.width, icon.height ), texture = icon });
 		}
 		
 		if( text )
@@ -706,3 +707,73 @@ global SS_UI_Theme_Default =
 	// TEXTBOX
 	textbox_border = 1,
 };
+
+// inherit from main theme
+function SS_UI_Theme_DarkPixel_checkbox_renderfunc()
+{
+	theme = this.frame.theme;
+	tex = if( this.clicked, theme.checkbox_image_path_clicked, if( this.mouseOn, theme.checkbox_image_path_hover, theme.checkbox_image_path_normal ) );
+	tex = SS_CreateTexture( tex );
+	// base image
+	cx = round( ( this.cx1 + this.cx0 ) * 0.5 ) - ( @tex.width % 2 ) / 2;
+	cy = round( ( this.cy1 + this.cy0 ) * 0.5 ) - ( @tex.height % 2 ) / 2;
+	SS_Draw({ preset = "box", position = vec2( cx, cy ), scale = vec2( tex.width, tex.height ), texture = tex });
+	// check image
+	if( this.data.checked )
+	{
+		tex = this._cachedIcon;
+		cx = round( ( this.cx1 + this.cx0 ) * 0.5 ) - ( @tex.width % 2 ) / 2;
+		cy = round( ( this.cy1 + this.cy0 ) * 0.5 ) - ( @tex.height % 2 ) / 2;
+		SS_Draw({ preset = "box", position = vec2( cx, cy ), scale = vec2( tex.width, tex.height ), texture = tex });
+	}
+}
+
+global SS_UI_Theme_DarkPixel =
+{
+	stylesheet = SS_UI_Theme_Default.stylesheet.buildCopy
+	({
+		"static" = { backgroundColor = UIColor(64/255,1) },
+		"button" =
+		{
+			renderfunc = function SS_UI_Theme_DarkPixel_button_renderfunc()
+			{
+				if( this.rx0 == this.rx1 || this.ry0 == this.ry1 )
+					return;
+				
+				theme = this.frame.theme;
+				button_render_contents = theme.button_render_contents;
+				
+				c = this.backgroundColor;
+				tex = if( this.clicked, theme.button_image_path_clicked, if( this.mouseOn, theme.button_image_path_hover, theme.button_image_path_normal ) );
+				tex = SS_CreateTexture( tex );
+				SS_DrawButton( tex, SS_UI_ConvertColor( c ), this.rx0, this.ry0, this.rx1, this.ry1, 4 );
+				
+				this!button_render_contents();
+			}
+		},
+		"scrollbar" =
+		{
+			renderfunc = function SS_UI_Theme_DarkPixel_scrollbar_renderfunc()
+			{
+				theme = this.frame.theme;
+				c = this.backgroundColor;
+				tex = SS_CreateTexture( theme.scrollbar_background_path );
+				SS_DrawButton( tex, SS_UI_ConvertColor( c ), this.rx0, this.ry0, this.rx1, this.ry1, 4 );
+			}
+		},
+		"scrollbar.vertical .btn-slider" = { icon = "images/dp_rgV.png" },
+		"scrollbar.horizontal .btn-slider" = { icon = "images/dp_rgH.png" },
+		"checkbox" = { renderfunc = SS_UI_Theme_DarkPixel_checkbox_renderfunc, icon = "images/dp_cbtick.png" },
+		"radiobutton" = { renderfunc = SS_UI_Theme_DarkPixel_checkbox_renderfunc, icon = "images/dp_rbtick.png" },
+	}),
+	
+	button_image_path_normal = "images/dp_btnN.png",
+	button_image_path_hover = "images/dp_btnH.png",
+	button_image_path_clicked = "images/dp_btnC.png",
+	scrollbar_background_path = "images/dp_insbg.png",
+	checkbox_image_path_normal = "images/dp_cbN.png",
+	checkbox_image_path_hover = "images/dp_cbH.png",
+	checkbox_image_path_clicked = "images/dp_cbC.png",
+};
+class( SS_UI_Theme_DarkPixel, SS_UI_Theme_Default );
+

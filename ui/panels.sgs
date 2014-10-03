@@ -121,6 +121,7 @@ function UI_Controls.splitpane( parent, params )
 function UI_CreateMenuPanel( parent, items )
 {
 	MenuPanel = parent.frame.createControl( "menupanel" );
+	MenuPanel._stackingEvent = true;
 	
 	items = clone( items );
 	foreach( item : items )
@@ -200,7 +201,7 @@ function UI_CreateMenuPanel( parent, items )
 	{
 		data = this.data;
 		
-		if( event.type == EV_Changed )
+		if( event.type == EV_Stacking )
 		{
 			res = this!ocb( event );
 			data.recalcItemPositions( this );

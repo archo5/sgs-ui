@@ -301,6 +301,7 @@ function UI_BuildMenu( parent, x, y, items, default )
 	Menu.x = x - parent.x;
 	Menu.y = y - parent.y;
 	Menu.topmost = true;
+	Menu._stackingEvent = true;
 	
 	items = clone( items );
 	// each item can have the following used parameters
@@ -396,7 +397,7 @@ function UI_BuildMenu( parent, x, y, items, default )
 			}
 			return 0;
 		}
-		else if( event.type == EV_Changed )
+		else if( event.type == EV_Stacking )
 		{
 			ht = 0;
 			foreach( i, item : data.items )

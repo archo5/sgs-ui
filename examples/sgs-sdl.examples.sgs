@@ -69,6 +69,9 @@ function sgs_ui_example_default()
 	global STAT = UI_CreateMenuPanel( STATCORE, mpitems );
 	STAT.bindEvent( "click", function(e){ println("static.click #"$e.clicks); });
 	
+	UI_CreateButton( STAT )[]{ x = 20, y = 500, width = 128, height = 24, caption = "Theme 0" }.bindEvent( "click", function(){ FRAME.setTheme( SS_UI_Theme_Default ); } );
+	UI_CreateButton( STAT )[]{ x = 148, y = 500, width = 128, height = 24, caption = "Theme 1" }.bindEvent( "click", function(){ FRAME.setTheme( SS_UI_Theme_DarkPixel ); } );
+	
 	global TOPBAR = UI_CreateStatic( STAT )[]{ height = 24, backgroundColor = UIColor( 0.8, 1 ), anchorMode = UI_Anchor_Hor };
 	
 	UI_CreateButton( TOPBAR )[]{ x = 0, y = 0, width = 24, height = 24, icon = "icons/page.png" };
