@@ -263,7 +263,7 @@ function UI_CreateScrollbar( parent, vertical, space, window, position )
 		}
 		else if( event.type == EV_ChgTheme )
 		{
-			data.button_size = first_non_null( @this.frame.theme.scroll_button_size, 0 );
+			data.button_size = @this.frame.theme.scroll_button_size ?? 0;
 		}
 		else if( event.type == EV_ButtonDown )
 		{
@@ -416,11 +416,11 @@ function UI_BuildMenu( parent, x, y, items, default )
 		else if( event.type == EV_ChgTheme )
 		{
 			theme = this.frame.theme;
-			data.item_min_width = first_non_null( @theme.menu_item_min_width, 200 );
-			data.item_height = first_non_null( @theme.menu_item_height, 24 );
-			data.sep_height = first_non_null( @theme.menu_sep_height, 8 );
-			data.item_spacing = first_non_null( @theme.menu_item_spacing, 0 );
-			data.menu_padding = first_non_null( @theme.menu_padding, 4 );
+			data.item_min_width = @theme.menu_item_min_width ?? 200;
+			data.item_height = @theme.menu_item_height ?? 24;
+			data.sep_height = @theme.menu_sep_height ?? 8;
+			data.item_spacing = @theme.menu_item_spacing ?? 0;
+			data.menu_padding = @theme.menu_padding ?? 4;
 			return 1;
 		}
 		else if( event.type == EV_MouseMove )

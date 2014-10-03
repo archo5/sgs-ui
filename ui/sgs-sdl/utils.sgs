@@ -1,5 +1,70 @@
 
 
+function SS_DrawButton( tex, color, x0, y0, x1, y1, off, texoff )
+{
+	off ??= 8;
+	texoff ??= off;
+	
+	xA = x0 + off;
+	xB = x1 - off;
+	yA = y0 + off;
+	yB = y1 - off;
+	
+	tox = texoff / tex.width;
+	toy = texoff / tex.height;
+	itx = 1 - tox;
+	ity = 1 - toy;
+	hpw = 0.5 / tex.width;
+	hph = 0.5 / tex.height;
+	
+	g_RB.begin();
+	
+	g_RB.f( x0, y0, 0, 0,  xA, y0, tox, 0,  xA, yA, tox, toy,  x0, yA, 0, toy )
+		.f( xA, y0, tox+hpw, 0,  xB, y0, itx-hpw, 0,  xB, yA, itx-hpw, toy,  xA, yA, tox+hpw, toy )
+		.f( xB, y0, itx, 0,  x1, y0, 1, 0,  x1, yA, 1, toy,  xB, yA, itx, toy );
+	g_RB.f( x0, yA, 0, toy+hph,  xA, yA, tox, toy+hph,  xA, yB, tox, ity-hph,  x0, yB, 0, ity-hph )
+		.f( xA, yA, tox+hpw, toy+hph,  xB, yA, itx-hpw, toy+hph,  xB, yB, itx-hpw, ity-hph,  xA, yB, tox+hpw, ity-hph )
+		.f( xB, yA, itx, toy+hph,  x1, yA, 1, toy+hph,  x1, yB, 1, ity-hph,  xB, yB, itx, ity-hph );
+	g_RB.f( x0, yB, 0, ity,  xA, yB, tox, ity,  xA, y1, tox, 1,  x0, y1, 0, 1 )
+		.f( xA, yB, tox+hpw, ity,  xB, yB, itx-hpw, ity,  xB, y1, itx-hpw, 1,  xA, y1, tox+hpw, 1 )
+		.f( xB, yB, itx, ity,  x1, yB, 1, ity,  x1, y1, 1, 1,  xB, y1, itx, 1 );
+	
+	g_RB.c4b( color.r, color.g, color.b, color.a ).interlace( 4, 16, 16 );
+	g_RB.quadsToTris( 20 );
+	g_RB.draw( tex, g_VD_P2T2CC4, 0, 54, SS_PT_TRIANGLES );
+}
+
+function SS_DrawButtonExt( tex, color, x0, y0, x1, y1, offL, offT, offR, offB )
+{
+	xA = x0 + offL;
+	xB = x1 - offR;
+	yA = y0 + offT;
+	yB = y1 - offB;
+	
+	tox = offL / tex.width;
+	toy = offT / tex.height;
+	itx = 1 - ( offR / tex.width );
+	ity = 1 - ( offB / tex.width );
+	hpw = 0.5 / tex.width;
+	hph = 0.5 / tex.height;
+	
+	g_RB.begin();
+	
+	g_RB.f( x0, y0, 0, 0,  xA, y0, tox, 0,  xA, yA, tox, toy,  x0, yA, 0, toy )
+		.f( xA, y0, tox+hpw, 0,  xB, y0, itx-hpw, 0,  xB, yA, itx-hpw, toy,  xA, yA, tox+hpw, toy )
+		.f( xB, y0, itx, 0,  x1, y0, 1, 0,  x1, yA, 1, toy,  xB, yA, itx, toy );
+	g_RB.f( x0, yA, 0, toy+hph,  xA, yA, tox, toy+hph,  xA, yB, tox, ity-hph,  x0, yB, 0, ity-hph )
+		.f( xA, yA, tox+hpw, toy+hph,  xB, yA, itx-hpw, toy+hph,  xB, yB, itx-hpw, ity-hph,  xA, yB, tox+hpw, ity-hph )
+		.f( xB, yA, itx, toy+hph,  x1, yA, 1, toy+hph,  x1, yB, 1, ity-hph,  xB, yB, itx, ity-hph );
+	g_RB.f( x0, yB, 0, ity,  xA, yB, tox, ity,  xA, y1, tox, 1,  x0, y1, 0, 1 )
+		.f( xA, yB, tox+hpw, ity,  xB, yB, itx-hpw, ity,  xB, y1, itx-hpw, 1,  xA, y1, tox+hpw, 1 )
+		.f( xB, yB, itx, ity,  x1, yB, 1, ity,  x1, y1, 1, 1,  xB, y1, itx, 1 );
+	
+	g_RB.c4b( color.r, color.g, color.b, color.a ).interlace( 4, 16, 16 );
+	g_RB.quadsToTris( 20 );
+	g_RB.draw( tex, g_VD_P2T2CC4, 0, 54, SS_PT_TRIANGLES );
+}
+
 function SS_UI_ConvertColor( cc ){ return color( cc.r, cc.g, cc.b, cc.a ); }
 
 function SS_UI_ConvertAlignment( halign, valign )

@@ -524,7 +524,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 		}
 		else if( event.type == EV_ChgTheme )
 		{
-			data.border = first_non_null( @this.frame.theme.textbox_border, 1 );
+			data.border = @this.frame.theme.textbox_border ?? 1;
 		}
 		else if( event.type == EV_NeedFocus )
 			return 1;

@@ -1,6 +1,4 @@
 
-function first_non_null( a, b ){ return if( a === null, b, a ); }
-
 function UI_ConfigControl( control, params )
 {
 	removed = UI_Controls[ params.type $ "_params" ];
