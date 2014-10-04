@@ -181,6 +181,7 @@ function SS_UI_HandleEvent( frame, e )
 	else if( e.type == SDL_WINDOWEVENT && e.event == SDL_WINDOWEVENT_RESIZED )
 	{
 		FRAME.resize( e.data1, e.data2 );
+		return true;
 	}
 }
 

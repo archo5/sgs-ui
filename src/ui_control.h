@@ -123,8 +123,14 @@
 
 struct UIRect
 {
-	float x0, y0, x1, y1;
+	SGS_OBJECT_LITE;
+	
+	SGS_PROPERTY float x0;
+	SGS_PROPERTY float y0;
+	SGS_PROPERTY float x1;
+	SGS_PROPERTY float y1;
 };
+SGS_DEFAULT_LITE_OBJECT_INTERFACE( UIRect );
 typedef std::vector< UIRect > UIRectArray;
 
 
@@ -477,10 +483,12 @@ struct UIFrame
 	SGS_METHOD sgsHandle<struct UIQuery> find( /* args */ );
 	
 	SGS_METHOD void event( sgsVariable ev );
-	SGS_METHOD void render();
+	SGS_METHOD void render( bool ignoreInvalidation );
 	UIControl* _getControlAtPosition( float x, float y, bool fillarr = false );
 	SGS_METHOD void handleMouseMove( bool optional );
 	SGS_METHOD void setFocus( UIControl* ctrl );
+	
+	SGS_METHOD void invalidateRect( float x0, float y0, float x1, float y1 );
 	
 	// event generation shortcuts
 	SGS_METHOD void doMouseMove( float x, float y );
@@ -603,6 +611,8 @@ struct UIFrame
 	CtrlPtrArray m_hoverTrail;
 	StyleSheetArray m_styleSheets;
 	
+	SGS_PROPERTY bool needsRedraw;
+	SGS_PROPERTY READ UIRect invalidRect;
 };
 
 

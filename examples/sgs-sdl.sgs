@@ -51,7 +51,7 @@ function initialize()
 	
 	global g_DbgFont = SS_CreateFont( "fonts/lato-regular.ttf", 11 );
 	
-	
+	global UIRT = null;
 	global FRAME = SS_UI_CreateFrame();
 	FRAME.width = Window.bbWidth;
 	FRAME.height = Window.bbHeight;
@@ -71,7 +71,7 @@ global lasttime = ftime();
 
 function update()
 {
-	global lasttime;
+	global lasttime, UIRT;
 	var curtime = ftime();
 	var delta = curtime - lasttime;
 	lasttime = curtime;
@@ -87,7 +87,19 @@ function update()
 	SS_SetCameraUI( 0, W, 0, H );
 	
 	FRAME.processTimers( ucdelta );
-	FRAME.render();
+	
+	if( FRAME.needsRedraw )
+	{
+		if( !UIRT )
+			UIRT = SS_CreateRenderTexture( W, H );
+		SS_SetRenderTarget( UIRT );
+	//	SS_Clear( color( 0.1, 0.2, 0.4 ) );
+		FRAME.render();
+		SS_SetRenderTarget( null );
+	}
+	
+	if( UIRT )
+		SS_DrawTexRect( 0, 0, UIRT.width, UIRT.height, UIRT );
 	
 	if( gDBGDRAW )
 	{
@@ -121,6 +133,11 @@ function update()
 
 	sleeptime = 15 - ( ftime() - lasttime ) * 1000;
 //	if( sleeptime > 0 ) sleep( sleeptime );
+	
+	if( !gDBGDRAW && !FRAME.needsRedraw )
+	{
+		SS_Sleep( 4 );
+	}
 }
 
 function on_event( e )
@@ -132,7 +149,8 @@ function on_event( e )
 	if( e.type == SDL_VIDEODEVICELOST ) println( "Device lost!" );
 	if( e.type == SDL_VIDEODEVICERESET ) println( "Device reset!" );
 	
-	SS_UI_HandleEvent( FRAME, e );
+	if( SS_UI_HandleEvent( FRAME, e ) )
+		global UIRT = null;
 }
 
 function cleanup()

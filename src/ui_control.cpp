@@ -818,7 +818,8 @@ int UICFPNAME( SGS_CTX )
 
 
 UIFrame::UIFrame() : clickTime(0.5f), x(0), y(0), width(9999), height(9999), mouseX(-FLT_MAX), mouseY(-FLT_MAX),
-	m_hover(NULL), m_focus(NULL), m_lastClickedButton(-1), m_lastClickTime(0), m_clickCount(0), m_lastClickItem(NULL), m_timerAutoID(1)
+	m_hover(NULL), m_focus(NULL), m_lastClickedButton(-1), m_lastClickTime(0), m_clickCount(0), m_lastClickItem(NULL),
+	m_timerAutoID(1), needsRedraw(false)
 {
 	memset( m_clicktargets, 0, sizeof(m_clicktargets) );
 	memset( m_clickoffsets, 0, sizeof(m_clickoffsets) );
@@ -860,10 +861,20 @@ void UIFrame::event( sgsVariable ev )
 		root->niEvent( ev, true );
 }
 
-void UIFrame::render()
+void UIFrame::render( bool ignoreInvalidation )
 {
-	if( root )
+	if( !ignoreInvalidation )
+	{
+		if( needsRedraw && pushScissorRect( invalidRect.x0, invalidRect.y0, invalidRect.x1, invalidRect.y1 ) )
+		{
+			if( root )
+				root->niRender();
+			popScissorRect();
+		}
+	}
+	else if( root )
 		root->niRender();
+	needsRedraw = false;
 }
 
 UIControl* UIFrame::_getControlAtPosition( float x, float y, bool fillarr )
@@ -1030,6 +1041,25 @@ void UIFrame::setFocus( UIControl* ctrl )
 		if( m_focus ){ e->type = EV_FocusEnter; m_focus->niEvent( ev, true ); }
 	}
 }
+
+void UIFrame::invalidateRect( float x0, float y0, float x1, float y1 )
+{
+	UIRect R = { x0, y0, x1, y1 };
+	if( needsRedraw )
+	{
+		UIRect& D = invalidRect;
+		D.x0 = TMIN( D.x0, x0 );
+		D.x1 = TMAX( D.x1, x1 );
+		D.y0 = TMIN( D.y0, y0 );
+		D.y1 = TMAX( D.y1, y1 );
+	}
+	else
+	{
+		invalidRect = R;
+	}
+	needsRedraw = true;
+}
+
 
 void UIFrame::doMouseMove( float x, float y )
 {
@@ -1605,11 +1635,10 @@ void UIControl::niRender()
 	
 	if( get_renderfunc().not_null() )
 	{
-		sgs_StkIdx orig = sgs_StackSize( C );
+		SGS_SCOPE;
 		sgs_PushVar( C, Handle( this ) );
 		get_renderfunc().push( C );
 		sgs_ThisCall( C, 0, 0 );
-		sgs_SetStackSize( C, orig );
 	}
 	
 	if( m_children.size() )
@@ -2719,10 +2748,14 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 		|| NEQ( paddingLeft ) || NEQ( paddingRight ) || NEQ( paddingTop ) || NEQ( paddingBottom )
 		|| NEQ( posMode ) || NEQ( stackMode );
 	;
-	// TODO: event-based rendering
-//	bool updatedRenderFunc = NEQ( renderfunc );
+	bool updatedRenderFunc = NEQ( renderfunc );
 	bool updatedLayout = updatedFont || updatedOrder || updatedBox;
+	bool needsRedraw = updatedRenderFunc || updatedLayout || updatedImage || updatedIcon || updatedCursor;
 #undef NEQ
+	
+	// push old position for redraw
+	if( frame.not_null() )
+		frame->invalidateRect( rx0, ry0, rx1, ry1 );
 	
 	// apply new style
 	computedStyle = nsc;
@@ -2753,6 +2786,10 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 		chgev->key = changes;
 		niEvent( ev, true );
 	}
+	
+	// push new position for redraw
+	if( frame.not_null() )
+		frame->invalidateRect( rx0, ry0, rx1, ry1 );
 }
 
 sgsVariable UIControl::_getMatchedSelectors()
