@@ -100,7 +100,7 @@ function sgs_ui_example_default()
 	UI_MakeScrollable( SCROLL );
 	text = string_replace( io_file_read( "../examples/sgs-sdl.sgs" ), ["\r\n","\r","\t"], ["\n","\n","    "] );
 	text = string_part( text, 0, 1024 );
-	UI_CreateStatic( SCROLL )[]{ width = 20, height = 500, anchorMode = UI_Anchor_Hor, backgroundColor = UIColor( 0.9, 1 ), caption = text, align = UI_Align_Left | UI_Align_Top, posMode = UI_Pos_SideA };
+	UI_CreateStatic( SCROLL )[]{ width = 20, height = 500, anchorMode = UI_Anchor_Hor, caption = text, align = UI_Align_Left | UI_Align_Top, posMode = UI_Pos_SideA }.addClass( "textcont" );
 	
 	SELECT = UI_CreateSelectBox( STAT, "sBoX",
 		[
@@ -176,7 +176,6 @@ function sgs_ui_example_default()
 	WINSTAT = UI_CreateStatic( WINSPLIT.getPaneA() )[]{
 	//	height = 32,
 		caption = "The Options",
-		backgroundColor = UIColor( 0.9, 1 ),
 		anchorMode = UI_Anchor_All, //UI_Anchor_Hor | UI_Anchor_Top,
 		halign = UI_Align_Center,
 		valign = UI_Align_VCenter,

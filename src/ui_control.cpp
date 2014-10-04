@@ -759,9 +759,27 @@ int UICFPNAME( SGS_CTX )
 		
 	case EV_MouseMove:
 	case EV_MouseWheel:
+		// allow bubbling
+		return 1;
+		
 	case EV_KeyDown:
 	case EV_KeyUp:
-		// allow bubbling
+		if( ctrl->keyboardFocus )
+		{
+			if( event->key == Key_Activate && !event->uchar )
+			{
+				ctrl->clicked += event->type == EV_KeyDown ? 1 : -1;
+				ctrl->frame->_updateStyles( ctrl );
+				if( event->type == EV_KeyUp )
+				{
+					if( ctrl->clicked < 0 )
+						ctrl->clicked = 0;
+					sgsVariable ev;
+					UI_CreateEvent( C, ev, EV_Activate );
+					ctrl->niEvent( ev, true );
+				}
+			}
+		}
 		return 1;
 		
 	case EV_MouseEnter:
@@ -791,7 +809,11 @@ int UICFPNAME( SGS_CTX )
 		ctrl->callEvent( sgsString( C, "mouseup" ), ev );
 		SGSFN( UNCFPNS "/buttonup/event-click" );
 		if( ctrl->clicked && ctrl->frame.object && ctrl->frame->isControlUnderCursor( UIControl::Handle( ctrl ) ) )
-			ctrl->callEvent( sgsString( C, "click" ), ev );
+		{
+			sgsVariable ev;
+			UI_CreateEvent( C, ev, EV_Activate );
+			ctrl->niEvent( ev, true );
+		}
 		SGSFN( UNCFPNS "/buttonup/layout" );
 		ctrl->clicked--;
 		ctrl->frame->_updateStyles( ctrl );
@@ -802,13 +824,18 @@ int UICFPNAME( SGS_CTX )
 		
 	case EV_FocusEnter:
 		ctrl->keyboardFocus = true;
+		if( ctrl->frame.object )
+			ctrl->frame->_updateStyles( ctrl );
 		return 1;
 	case EV_FocusLeave:
 		ctrl->keyboardFocus = false;
+		if( ctrl->frame.object )
+			ctrl->frame->_updateStyles( ctrl );
 		return 1;
-	case EV_NeedFocus:
-		return 0; // don't take focus by default
 		
+	case EV_Activate:
+		ctrl->callEvent( sgsString( C, "click" ), ev );
+		return 0;
 	}
 	
 	sgs_PushInt( C, 0 );
@@ -819,7 +846,7 @@ int UICFPNAME( SGS_CTX )
 
 UIFrame::UIFrame() : clickTime(0.5f), x(0), y(0), width(9999), height(9999), mouseX(-FLT_MAX), mouseY(-FLT_MAX),
 	m_hover(NULL), m_focus(NULL), m_lastClickedButton(-1), m_lastClickTime(0), m_clickCount(0), m_lastClickItem(NULL),
-	m_timerAutoID(1), needsRedraw(false)
+	m_timerAutoID(1), needsRedraw(true), invalidRect( UIRect::Create( 0, 0, 9999, 9999 ) )
 {
 	memset( m_clicktargets, 0, sizeof(m_clicktargets) );
 	memset( m_clickoffsets, 0, sizeof(m_clickoffsets) );
@@ -1031,11 +1058,10 @@ void UIFrame::setFocus( UIControl* ctrl )
 	if( m_focus == ctrl )
 		return;
 	
-	sgsVariable ev;
-	UIEvent* e = UI_CreateEvent( C, ev, EV_NeedFocus );
-	
-	if( !ctrl || ctrl->niEvent( ev, true ) )
+	if( !ctrl || ctrl->_needFocus )
 	{
+		sgsVariable ev;
+		UIEvent* e = UI_CreateEvent( C, ev, 0 );
 		if( m_focus ){ e->type = EV_FocusLeave; m_focus->niEvent( ev, true ); }
 		m_focus = ctrl;
 		if( m_focus ){ e->type = EV_FocusEnter; m_focus->niEvent( ev, true ); }
@@ -1183,13 +1209,14 @@ void UIFrame::doMouseWheel( float x, float y )
 	}
 }
 
-void UIFrame::doKeyPress( int key, bool down )
+void UIFrame::doKeyPress( int key, bool down, bool repeat )
 {
 	if( m_focus )
 	{
 		sgsVariable ev;
 		UIEvent* e = UI_CreateEvent( C, ev, down ? EV_KeyDown : EV_KeyUp );
 		e->key = key;
+		e->uchar = repeat;
 		
 		m_focus->niEvent( ev, true );
 	}
@@ -1369,6 +1396,7 @@ void UIFrame::setTheme( sgsVariable newtheme )
 
 void UIFrame::onLayoutChange()
 {
+	invalidateRect( x, y, width, height );
 	root->onLayoutChange();
 }
 
@@ -1549,7 +1577,7 @@ UIControl::UIControl() :
 	_updatingLayout(false), _roundedCoords(true),
 	_stackingEvent(false),
 	_clientRectFromPadded(false), _neverHit(false),
-	_disableClickBubbling(false),
+	_disableClickBubbling(false), _needFocus(false),
 	mouseOn(false), keyboardFocus(false), clicked(0)
 {
 	UI_StackLayoutInit( &m_stackedLayout );
@@ -1669,10 +1697,12 @@ void UIControl::updateScroll()
 		return;
 	
 	_updatingLayout = true;
+	invalidateMe();
 	_updateFullRect();
 	_updateChildRects();
 	if( frame )
 		frame->handleMouseMove( true );
+	invalidateMe();
 	_updatingLayout = false;
 }
 
@@ -1839,7 +1869,9 @@ void UIControl::onLayoutChange()
 	if( _updatingLayout )
 		return;
 	
+	invalidateMe();
 	ppgLayoutChange();
+	invalidateMe();
 	frame->handleMouseMove( true );
 }
 
@@ -2754,8 +2786,7 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 #undef NEQ
 	
 	// push old position for redraw
-	if( frame.not_null() )
-		frame->invalidateRect( rx0, ry0, rx1, ry1 );
+	invalidateMe();
 	
 	// apply new style
 	computedStyle = nsc;
@@ -2788,8 +2819,7 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	}
 	
 	// push new position for redraw
-	if( frame.not_null() )
-		frame->invalidateRect( rx0, ry0, rx1, ry1 );
+	invalidateMe();
 }
 
 sgsVariable UIControl::_getMatchedSelectors()

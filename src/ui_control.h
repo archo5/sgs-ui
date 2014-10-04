@@ -50,12 +50,12 @@
 #define EV_Changed      1
 #define EV_Stacking     2
 #define EV_ChgTheme     3
+#define EV_Activate     4
 #define EV_KeyDown      10
 #define EV_KeyUp        11
 #define EV_Char         12
 #define EV_FocusEnter   13
 #define EV_FocusLeave   14
-#define EV_NeedFocus    15
 #define EV_ButtonDown   20
 #define EV_ButtonUp     21
 #define EV_MouseMove    22
@@ -99,6 +99,7 @@
 #define Key_PageUp    14
 #define Key_PageDown  15
 #define Key_Enter     16
+#define Key_Activate  17
 
 #define Hit_Client    2
 #define Hit_NonClient 1
@@ -124,6 +125,8 @@
 struct UIRect
 {
 	SGS_OBJECT_LITE;
+	
+	static UIRect Create( float x0, float y0, float x1, float y1 ){ UIRect R = { x0, y0, x1, y1 }; return R; }
 	
 	SGS_PROPERTY float x0;
 	SGS_PROPERTY float y0;
@@ -228,6 +231,7 @@ struct UIEvent
 	SGS_PROPERTY_FUNC( READ WRITE VARNAME button ) SGS_ALIAS( int key );
 	SGS_PROPERTY uint32_t uchar;
 	SGS_PROPERTY_FUNC( READ WRITE VARNAME clicks ) SGS_ALIAS( uint32_t uchar );
+	SGS_PROPERTY_FUNC( READ WRITE VARNAME repeat ) SGS_ALIAS( uint32_t uchar );
 	SGS_PROPERTY float x;
 	SGS_PROPERTY float y;
 	SGS_PROPERTY float rx;
@@ -494,7 +498,7 @@ struct UIFrame
 	SGS_METHOD void doMouseMove( float x, float y );
 	SGS_METHOD void doMouseButton( int btn, bool down );
 	SGS_METHOD void doMouseWheel( float x, float y );
-	SGS_METHOD void doKeyPress( int key, bool down );
+	SGS_METHOD void doKeyPress( int key, bool down, bool repeat );
 	SGS_METHOD void doPutChar( int chr );
 	
 	// timers
@@ -681,6 +685,7 @@ struct UIControl
 	
 	void ppgLayoutChange( UIControl* from = NULL );
 	SGS_METHOD void onLayoutChange();
+	SGS_METHOD void invalidateMe(){ if( frame.not_null() ) frame->invalidateRect( rx0, ry0, rx1, ry1 ); }
 	
 	bool isStacked(){ return get_posMode() != UI_Pos_Abs; }
 	UIStackLayoutState m_stackedLayout;
@@ -730,6 +735,8 @@ struct UIControl
 	SGS_METHOD UIControl::Handle unbindEventAll( sgsString name );
 	SGS_METHOD void unbindEverything();
 	SGS_METHOD bool callEvent( sgsString name, sgsVariable data );
+	SGS_METHOD void takeFocus(){ if( frame.not_null() ) frame->setFocus( this ); }
+	SGS_METHOD void clearFocus(){ if( frame.not_null() && frame->m_focus == this ) frame->setFocus( NULL ); }
 	
 	SGS_METHOD void addComponent( sgsString type, sgsVariable func, sgsVariable data );
 	SGS_METHOD int getComponentCount(){ return m_components.size(); }
@@ -756,7 +763,7 @@ struct UIControl
 	/// PRIMARY DATA
 	SGS_PROPERTY READ uint32_t id;
 	SGS_PROPERTY sgsString name;
-	SGS_PROPERTY sgsString caption;
+	SGS_PROPERTY_FUNC( READ WRITE WRITE_CALLBACK onLayoutChange ) sgsString caption;
 	SGS_PROPERTY sgsString type;
 	SGS_PROPERTY READ Handle parent; SGS_GCREF( parent );
 	SGS_PROPERTY READ UIFrame::Handle frame; SGS_GCREF( frame );
@@ -974,6 +981,7 @@ struct UIControl
 	SGS_PROPERTY bool _neverHit : 1; /* true if cannot hit (regardless of hit test) */
 	SGS_PROPERTY bool _layoutRectOverride : 1; /* true if EV_Layout overrides rect placement and default scrolling optimization would not work here */
 	SGS_PROPERTY bool _disableClickBubbling : 1; /* true if button events (button up/down) should not bubble, impl = return 0 on default handler */
+	SGS_PROPERTY bool _needFocus : 1; /* true if control requires keyboard focus */
 	SGS_PROPERTY READ bool mouseOn : 1;
 	SGS_PROPERTY READ bool keyboardFocus : 1;
 	SGS_PROPERTY READ int clicked;

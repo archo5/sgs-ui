@@ -71,13 +71,12 @@ function UI_CreateButton( parent, rclick )
 	Button = parent.frame.createControl( "button" );
 	Button.data = { rclick = !!rclick };
 	Button._disableClickBubbling = true;
+	Button._needFocus = true;
 	
 	ocb = Button.callback;
 	function Button.callback( event ) use( ocb )
 	{
-		if( event.type == EV_NeedFocus )
-			return 1;
-		else if( event.type == EV_ButtonDown && event.button != Mouse_ButtonL && ( !this.data.rclick || event.button != Mouse_ButtonR ) )
+		if( event.type == EV_ButtonDown && event.button != Mouse_ButtonL && ( !this.data.rclick || event.button != Mouse_ButtonR ) )
 		{
 			this.frame.setFocus( this );
 			return 0;
@@ -302,6 +301,7 @@ function UI_BuildMenu( parent, x, y, items, default )
 	Menu.y = y - parent.y;
 	Menu.topmost = true;
 	Menu._stackingEvent = true;
+	Menu._needFocus = true;
 	
 	items = clone( items );
 	// each item can have the following used parameters
@@ -523,6 +523,7 @@ function UI_BuildMenu( parent, x, y, items, default )
 	Menu.updateTheme();
 	
 	parent.addChild( Menu );
+	Menu.takeFocus();
 	parent.frame.handleMouseMove();
 	
 	return Menu;

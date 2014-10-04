@@ -210,6 +210,7 @@ function UI_CreateMenuPanel( parent, items )
 		}
 		else if( event.type == EV_MouseMove )
 		{
+			ps = data.selected;
 			data.selected = false;
 			foreach( i, item : data.items )
 			{
@@ -219,6 +220,8 @@ function UI_CreateMenuPanel( parent, items )
 					data.selected = i;
 				}
 			}
+			if( ps !== data.selected )
+				this.invalidateMe();
 		}
 		else if( event.type == EV_ButtonDown )
 		{

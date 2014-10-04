@@ -41,10 +41,11 @@ function configure()
 
 function initialize()
 {
+	use_opengl = false;
 	global Window = SS_CreateWindow( "SGS-UI Test",
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-		1024, 576, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGLMAYBE );
-	Window.initRenderer( SS_RENDERER_DONTCARE, SS_RENDERER_DONTCARE, SS_RENDERER_VSYNC );
+		1024, 576, SDL_WINDOW_RESIZABLE | if( use_opengl, SDL_WINDOW_OPENGL, SDL_WINDOW_OPENGLMAYBE ) );
+	Window.initRenderer( if( use_opengl, SS_RENDERER_OPENGL, SS_RENDERER_DONTCARE ) );
 	SS_InitDrawFunctions();
 	
 	SS_StartTextInput();
@@ -53,8 +54,7 @@ function initialize()
 	
 	global UIRT = null;
 	global FRAME = SS_UI_CreateFrame();
-	FRAME.width = Window.bbWidth;
-	FRAME.height = Window.bbHeight;
+	FRAME.resize( Window.bbWidth, Window.bbHeight );
 	
 	funcname = "sgs_ui_example_" $ ExampleID;
 	if( !isset( _G, funcname ) )
@@ -91,15 +91,25 @@ function update()
 	if( FRAME.needsRedraw )
 	{
 		if( !UIRT )
+		{
 			UIRT = SS_CreateRenderTexture( W, H );
-		SS_SetRenderTarget( UIRT );
+			SS_SetRenderTarget( UIRT );
+			SS_Clear( color( 0, 1 ) );
+		}
+		else
+			SS_SetRenderTarget( UIRT );
 	//	SS_Clear( color( 0.1, 0.2, 0.4 ) );
 		FRAME.render();
 		SS_SetRenderTarget( null );
 	}
 	
 	if( UIRT )
+	{
+		SS_SetBlending( SS_BLENDOP_ADD, SS_BLEND_ONE, SS_BLEND_ZERO );
 		SS_DrawTexRect( 0, 0, UIRT.width, UIRT.height, UIRT );
+	//	SS_DrawTextLine( "WAT", g_DbgFont, 0, 0, [0.9,0.8,0.7,1] );
+		SS_SetBlending( SS_BLENDOP_ADD, SS_BLEND_SRCALPHA, SS_BLEND_INVSRCALPHA );
+	}
 	
 	if( gDBGDRAW )
 	{

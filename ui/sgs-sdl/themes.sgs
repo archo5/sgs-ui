@@ -558,6 +558,7 @@ global SS_UI_Theme_Default =
 			valign = UI_Align_VCenter,
 			renderfunc = SS_UI_Theme_Default_static_renderfunc,
 		},
+		".textcont" = { backgroundColor = UIColor( 0.9, 1 ), textColor = UIColor( 0.1, 1 ) },
 		"button" = { textColor = UIColor( 1, 1 ), renderfunc = SS_UI_Theme_Default_button_renderfunc },
 		"image" = { renderfunc = SS_UI_Theme_Default_image_renderfunc },
 		"scrollbar" = { padding = 1, renderfunc = SS_UI_Theme_Default_scroll_renderfunc },
@@ -613,13 +614,13 @@ global SS_UI_Theme_Default =
 		"selectbox" = { icon = "icons/bullet_arrow_down.png", renderfunc = SS_UI_Theme_Default_selectbox_renderfunc },
 		// - panels
 		"splitpane > pane" = { anchorMode = UI_Anchor_All },
-		"splitpane > split" = { anchorMode = UI_Anchor_All, nonClientV = 1, backgroundColor = UIColor( 0.8, 1 ) },
+		"splitpane > split" = { anchorMode = UI_Anchor_All, backgroundColor = UIColor( 0.8, 1 ) },
 		"splitpane.horizontal > .pane-a" = { y = 0, height = -3 },
 		"splitpane.horizontal > .pane-b" = { y = 3, height = -3 },
-		"splitpane.horizontal > split" = { y = -3, height = 6, cursor = UI_Cursor_SizeNS, renderfunc = SS_UI_Theme_Default_hsplitpane_split_renderfunc },
+		"splitpane.horizontal > split" = { y = -3, height = 6, nonClientV = 1, cursor = UI_Cursor_SizeNS, renderfunc = SS_UI_Theme_Default_hsplitpane_split_renderfunc },
 		"splitpane.vertical > .pane-a" = { x = 0, width = -3 },
 		"splitpane.vertical > .pane-b" = { x = 3, width = -3 },
-		"splitpane.vertical > split" = { x = -3, width = 6, cursor = UI_Cursor_SizeWE, renderfunc = SS_UI_Theme_Default_vsplitpane_split_renderfunc },
+		"splitpane.vertical > split" = { x = -3, width = 6, nonClientH = 1, cursor = UI_Cursor_SizeWE, renderfunc = SS_UI_Theme_Default_vsplitpane_split_renderfunc },
 		"menupanel" = { anchorMode = UI_Anchor_All, renderfunc = SS_UI_Theme_Default_menupanel_renderfunc },
 		// - extended
 		"placeholder" = { backgroundColor = UIColor(0.7,0.35,0.3,1), icon = "icons/table_row_insert.png", renderfunc = SS_UI_Theme_Default_placeholder_renderfunc },
@@ -818,7 +819,8 @@ global SS_UI_Theme_DarkPixel =
 {
 	stylesheet = SS_UI_Theme_Default.stylesheet.buildCopy
 	({
-		"static" = { backgroundColor = UIColor(64/255,1) },
+		"static" = { backgroundColor = UIColor(64/255,1), textColor = UIColor( 0.9, 1 ) },
+		".textcont" = { backgroundColor = UIColor( 0.1, 1 ), textColor = UIColor( 0.9, 1 ) },
 		"button" = { renderfunc = SS_UI_Theme_DarkPixel_button_renderfunc, image = "images/dp_btnN.png" },
 		"button:hover" = { image = "images/dp_btnH.png" },
 		"button:active" = { image = "images/dp_btnC.png" },
@@ -842,7 +844,12 @@ global SS_UI_Theme_DarkPixel =
 		"selectbox:hover" = { image = "images/dp_btnH.png" },
 		"selectbox:active, selectbox.open" = { image = "images/dp_btnC.png" },
 		"window" = { renderfunc = SS_UI_Theme_DarkPixel_window_renderfunc, image = "images/dp_win.png" },
+		"splitpane > split" = { anchorMode = UI_Anchor_All, backgroundColor = UIColor( 64/255, 1 ) },
 		
+		"placeholder" = { backgroundColor = UIColor(0.48,0.11,0.11,0.5) },
+		"editablelist > item" = { backgroundColor = UIColor(80/255,1) },
+		"editablelist > item:hover" = { backgroundColor = UIColor(105/255,1) },
+		"editablelist > item:active" = { backgroundColor = UIColor(64/255,1) },
 		"groupblock > .groupblk-title" = { renderfunc = SS_UI_Theme_DarkPixel_selectbox_renderfunc, image = "images/dp_btnN.png", paddingRight = 15 },
 		"groupblock > .groupblk-title:hover" = { image = "images/dp_btnH.png" },
 		"groupblock > .groupblk-title:active" = { image = "images/dp_btnC.png" },

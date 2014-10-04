@@ -166,11 +166,12 @@ function SS_UI_HandleEvent( frame, e )
 		else if( e.keycode == SDLK_PAGEUP ) key = Key_PageUp;
 		else if( e.keycode == SDLK_PAGEDOWN ) key = Key_PageDown;
 		else if( e.keycode == SDLK_RETURN || e.keycode == SDLK_KP_ENTER ) key = Key_Enter;
+		else if( e.keycode == SDLK_SPACE ) key = Key_Activate;
 		if( key )
 		{
 			if( e.mod & SDL_KMOD_SHIFT ) key |= KeyMod_Shift;
 			// submit event
-			FRAME.doKeyPress( key, e.type == SDL_KEYDOWN );
+			FRAME.doKeyPress( key, e.type == SDL_KEYDOWN, e.repeat );
 		}
 	}
 	else if( e.type == SDL_TEXTINPUT )
