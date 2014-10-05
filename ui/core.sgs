@@ -425,6 +425,7 @@ function UI_BuildMenu( parent, x, y, items, default )
 		}
 		else if( event.type == EV_MouseMove )
 		{
+			ps = data.selected;
 			data.selected = false;
 			x0 = this.rx0 + data.menu_padding;
 			x1 = x0 + data.item_width;
@@ -458,6 +459,8 @@ function UI_BuildMenu( parent, x, y, items, default )
 				if( this!ocb( hitevent ) )
 					data.parent_menu.data.selected = data.parent_menu.data.menu_open_for;
 			}
+			if( ps !== data.selected )
+				this.invalidateMe();
 		}
 		else if( event.type == EV_MouseLeave )
 		{

@@ -811,8 +811,8 @@ int UICFPNAME( SGS_CTX )
 		if( ctrl->clicked && ctrl->frame.object && ctrl->frame->isControlUnderCursor( UIControl::Handle( ctrl ) ) )
 		{
 			sgsVariable ev;
-			UI_CreateEvent( C, ev, EV_Activate );
-			ctrl->niEvent( ev, true );
+			UI_CreateEvent( C, ev, EV_Activate )->uchar = event->uchar; // copy click count
+			ctrl->niBubblingEvent( ev );
 		}
 		SGSFN( UNCFPNS "/buttonup/layout" );
 		ctrl->clicked--;
@@ -835,7 +835,7 @@ int UICFPNAME( SGS_CTX )
 		
 	case EV_Activate:
 		ctrl->callEvent( sgsString( C, "click" ), ev );
-		return 0;
+		return ctrl->_disableClickBubbling ? 0 : 1;
 	}
 	
 	sgs_PushInt( C, 0 );
@@ -1793,6 +1793,8 @@ void UIControl::ppgLayoutChange( UIControl* from )
 		return;
 	_updatingLayout = true;
 	
+	invalidateMe();
+	
 	if( _stackingEvent )
 	{
 		sgsVariable ev;
@@ -1827,6 +1829,7 @@ void UIControl::ppgLayoutChange( UIControl* from )
 		set_y( m_stackedLayout.cy );
 	}
 	_updateFullRect();
+	invalidateMe();
 	
 	// UPDATE CHILD CONTROLS
 	for( UIControl::HandleArray::iterator it = m_children.begin(), itend = m_children.end(); it != itend; ++it )
@@ -1854,6 +1857,7 @@ void UIControl::ppgLayoutChange( UIControl* from )
 //		printf( "AutoSIZE for %s|%s: %g\n", caption.c_str(), classes.c_str(), autoHeight );
 		set_height( autoHeight );
 		_updateFullRect();
+		invalidateMe();
 	}
 	
 	sgsVariable ev;

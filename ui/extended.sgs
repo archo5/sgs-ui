@@ -900,7 +900,7 @@ function UI_FileBrowser.refillFileList()
 		filelist.sort_custom(function(a,b)
 		{
 			if( a.is_file != b.is_file ) return a.is_file <=> b.is_file;
-			if( a.name != b.name ) return a.name <=> b.name;
+			if( a.name != b.name ) return string_tolower( a.name ) <=> string_tolower( b.name );
 			return 0;
 		});
 		data.FileCont._updatingLayout = true;

@@ -550,7 +550,7 @@ global SS_UI_Theme_Default =
 	({
 		"" = { fontSize = 11 },
 		// - core
-		"static" =
+		"root, static" =
 		{
 			textColor = UIColor( 0.1, 1 ),
 			backgroundColor = UIColor( 0.5, 1 ),
@@ -558,7 +558,9 @@ global SS_UI_Theme_Default =
 			valign = UI_Align_VCenter,
 			renderfunc = SS_UI_Theme_Default_static_renderfunc,
 		},
+		"root" = { backgroundColor = UIColor( 0.7, 1 ) },
 		".textcont" = { backgroundColor = UIColor( 0.9, 1 ), textColor = UIColor( 0.1, 1 ) },
+		".topbar" = { backgroundColor = UIColor( 0.8, 1 ), textColor = UIColor( 0.1, 1 ) },
 		"button" = { textColor = UIColor( 1, 1 ), renderfunc = SS_UI_Theme_Default_button_renderfunc },
 		"image" = { renderfunc = SS_UI_Theme_Default_image_renderfunc },
 		"scrollbar" = { padding = 1, renderfunc = SS_UI_Theme_Default_scroll_renderfunc },
@@ -743,6 +745,62 @@ function SS_UI_Theme_DarkPixel_scrollbar_renderfunc()
 		SS_DrawButton( this._cachedImage, color(1), this.rx0, this.ry0, this.rx1, this.ry1, 4 );
 }
 
+function SS_UI_Theme_DarkPixel_menu_renderfunc()
+{
+	data = this.data;
+	
+	pad = data.menu_padding;
+	
+	if( this._cachedImage )
+		SS_DrawButton( this._cachedImage, color(1), this.rx0, this.ry0, this.rx1, this.ry1, 4 );
+	
+	c = this.backgroundColor;
+	SS_DrawColorRect( this.rx0+32, this.ry0+2+pad, this.rx0+33, this.ry1-2-pad, c.r, c.g, c.b, c.a );
+	
+	x = this.rx0 + pad;
+	y = this.ry0 + pad;
+	foreach( id, item : data.items )
+	{
+		disabled = @item.disabled;
+		checked = @item.checked;
+		
+		if( id === data.selected )
+		{
+			hlc = if( disabled, color(0.5,0.5,0.5,0.5), color(0.48,0.11,0.11,0.5) );
+			SS_DrawColorRect_WH( x, y, data.item_width, data.item_height, hlc.r, hlc.g, hlc.b, hlc.a );
+		}
+		
+		if( isset( item, "menu" ) )
+			SS_DrawFitted( data.icon_submenu, x + data.item_width - data.item_height, y, x + data.item_width, y + data.item_height );
+		
+		if( @item.text !== null )
+			SS_DrawTextLine_VC( item.text, this._cachedFont, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.9,0.9,0.9,1]) );
+		else if( disabled )
+			SS_DrawColorRect_WH( x + 32, y + data.sep_height / 2, data.item_width - 36, 1, c.r, c.g, c.b, c.a );
+		
+		if( disabled && @item.text === null )
+			y += data.sep_height;
+		else
+		{
+			if( checked !== null )
+			{
+				// checkbox
+				cbx0 = x + 4;
+				cby0 = y + 4;
+				cbsz = min( 24, data.item_height - 8 );
+				cbx1 = cbx0 + cbsz;
+				cby1 = cby0 + cbsz;
+				SS_DrawColorRect( cbx0, cby0, cbx1, cby1, 0.5, 0.6, 0.7, 1 );
+				SS_DrawColorRect( cbx0+1, cby0+1, cbx1-1, cby1-1, 0.9, 0.9, 0.9, 1 );
+				if( checked )
+					SS_DrawColorRect( cbx0+3, cby0+3, cbx1-3, cby1-3, 0.1, 0.2, 0.4, 1 );
+			}
+			y += data.item_height;
+		}
+		y += data.item_spacing;
+	}
+}
+
 function SS_UI_Theme_DarkPixel_checkbox_renderfunc()
 {
 	tex = this._cachedImage;
@@ -770,6 +828,76 @@ function SS_UI_Theme_DarkPixel_textbox_renderfunc()
 	
 	textbox_render_contents = this.frame.theme.textbox_render_contents;
 	this!textbox_render_contents();
+}
+
+function SS_UI_Theme_DarkPixel_slider_horizontal_rail_renderfunc()
+{
+	data = this.parent.data;
+	P1X = this.cx0;
+	P1Y = this.cy0;
+	P2X = this.cx1;
+	P2Y = this.cy1;
+	
+	c = this.backgroundColor;
+	if( this._cachedImage )
+		SS_DrawButton( this._cachedImage, color(1), P1X, P1Y, P2X, P2Y, 4 );
+	
+	NS = if( data.stopsize, floor( ( data.vmax - data.vmin ) / data.stopsize ), 0 );
+	if( NS )
+	{
+		vdist = data.vmax - data.vmin;
+		if( vdist < 0.001 )
+			vdist = 0.001;
+		
+		SRS = this.px0;
+		SRE = this.px1;
+		scaled_stopsize = data.stopsize / vdist;
+		if( NS * 2 < SRE - SRS )
+		{
+			for( q = 0; q <= 1.0; q += scaled_stopsize )
+			{
+				if( q > 1 )
+					q = 1;
+				spf = SRS * ( 1 - q ) + SRE * q;
+				SS_DrawColorRect( spf, P1Y + 1, spf + 1, P2Y - 1, c.r, c.g, c.b, c.a );
+			}
+		}
+	}
+}
+
+function SS_UI_Theme_DarkPixel_slider_vertical_rail_renderfunc()
+{
+	data = this.parent.data;
+	P1X = this.cx0;
+	P1Y = this.cy0;
+	P2X = this.cx1;
+	P2Y = this.cy1;
+	
+	c = this.backgroundColor;
+	if( this._cachedImage )
+		SS_DrawButton( this._cachedImage, color(1), P1X, P1Y, P2X, P2Y, 4 );
+	
+	NS = if( data.stopsize, floor( ( data.vmax - data.vmin ) / data.stopsize ), 0 );
+	if( NS )
+	{
+		vdist = data.vmax - data.vmin;
+		if( vdist < 0.001 )
+			vdist = 0.001;
+		
+		SRS = this.py0;
+		SRE = this.py1;
+		scaled_stopsize = data.stopsize / vdist;
+		if( NS * 2 < SRE - SRS )
+		{
+			for( q = 0; q <= 1.0; q += scaled_stopsize )
+			{
+				if( q > 1 )
+					q = 1;
+				spf = SRS * ( 1 - q ) + SRE * q;
+				SS_DrawColorRect( P1X + 1, spf, P2X - 1, spf + 1, c.r, c.g, c.b, c.a );
+			}
+		}
+	}
 }
 
 function SS_UI_Theme_DarkPixel_selectbox_renderfunc()
@@ -815,18 +943,54 @@ function SS_UI_Theme_DarkPixel_window_renderfunc()
 	}
 }
 
+function SS_UI_Theme_DarkPixel_menupanel_renderfunc()
+{
+	data = this.data;
+	iht = data.item_height;
+	
+	if( this._cachedImage )
+		SS_DrawButton( this._cachedImage, color(1), this.rx0, this.ry0, this.rx1, this.cy0, 4 );
+	
+	foreach( i, item : data.items )
+	{
+		disabled = @item.disabled;
+		
+		if( data.selected === i )
+		{
+			if( disabled )
+			{
+				SS_DrawColorRect( item.x, item.y, item.x + item.width, item.y + iht, 0.4, 0.4, 0.4, 0.5 );
+			//	SS_DrawColorRect( item.x+1, item.y+1, item.x + item.width-1, item.y + iht-1, 0.8, 0.8, 0.8, 1 );
+			}
+			else
+			{
+				SS_DrawColorRect( item.x, item.y, item.x + item.width, item.y + iht, 0.48, 0.11, 0.11, 0.5 );
+			//	SS_DrawColorRect( item.x+1, item.y+1, item.x + item.width-1, item.y + iht-1, 0.7, 0.8, 0.9, 1 );
+			}
+		}
+		
+		c = SS_UI_ConvertColor( this.textColor );
+		if( disabled )
+			c[3] *= 0.5;
+		SS_DrawTextLine_VC( item.text, this._cachedFont, item.x + data.side_padding, item.y + iht / 2, c );
+	}
+}
+
 global SS_UI_Theme_DarkPixel =
 {
 	stylesheet = SS_UI_Theme_Default.stylesheet.buildCopy
 	({
-		"static" = { backgroundColor = UIColor(64/255,1), textColor = UIColor( 0.9, 1 ) },
+		"root, static" = { backgroundColor = UIColor(64/255,1), textColor = UIColor( 0.9, 1 ) },
+		"root" = { backgroundColor = UIColor(40/255,1) },
 		".textcont" = { backgroundColor = UIColor( 0.1, 1 ), textColor = UIColor( 0.9, 1 ) },
+		".topbar" = { backgroundColor = UIColor( 0.2, 1 ), textColor = UIColor( 0.9, 1 ) },
 		"button" = { renderfunc = SS_UI_Theme_DarkPixel_button_renderfunc, image = "images/dp_btnN.png" },
 		"button:hover" = { image = "images/dp_btnH.png" },
 		"button:active" = { image = "images/dp_btnC.png" },
 		"scrollbar" = { renderfunc = SS_UI_Theme_DarkPixel_scrollbar_renderfunc, image = "images/dp_insbg.png" },
 		"scrollbar.vertical .btn-slider" = { icon = "images/dp_rgV.png" },
 		"scrollbar.horizontal .btn-slider" = { icon = "images/dp_rgH.png" },
+		"menu" = { renderfunc = SS_UI_Theme_DarkPixel_menu_renderfunc, image = "images/dp_listbg.png", backgroundColor = UIColor(105/255,1) },
 		"checkbox" = { renderfunc = SS_UI_Theme_DarkPixel_checkbox_renderfunc, image = "images/dp_cbN.png" },
 		"checkbox:hover" = { image = "images/dp_cbH.png" },
 		"checkbox:active" = { image = "images/dp_cbC.png" },
@@ -840,12 +1004,16 @@ global SS_UI_Theme_DarkPixel =
 		"textbox:focus, textbox.has-text" = { textColor = UIColor(0.9,1) },
 		"integerbox .slider-btn.add" = { icon = "images/dp_tri_up.png" },
 		"integerbox .slider-btn.sub" = { icon = "images/dp_tri_dn.png" },
+		"slider.horizontal .sdr-rail" = { renderfunc = SS_UI_Theme_DarkPixel_slider_horizontal_rail_renderfunc, image = "images/dp_insbg.png", backgroundColor = UIColor(80/255,1) },
+		"slider.vertical .sdr-rail" = { renderfunc = SS_UI_Theme_DarkPixel_slider_vertical_rail_renderfunc, image = "images/dp_insbg.png", backgroundColor = UIColor(80/255,1) },
 		"selectbox" = { renderfunc = SS_UI_Theme_DarkPixel_selectbox_renderfunc, image = "images/dp_btnN.png", icon = "images/dp_tri_dn.png", textColor = UIColor(0.9,1), paddingRight = 15 },
 		"selectbox:hover" = { image = "images/dp_btnH.png" },
 		"selectbox:active, selectbox.open" = { image = "images/dp_btnC.png" },
 		"window" = { renderfunc = SS_UI_Theme_DarkPixel_window_renderfunc, image = "images/dp_win.png" },
+		"window .close-button" = { x = -20, y = -22, width = 20, height = 18, icon = "icons/cross.png" },
 		"splitpane > split" = { anchorMode = UI_Anchor_All, backgroundColor = UIColor( 64/255, 1 ) },
 		
+		"menupanel" = { renderfunc = SS_UI_Theme_DarkPixel_menupanel_renderfunc, image = "images/dp_menu.png", textColor = UIColor(0.9,1) },
 		"placeholder" = { backgroundColor = UIColor(0.48,0.11,0.11,0.5) },
 		"editablelist > item" = { backgroundColor = UIColor(80/255,1) },
 		"editablelist > item:hover" = { backgroundColor = UIColor(105/255,1) },
@@ -864,6 +1032,11 @@ global SS_UI_Theme_DarkPixel =
 		"propertygrid .separator" = { backgroundColor = UIColor(0.3,1), textColor = UIColor(0.8,1) },
 		"dataedit datacontainer" = { backgroundColor = UIColor(0.2,1) },
 		"dataedit .label" = { padding = 4, backgroundColor = UIColor(0), textColor = UIColor(0.9,1) },
+		
+		"filebrowser .file-scroll" = { backgroundColor = UIColor(64/255,1) },
+		"filebrowser fbentry" = { backgroundColor = null, textColor = UIColor(0.9,1) },
+		"filebrowser fbentry:hover" = { backgroundColor = UIColor(0.48,0.11,0.11,0.5) },
+		"filebrowser fbentry.selected" = { backgroundColor = UIColor(0.48,0.11,0.11,0.8), textColor = UIColor(1) },
 	}),
 };
 class( SS_UI_Theme_DarkPixel, SS_UI_Theme_Default );

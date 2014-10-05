@@ -72,7 +72,8 @@ function sgs_ui_example_default()
 	UI_CreateButton( STAT )[]{ x = 20, y = 500, width = 128, height = 24, caption = "Theme 0" }.bindEvent( "click", function(){ FRAME.setTheme( SS_UI_Theme_Default ); } );
 	UI_CreateButton( STAT )[]{ x = 148, y = 500, width = 128, height = 24, caption = "Theme 1" }.bindEvent( "click", function(){ FRAME.setTheme( SS_UI_Theme_DarkPixel ); } );
 	
-	global TOPBAR = UI_CreateStatic( STAT )[]{ height = 24, backgroundColor = UIColor( 0.8, 1 ), anchorMode = UI_Anchor_Hor };
+	global TOPBAR = UI_CreateStatic( STAT )[]{ height = 24, anchorMode = UI_Anchor_Hor };
+	TOPBAR.addClass( "topbar" );
 	
 	UI_CreateButton( TOPBAR )[]{ x = 0, y = 0, width = 24, height = 24, icon = "icons/page.png" };
 	UI_CreateButton( TOPBAR )[]{ x = 24, y = 0, width = 24, height = 24, icon = "icons/disk.png" };
@@ -1252,5 +1253,330 @@ function sgs_ui_example_cmpt()
 			]},
 		]}
 	]);
+}
+
+
+//
+// EDITOR EXAMPLE 1
+// - tests basic item editor functionality
+//
+
+function sgs_ui_example_edtr1()
+{
+	main_menu_file =
+	[
+		{ text = "New", func = function(){} },
+		{ disabled = true },
+		{ text = "Quit", func = function(){ global sys_exit = true; } },
+	];
+	main_menu =
+	[
+		{ text = "File", menu = main_menu_file },
+	//	{ text = "Edit", menu = submenu },
+	//	{ text = "Help", menu = sub3menu },
+	];
+	SP_MenuPanel = UI_CreateMenuPanel( FRAME.root, main_menu );
+	
+	SP_Edit_UndoProp = UI_CreateVSplitPane( SP_MenuPanel, 0.6 )[]{ anchorMode = UI_Anchor_All };
+	SP_Undo_Prop = UI_CreateVSplitPane( SP_Edit_UndoProp.getPaneB(), 0.25 )[]{ anchorMode = UI_Anchor_All };
+	SP_Prop_Drag = UI_CreateHSplitPane( SP_Undo_Prop.getPaneB(), 0.75 )[]{ anchorMode = UI_Anchor_All };
+	
+	EditSURF = UI_CreateStatic( SP_Edit_UndoProp.getPaneA() )[]{ anchorMode = UI_Anchor_All };
+	DataEDIT = UI_CreateDataEdit( SP_Prop_Drag.getPaneA() )[]{ anchorMode = UI_Anchor_All };
+	UndoLIST = UI_CreateStatic( SP_Undo_Prop.getPaneA() )[]{ anchorMode = UI_Anchor_All };
+	UI_CreateStatic( UndoLIST )[]{ anchorMode = UI_Anchor_Hor, height = 20, caption = "-- start --", posMode = UI_Pos_SideA, backgroundColor = UIColor(0.6,0.7,0.8) };
+	UndoLAYER = UndoLayer.create();
+	DataSET =
+	{
+		items = {},
+		auto_id = 1,
+		active_id = null,
+		mouse_id = null,
+		drag_id = null,
+		changed = false,
+	};
+	function item_add( props ) use( DataSET, DataEDIT, UndoLAYER )
+	{
+		item = {};
+		foreach( k, v : props )
+			item.(k) = v;
+		item.id = id = DataSET.auto_id++;
+		DataSET.items[ id ] = item;
+		return id;
+	}
+	function item_rem( id ) use( DataSET )
+	{
+		unset( DataSET.items, id );
+		if( DataSET.auto_id - 1 == id )
+			DataSET.auto_id--;
+	}
+	function item_getstate( id ) use( DataSET )
+	{
+		src = DataSET.items[ id ];
+		out = {};
+		foreach( k : ["x","y","type","props"] )
+			out[ k ] = src[ k ];
+		return out;
+	}
+	function item_getprops( id, tmpl ) use( DataSET )
+	{
+		src = DataSET.items[ id ];
+		out = {};
+		foreach( k ,: tmpl )
+			out[ k ] = src[ k ];
+		return out;
+	}
+	function item_setprops( id, props ) use( DataSET )
+	{
+		src = DataSET.items[ id ];
+		foreach( k, v : props )
+			src.(k) = v;
+	}
+	UndoLAYER.registerObject( "item", DataSET, item_add, item_rem, item_getstate, item_getprops, item_setprops );
+	
+	schema =
+	{
+		PROPERTY =
+		{
+			"$type" = "object",
+			name = { "$type" = "string" },
+			value = { "$type" = "string" },
+		},
+		ITEM =
+		{
+			"$type" = "object",
+			"$name" = "Item",
+			x = { "$type" = "float" },
+			y = { "$type" = "float" },
+			type = { "$type" = "string" },
+			props = { "$name" = "Properties", "$type" = "array", "$subtype" = "PROPERTY" },
+		},
+		"$root" = "ITEM",
+	};
+	
+	DataEDIT.bindEvent( "change", function() use( UndoLAYER, DataSET )
+	{
+		type = this.getChangeType();
+		idx = this.getChangedIndex();
+		prop = this.getChangedProperty();
+		path = this.getPathByName( prop );
+		println(path);
+		
+		if( !UndoLAYER.enabled )
+			return;
+		
+		// assume add/remove is for the property array
+		if( type == "add" )
+		{
+			println( "Change: begin" );
+			UndoLAYER.beginChange();
+			
+			println( "Change: do/prop/add" );
+			item = DataSET.items[ DataSET.active_id ];
+			newval = { name = "", value = "" };
+			changes = { "props" = clone( item.props ) };
+			changes.props.insert( idx, newval );
+			UndoLAYER.doChange( "ui", "item", DataSET.active_id, changes );
+			this.setItemAdded( newval );
+			
+			println( "Change: commit" );
+			UndoLAYER.commitChange( "property added" );
+		}
+		else if( type == "remove" )
+		{
+			println( "Change: begin" );
+			UndoLAYER.beginChange();
+			
+			println( "Change: do/prop/remove" );
+			item = DataSET.items[ DataSET.active_id ];
+			changes = { "props" = clone( item.props ) };
+			changes.props.erase( idx );
+			UndoLAYER.doChange( "ui", "item", DataSET.active_id, changes );
+			
+			println( "Change: commit" );
+			UndoLAYER.commitChange( "property removed" );
+		}
+		else
+		{
+			println( "Change: begin" );
+			UndoLAYER.beginChange();
+			
+			println( "Change: do/change" );
+			changes = {};
+			if( path[1] == "props" )
+			{
+				item = DataSET.items[ DataSET.active_id ];
+				changes.props = clone( item.props );
+				changes.props[ path[2] ] = clone( changes.props[ path[2] ] );
+			}
+			this.applyChangeToObject( changes );
+			UndoLAYER.doChange( "ui", "item", DataSET.active_id, changes );
+			
+			println( "Change: commit" );
+			UndoLAYER.commitChange( "item modified" );
+		}
+	});
+	
+	UndoLAYER.registerFeedbackOutput( "ui", function( src, action, objtype, id, state, state_to ) use( DataEDIT, DataSET )
+	{
+		if( src == "ui" )
+			return;
+		this.enabled = false; // prevent feedback loop
+		if( DataSET.active_id == id && action == "remove" && objtype == "item" )
+		{
+			DataSET.active_id = null;
+			DataEDIT.unsetData();
+		}
+		if( DataSET.active_id !== null )
+		{
+			DataEDIT.updateData( DataSET.items[ DataSET.active_id ] );
+		}
+		this.enabled = true;
+	});
+	
+	UndoLAYER.registerStatusCallback( "ui", function( action ) use( UndoLIST )
+	{
+		if( action == "commit" )
+		{
+			UI_CreateStatic( UndoLIST )[]{ anchorMode = UI_Anchor_Hor, height = 20, caption = this.getLastStateName(), posMode = UI_Pos_SideA };
+		}
+		if( action == "move" || action == "commit" )
+		{
+			cp = this.getCurrentPos();
+			foreach( i, ch : UndoLIST.children() )
+			{
+				if( i == cp )
+					ch.backgroundColor = UIColor(0.6,0.7,0.8);
+				else
+					ch.backgroundColor = null;
+			}
+		}
+		if( action == "resize" )
+		{
+			// crop items to fit count
+			while( UndoLIST.getChildCount() > this.getStateCount() + 1 )
+				UndoLIST.children().last.destroy(true);
+		}
+	});
+	UndoLIST.bindEvent( "click", function( e ) use( UndoLAYER )
+	{
+		if( e.target != this )
+		{
+			pos = e.target.getOrderIndex();
+			UndoLAYER.setCurrentPos( pos );
+		}
+	});
+	
+	// EDITOR EVENTS & VIEW
+	orig_callback = EditSURF.callback;
+//	FRAME.root.cursor = UI_Cursor_Arrow;
+	EditSURF._needFocus = true;
+	EditSURF.cursor = UI_Cursor_Crosshair;
+	function EditSURF.callback( event ) use( orig_callback, DataSET, UndoLAYER, DataEDIT, schema )
+	{
+		if( event.type == EV_MouseMove )
+		{
+			list = get_values( DataSET.items ).reverse();
+			pmid = DataSET.mouse_id;
+			DataSET.mouse_id = null;
+			foreach( item : list )
+			{
+				dx = item.x - event.x;
+				dy = item.y - event.y;
+				if( dx * dx + dy * dy < 4 * 4 )
+				{
+					DataSET.mouse_id = item.id;
+					break;
+				}
+			}
+			if( DataSET.drag_id !== null )
+			{
+				item = DataSET.items[ DataSET.drag_id ];
+				item.x = event.x;
+				item.y = event.y;
+				DataSET.changed = true;
+				UndoLAYER.doChange( "view", "item", item.id, { x = item.x, y = item.y } );
+			}
+			if( pmid !== DataSET.mouse_id || DataSET.drag_id !== null )
+				this.invalidateMe();
+		}
+		else if( event.type == EV_ButtonDown )
+		{
+			if( event.button == Mouse_ButtonL )
+			{
+				if( DataSET.mouse_id !== null )
+				{
+					DataSET.drag_id = DataSET.mouse_id;
+					DataSET.changed = false;
+					UndoLAYER.beginChange();
+					item = DataSET.items[ DataSET.drag_id ];
+					UndoLAYER.doChange( "view", "item", item.id, { x = item.x, y = item.y } );
+					
+					DataSET.active_id = DataSET.mouse_id;
+					DataEDIT.setData( item, schema );
+				}
+				else
+				{
+					DataSET.active_id = null;
+					DataEDIT.unsetData();
+				}
+			}
+			else if( event.button == Mouse_ButtonR )
+			{
+				ix = event.x - this.rx0;
+				iy = event.y - this.ry0;
+				menu =
+				[
+					{ text = "Create item here", x = ix, y = iy, func = function() use( UndoLAYER )
+					{
+						UndoLAYER.beginChange();
+						UndoLAYER.doAdd( "view", "item", { x = this.x, y = this.y, type = "", props = [] } );
+						UndoLAYER.commitChange( "item added" );
+					}},
+				];
+				UI_BuildMenu( this.frame.root, event.x, event.y, menu );
+			}
+		}
+		else if( event.type == EV_ButtonUp )
+		{
+			if( event.button == Mouse_ButtonL )
+			{
+				if( UndoLAYER.isMakingChange() )
+				{
+					if( DataSET.changed )
+						UndoLAYER.commitChange( "item moved" );
+					else
+						UndoLAYER.discardChange();
+				}
+				DataSET.drag_id = null;
+			}
+		}
+		else if( event.type == EV_KeyDown )
+		{
+			if( !event.repeat )
+			{
+				if( event.key == Key_DelRight && DataSET.active_id )
+				{
+					UndoLAYER.beginChange();
+					UndoLAYER.doRemove( "view", "item", DataSET.active_id );
+					UndoLAYER.commitChange( "item removed" );
+				}
+			}
+		}
+		return this!orig_callback( event );
+	}
+	function EditSURF.renderfunc() use( DataSET )
+	{
+		foreach( item : DataSET.items )
+		{
+			mouseon = DataSET.mouse_id === item.id;
+			SS_DrawColorCircle( item.x, item.y, 4, null, 0.9, 0.8 - mouseon * 0.5, 0.7 - mouseon * 0.5, 1 );
+		}
+	}
+	// ---
+	
+	UndoLAYER.beginChange();
+	UndoLAYER.doAdd( "initial", "item", { x = 100, y = 100, type = "test", props = [{ "name" = "simple", "value" = "test" }] } );
+	UndoLAYER.commitChange( "test data" );
 }
 

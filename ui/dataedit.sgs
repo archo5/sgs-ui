@@ -210,6 +210,7 @@ function UI_DataEdit._pickCtrlType( schema )
 	
 	if( type == "string" ) return "textbox";
 	if( type == "int" ) return "intbox";
+	if( type == "float" ) return "intbox";
 	return type;
 }
 
@@ -448,6 +449,16 @@ function UI_DataEdit.updateData( dataobj )
 	name = schema."$root";
 	data.dataobj = this._recreateFromSchema( schema.(name), dataobj );
 	this._updateCtrls( schema.(name), [name] );
+}
+
+function UI_DataEdit.unsetData()
+{
+	data = this.data;
+	data.AutoLayout.destroyAllChildren( true, 1 );
+	data.schema = null;
+	data.pathmap = {};
+	data.schemap = {};
+	data.dataobj = null;
 }
 
 function UI_DataEdit._arrayEvent( addrem, name, idx, event )

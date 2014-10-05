@@ -493,6 +493,7 @@ struct UIFrame
 	SGS_METHOD void setFocus( UIControl* ctrl );
 	
 	SGS_METHOD void invalidateRect( float x0, float y0, float x1, float y1 );
+	SGS_METHOD void invalidateAll(){ invalidateRect( x, y, x + width, y + height ); }
 	
 	// event generation shortcuts
 	SGS_METHOD void doMouseMove( float x, float y );
