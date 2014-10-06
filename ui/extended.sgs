@@ -915,6 +915,7 @@ function UI_FileBrowser.refillFileList()
 	}
 	return !!iter;
 }
+function UI_FileBrowser.refresh(){ this.refillFileList(); }
 
 function UI_FileBrowser.getCurrentPath(){ return this.data.filesystem.get_path(); }
 function UI_FileBrowser.getSubmittedItem(){ return this.data.SubText.getText(); }

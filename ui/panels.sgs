@@ -118,28 +118,97 @@ function UI_Controls.splitpane( parent, params )
 }
 
 
-function UI_CreateMenuPanel( parent, items )
+global UI_MenuPanel = {};
+
+function UI_MenuPanel._recalcItemWidths()
 {
-	MenuPanel = parent.frame.createControl( "menupanel" );
-	MenuPanel._stackingEvent = true;
-	
-	items = clone( items );
-	foreach( item : items )
+	sp2 = this.data.side_padding * 2;
+	foreach( item : this.data.items )
+		item.width = this._cachedFont.getTextLength( item.text ) + sp2;
+}
+
+function UI_MenuPanel._recalcItemPositions()
+{
+	if( !this.data.items )
+		return;
+	x = 0;
+	y = 0;
+	ih = this.data.item_height;
+	rw = this.rx1 - this.rx0;
+	foreach( item : this.data.items )
 	{
-		item.text = @item.text;
+		if( x + item.width > rw )
+		{
+			x = 0;
+			y += ih;
+		}
+		item.x = x + this.rx0;
+		item.y = y + this.ry0;
+		x += item.width;
 	}
+	this.nonClientTop = y + ih;
+}
+
+function UI_MenuPanel._removeOpen()
+{
+	data = this.data;
+	if( data.menu_open )
+	{
+		mo = data.menu_open;
+		mo.destroy(true);
+		data.menu_open = null;
+	}
+	data.menu_open_for = null;
+	data.selected = false;
+}
+
+function UI_MenuPanel._removeRecursive( cc )
+{
+	while( cc && cc.type == "menu" )
+	{
+		pp = cc.data.parent_menu;
+		cc.destroy(true);
+		cc = pp;
+	}
+}
+
+function UI_MenuPanel.setItems( items )
+{
+	if( !items )
+		return;
+	
 	// each item can have the following used parameters
 	// - text (label text)
 	// - func (trigger callback, "checked" is updated before this)
 	// - menu (a submenu to display on click/after some time)
 	// - disabled (whether entry is a text or a line separator)
 	
-	MenuPanel.data = mpdata =
+	items = clone( items );
+	foreach( item : items )
+	{
+		item.text = @item.text;
+	}
+	
+	data = this.data;
+	data.items = items;
+	data.selected = false;
+	
+	this._recalcItemWidths();
+	this._recalcItemPositions();
+}
+
+function UI_CreateMenuPanel( parent, items )
+{
+	MenuPanel = parent.frame.createControl( "menupanel" );
+	MenuPanel._stackingEvent = true;
+	MenuPanel._interface = UI_MenuPanel;
+	
+	MenuPanel.data =
 	{
 		item_height = 24,
 		side_padding = 8,
 		
-		items = items,
+		items = null,
 		selected = false,
 		
 		parent_menu = null,
@@ -147,54 +216,7 @@ function UI_CreateMenuPanel( parent, items )
 		menu_open_for = null,
 	};
 	
-	function mpdata.recalcItemWidths( MenuPanel )
-	{
-		foreach( item : this.items )
-			item.width = MenuPanel._cachedFont.getTextLength( item.text ) + this.side_padding * 2;
-	}
-	
-	function mpdata.recalcItemPositions( MenuPanel )
-	{
-		x = 0;
-		y = 0;
-		rw = MenuPanel.rx1 - MenuPanel.rx0;
-		foreach( item : this.items )
-		{
-			if( x + item.width > rw )
-			{
-				x = 0;
-				y += this.item_height;
-			}
-			item.x = x + MenuPanel.rx0;
-			item.y = y + MenuPanel.ry0;
-			x += item.width;
-		}
-		MenuPanel.nonClientTop = y + this.item_height;
-	}
-	
-	function mpdata.removeOpen()
-	{
-		if( this.menu_open )
-		{
-			mo = this.menu_open;
-			mo.parent.removeChild( mo );
-			this.menu_open = null;
-		}
-		this.menu_open_for = null;
-		this.selected = false;
-	}
-	function mpdata.removeRecursive( cc )
-	{
-		while( cc && cc.type == "menu" )
-		{
-			pp = cc.data.parent_menu;
-			cc.parent.removeChild( cc );
-			cc = pp;
-		}
-	}
-	
-	mpdata.recalcItemWidths( MenuPanel );
-	mpdata.recalcItemPositions( MenuPanel );
+	MenuPanel.setItems( items );
 	
 	ocb = MenuPanel.callback;
 	function MenuPanel.callback( event ) use( ocb )
@@ -203,10 +225,7 @@ function UI_CreateMenuPanel( parent, items )
 		
 		if( event.type == EV_Stacking )
 		{
-			res = this!ocb( event );
-			data.recalcItemPositions( this );
-			this.frame.handleMouseMove();
-			return res;
+			this._recalcItemPositions( this );
 		}
 		else if( event.type == EV_MouseMove )
 		{
@@ -227,7 +246,7 @@ function UI_CreateMenuPanel( parent, items )
 		{
 			sel = data.selected; // store to avoid modification from the events called
 			mof = data.menu_open_for;
-			data.removeOpen();
+			this._removeOpen();
 			if( sel !== false )
 			{
 				item = data.items[ sel ];

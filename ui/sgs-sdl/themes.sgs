@@ -795,6 +795,18 @@ function SS_UI_Theme_DarkPixel_menu_renderfunc()
 				if( checked )
 					SS_DrawColorRect( cbx0+3, cby0+3, cbx1-3, cby1-3, 0.1, 0.2, 0.4, 1 );
 			}
+			else if( @item.icon )
+			{
+				cbx0 = x + 4;
+				cby0 = y + 4;
+				cbsz = min( 24, data.item_height - 8 );
+				cbx1 = cbx0 + cbsz;
+				cby1 = cby0 + cbsz;
+				icon = item.icon;
+				if( typeof(icon) == "string" )
+					icon = SS_CreateTexture( icon );
+				SS_DrawFitted( icon, cbx0, cby0, cbx1, cby1 );
+			}
 			y += data.item_height;
 		}
 		y += data.item_spacing;

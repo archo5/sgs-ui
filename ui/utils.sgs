@@ -208,6 +208,13 @@ function UndoLayer.commitChange( name )
 
 function UndoLayer.isMakingChange(){ return this.change !== null; }
 
+function UndoLayer.clearHistory()
+{
+	this.current_pos = 0;
+	this.undo_states.resize( 0 );
+	this._invokeStatusCallback( "resize" );
+}
+
 //  E D I T I N G
 
 function UndoLayer.doAdd( src, objtype, props )

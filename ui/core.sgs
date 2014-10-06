@@ -355,7 +355,7 @@ function UI_BuildMenu( parent, x, y, items, default )
 			cc = pp;
 		}
 		if( cc && cc.type == "menupanel" )
-			cc.data.removeOpen();
+			cc._removeOpen();
 	}
 	
 	ocb = Menu.callback;

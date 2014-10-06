@@ -1263,19 +1263,7 @@ function sgs_ui_example_cmpt()
 
 function sgs_ui_example_edtr1()
 {
-	main_menu_file =
-	[
-		{ text = "New", func = function(){} },
-		{ disabled = true },
-		{ text = "Quit", func = function(){ global sys_exit = true; } },
-	];
-	main_menu =
-	[
-		{ text = "File", menu = main_menu_file },
-	//	{ text = "Edit", menu = submenu },
-	//	{ text = "Help", menu = sub3menu },
-	];
-	SP_MenuPanel = UI_CreateMenuPanel( FRAME.root, main_menu );
+	SP_MenuPanel = UI_CreateMenuPanel( FRAME.root );
 	
 	SP_Edit_UndoProp = UI_CreateVSplitPane( SP_MenuPanel, 0.6 )[]{ anchorMode = UI_Anchor_All };
 	SP_Undo_Prop = UI_CreateVSplitPane( SP_Edit_UndoProp.getPaneB(), 0.25 )[]{ anchorMode = UI_Anchor_All };
@@ -1286,15 +1274,22 @@ function sgs_ui_example_edtr1()
 	UndoLIST = UI_CreateStatic( SP_Undo_Prop.getPaneA() )[]{ anchorMode = UI_Anchor_All };
 	UI_CreateStatic( UndoLIST )[]{ anchorMode = UI_Anchor_Hor, height = 20, caption = "-- start --", posMode = UI_Pos_SideA, backgroundColor = UIColor(0.6,0.7,0.8) };
 	UndoLAYER = UndoLayer.create();
-	DataSET =
+	
+	DataSET = {};
+	function DataSET.reset()
 	{
-		items = {},
-		auto_id = 1,
-		active_id = null,
-		mouse_id = null,
-		drag_id = null,
-		changed = false,
-	};
+		this.
+		{
+			items = {},
+			auto_id = 1,
+			active_id = null,
+			mouse_id = null,
+			drag_id = null,
+			changed = false,
+		};
+	}
+	DataSET.reset();
+	
 	function item_add( props ) use( DataSET, DataEDIT, UndoLAYER )
 	{
 		item = {};
@@ -1469,7 +1464,6 @@ function sgs_ui_example_edtr1()
 	
 	// EDITOR EVENTS & VIEW
 	orig_callback = EditSURF.callback;
-//	FRAME.root.cursor = UI_Cursor_Arrow;
 	EditSURF._needFocus = true;
 	EditSURF.cursor = UI_Cursor_Crosshair;
 	function EditSURF.callback( event ) use( orig_callback, DataSET, UndoLAYER, DataEDIT, schema )
@@ -1481,8 +1475,8 @@ function sgs_ui_example_edtr1()
 			DataSET.mouse_id = null;
 			foreach( item : list )
 			{
-				dx = item.x - event.x;
-				dy = item.y - event.y;
+				dx = item.x - event.x + this.rx0;
+				dy = item.y - event.y + this.ry0;
 				if( dx * dx + dy * dy < 4 * 4 )
 				{
 					DataSET.mouse_id = item.id;
@@ -1492,8 +1486,8 @@ function sgs_ui_example_edtr1()
 			if( DataSET.drag_id !== null )
 			{
 				item = DataSET.items[ DataSET.drag_id ];
-				item.x = event.x;
-				item.y = event.y;
+				item.x = event.x - this.rx0;
+				item.y = event.y - this.ry0;
 				DataSET.changed = true;
 				UndoLAYER.doChange( "view", "item", item.id, { x = item.x, y = item.y } );
 			}
@@ -1570,11 +1564,170 @@ function sgs_ui_example_edtr1()
 		foreach( item : DataSET.items )
 		{
 			mouseon = DataSET.mouse_id === item.id;
-			SS_DrawColorCircle( item.x, item.y, 4, null, 0.9, 0.8 - mouseon * 0.5, 0.7 - mouseon * 0.5, 1 );
+			SS_DrawColorCircle( item.x + this.rx0, item.y + this.ry0, 4, null, 0.9, 0.8 - mouseon * 0.5, 0.7 - mouseon * 0.5, 1 );
 		}
 	}
 	// ---
 	
+	
+	//
+	// FILE BROWSING
+	//
+	global gedFBFUNC = null;
+	function _G.DO_BeginFileBrowse( title, subfunc )
+	{
+		gedFILEBROWSER.parent.children()[0].caption = title;
+		global gedFBFUNC = subfunc;
+		gedFILEBROWSER.refresh();
+		gedFILEBROWSER.parent.visible = true;
+	}
+	function _G.DO_EndFileBrowse()
+	{
+		global gedFBFUNC = null;
+		gedFILEBROWSER.parent.visible = false;
+	}
+	function _G.DO_OnFileSubmit( e )
+	{
+		this!gedFBFUNC( this.getCurrentPath(), this.getSubmittedItem(), e );
+	}
+	UI_BuildControls
+	( FRAME.root,
+	[
+		// FILE BROWSER
+		{ type = "static", class = "file-browser overlay-screen", visible = false, children =
+		[
+			{ type = "static", class = "title", caption = "<file-browser>" },
+			{ type = "button", class = "close-button", caption = "Close" },
+			{ type = "filebrowser", contents = function(ctrl){ global gedFILEBROWSER = ctrl; ctrl.bindEvent( "change", DO_OnFileSubmit ); } },
+		]},
+	]);
+	// overlay windows
+	FRAME.find( ".overlay-screen .close-button" ).bindEvent( "click", function(){ this.parent.visible = false; } );
+	FRAME.addStyleSheet(UI_BuildStyleSheet({
+		".overlay-screen" = { backgroundColor = UIColor(0,0.7), anchorMode = UI_Anchor_All },
+		".overlay-screen .title" = { backgroundColor = UIColor(0), textColor = UIColor(1), anchorMode = UI_Anchor_Hor, height = 64, padding = 16, fontSize = 24, halign = UI_Align_Left },
+		".overlay-screen .close-button" = { backgroundColor = UIColor(0.5,0.1,0.05,1), anchorMode = UI_Anchor_Top | UI_Anchor_Right, x = -144, y = 16, width = 128, height = 32, textColor = UIColor(1) },
+		".file-browser filebrowser" = { anchorMode = UI_Anchor_All, x = 16, y = 64, width = -32, height = -80 },
+	}));
+	
+	
+	global CURFILE = null;
+	// make the functions global (less 'closuring' around)
+	function _G.GET_DataArray() use( DataSET )
+	{
+		out = [];
+		foreach( item : DataSET.items )
+		{
+			out.push({ x = item.x, y = item.y, type = item.type, props = outprops = {} });
+			foreach( prop : item.props )
+				outprops[ prop.name ] = prop.value;
+		}
+		return out;
+	}
+	function _G.DO_Open( path, file ) use( UndoLAYER, DataSET, DataEDIT )
+	{
+		DO_EndFileBrowse();
+		
+		cwd = io_getcwd();
+		if( io_setcwd( path ) )
+		{
+			data = eval( "return " $ io_file_read( file ) $ ";" );
+			io_setcwd( cwd );
+			
+			UndoLAYER.clearHistory();
+			DataSET.reset();
+			DataEDIT.unsetData();
+			global CURFILE = [ path, file ];
+			
+			foreach( item : data )
+			{
+				outprops = [];
+				foreach( k, v : item.props )
+					outprops.push({ name = k, value = v });
+				nid = DataSET.auto_id++;
+				ni = { id = nid, x = item.x, y = item.y, type = item.type, props = outprops };
+				DataSET.items[ nid ] = ni;
+			}
+			
+			return true;
+		}
+		return false;
+	}
+	function _G.DO_Save( path, file )
+	{
+		DO_EndFileBrowse();
+		
+		function sgsquote(x) = "\"" $ string_replace( x, "\\", "\\\\" ) $ "\"";
+		
+		data = GET_DataArray();
+		out = "[\r\n";
+		foreach( item : data )
+		{
+			// SGSON
+			out $= "\t{ x = " $ item.x $ ", y = " $ item.y $ ", type = " $ sgsquote(item.type) $ ", props = { ";
+			outprops = [];
+			foreach( k, v : item.props )
+			{
+				outprops.push( sgsquote(k) $ " = " $ sgsquote(v) );
+			}
+			out $= string_implode( outprops, ", " ) $ " } }\r\n";
+		}
+		out $= "]\r\n";
+		
+		cwd = io_getcwd();
+		if( io_setcwd( path ) )
+			return io_file_write( file, out ) && io_setcwd( cwd );
+		else
+			return false;
+	}
+	function _G.DO_SaveAs( path, file )
+	{
+		global CURFILE = [ path, file ];
+		DO_Save( path, file );
+	}
+	
+	function ACT_New() use( UndoLAYER, DataSET, DataEDIT )
+	{
+		UndoLAYER.clearHistory();
+		DataSET.reset();
+		DataEDIT.unsetData();
+		global CURFILE = null;
+	}
+	function ACT_Open()
+	{
+		DO_BeginFileBrowse( "Open file...", DO_Open );
+	}
+	function ACT_SaveAs()
+	{
+		DO_BeginFileBrowse( "Save file as...", DO_SaveAs );
+	}
+	function ACT_Save()
+	{
+		if( CURFILE )
+			DO_Save( CURFILE[0], CURFILE[1] );
+		else
+			ACT_SaveAs();
+	}
+	
+	main_menu_file =
+	[
+		{ text = "New", func = ACT_New, icon = "icons/page.png" },
+		{ text = "Open", func = ACT_Open, icon = "icons/folder.png" },
+		{ text = "Save", func = ACT_Save, icon = "icons/disk.png" },
+		{ text = "Save As", func = ACT_SaveAs, icon = "icons/disk_multiple.png" },
+		{ disabled = true },
+		{ text = "Quit", func = function(){ global sys_exit = true; } },
+	];
+	main_menu =
+	[
+		{ text = "File", menu = main_menu_file },
+	//	{ text = "Edit", menu = submenu },
+	//	{ text = "Help", menu = sub3menu },
+	];
+	SP_MenuPanel.setItems( main_menu );
+	
+	
+	// TEST DATA
 	UndoLAYER.beginChange();
 	UndoLAYER.doAdd( "initial", "item", { x = 100, y = 100, type = "test", props = [{ "name" = "simple", "value" = "test" }] } );
 	UndoLAYER.commitChange( "test data" );
