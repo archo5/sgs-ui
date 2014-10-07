@@ -1312,23 +1312,52 @@ function sgs_ui_example_edtr1()
 	}
 	DataSET.reset();
 	
+	function keys_add( props ){}
+	function keys_rem( id ){}
+	function keys_getstate( id )
+	{
+		return
+		{
+			auto_id = this.auto_id
+		};
+	}
+	function keys_getprops( id, tmpl )
+	{
+		src = { auto_id = this.auto_id };
+		out = {};
+		foreach( k ,: tmpl )
+			out[ k ] = src[ k ];
+		return out;
+	}
+	function keys_setprops( id, props )
+	{
+		src = this;
+		foreach( k, v : props )
+			src.(k) = v;
+	}
+	UndoLAYER.registerObject( "keys", DataSET, keys_add, keys_rem, keys_getstate, keys_getprops, keys_setprops );
+	
 	function item_add( props ) use( DataSET, DataEDIT, UndoLAYER )
 	{
 		item = {};
 		foreach( k, v : props )
 			item.(k) = v;
 		if( @item.id === null )
-			item.id = id = DataSET.auto_id++;
-		else
-			id = item.id;
+		{
+			UndoLAYER.doChange( "item", "keys", 0, { auto_id = DataSET.auto_id + 1 } );
+			item.id = DataSET.auto_id;
+		}
+		id = item.id;
 		DataSET.items[ id ] = item;
 		return id;
 	}
-	function item_rem( id ) use( DataSET )
+	function item_rem( id ) use( DataSET, UndoLAYER )
 	{
 		unset( DataSET.items, id );
 		if( DataSET.auto_id - 1 == id )
-			DataSET.auto_id--;
+		{
+			UndoLAYER.doChange( "item", "keys", 0, { auto_id = DataSET.auto_id - 1 } );
+		}
 	}
 	function item_getstate( id ) use( DataSET )
 	{
@@ -1439,7 +1468,7 @@ function sgs_ui_example_edtr1()
 	
 	UndoLAYER.registerFeedbackOutput( "ui", function( src, action, objtype, id, state, state_to ) use( DataEDIT, DataSET )
 	{
-		if( src == "ui" )
+		if( src == "ui" || objtype == "keys" )
 			return;
 		this.enabled = false; // prevent feedback loop
 		if( DataSET.active_id == id && action == "remove" && objtype == "item" )
