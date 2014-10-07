@@ -327,17 +327,21 @@ function UI_DragDrop_Proc( event, com )
 			this.x = data.dragoff_x + event.x;
 			this.y = data.dragoff_y + event.y;
 			
+			if( data.hoverupdate )
+				this.frame.handleMouseMove();
+			
 			this.callEvent( "ondragmove", event );
 		}
 	}
 }
 
-function UI_MakeDragDrop( ctrl, dist )
+function UI_MakeDragDrop( ctrl, hoverupdate, dist )
 {
 	dist ??= 3;
 	DragDrop_Data =
 	{
 		dist = dist,
+		hoverupdate = hoverupdate ?? false,
 		maydrag = false,
 		dragging = false,
 		dragoff_x = null,

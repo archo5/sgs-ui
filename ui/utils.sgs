@@ -76,17 +76,8 @@ function UndoLayer.getStateCount(){ return this.undo_states.size; }
 function UndoLayer.getState( i ){ return @this.undo_states[ i ]; }
 function UndoLayer.getLastStateName(){ return @this.undo_states.last.name; }
 
-function UndoLayer._undo()
+function UndoLayer._undoChanges( changes )
 {
-	if( this.change !== null )
-		return WARNING( "cannot undo - making change" );
-	if( this.current_pos == 0 )
-		return WARNING( "cannot undo - limit reached" );
-	
-	cp = --this.current_pos;
-	state = this.undo_states[ cp ];
-	changes = state.changes;
-	
 	for( i = changes.size - 1; i >= 0; --i )
 	{
 		change = changes[ i ];
@@ -96,11 +87,41 @@ function UndoLayer._undo()
 		{
 			id = this.doAdd( "undolayer", change.objtype, change.state );
 			if( id != change.id )
-				return WARNING( "data link error: returned object ID mismatch" );
+				return WARNING( "data link error: returned object ID mismatch (undo/add,got="$id$",expected="$change.id$")" );
 		}
 		else if( change.type == "change" )
 			this.doChange( "undolayer", change.objtype, change.id, change.state_from );
 	}
+}
+
+function UndoLayer._redoChanges( changes )
+{
+	for( i = 0; i < changes.size; ++i )
+	{
+		change = changes[ i ];
+		if( change.type == "add" )
+		{
+			id = this.doAdd( "undolayer", change.objtype, change.state );
+			if( id != change.id )
+				return WARNING( "data link error: returned object ID mismatch (redo/remove,got="$id$",expected="$change.id$")" );
+		}
+		else if( change.type == "remove" )
+			this.doRemove( "undolayer", change.objtype, change.id );
+		else if( change.type == "change" )
+			this.doChange( "undolayer", change.objtype, change.id, change.state_to );
+	}
+}
+
+function UndoLayer._undo()
+{
+	if( this.change !== null )
+		return WARNING( "cannot undo - making change" );
+	if( this.current_pos == 0 )
+		return WARNING( "cannot undo - limit reached" );
+	
+	cp = --this.current_pos;
+	state = this.undo_states[ cp ];
+	return this._undoChanges( state.changes );
 }
 
 function UndoLayer._redo()
@@ -112,22 +133,7 @@ function UndoLayer._redo()
 	
 	cp = this.current_pos++;
 	state = this.undo_states[ cp ];
-	changes = state.changes;
-	
-	for( i = 0; i < changes.size; ++i )
-	{
-		change = changes[ i ];
-		if( change.type == "add" )
-		{
-			id = this.doAdd( "undolayer", change.objtype, change.state );
-			if( id != change.id )
-				return WARNING( "data link error: returned object ID mismatch" );
-		}
-		else if( change.type == "remove" )
-			this.doRemove( "undolayer", change.objtype, change.id );
-		else if( change.type == "change" )
-			this.doChange( "undolayer", change.objtype, change.id, change.state_to );
-	}
+	return this._redoChanges( state.changes );
 }
 
 function UndoLayer.undo()
@@ -166,25 +172,18 @@ function UndoLayer.beginChange()
 	this.change = [];
 }
 
-function UndoLayer.discardChange()
-{
-	if( !this.enabled )
-		return WARNING( this.ERROR_DISABLED );
-	if( this.change === null )
-		return WARNING( this.ERROR_NOTMAKINGCHANGE );
-	this.change = null;
-}
-
-function UndoLayer.revertDiscardChange()
+function UndoLayer.discardChange( noundo )
 {
 	if( !this.enabled )
 		return WARNING( this.ERROR_DISABLED );
 	if( this.change === null )
 		return WARNING( this.ERROR_NOTMAKINGCHANGE );
 	
-	this.commitChange( "__tmp__" );
-	this.undo();
-	this.pop();
+	if( !noundo )
+	{
+		this._undoChanges( this.change );
+	}
+	this.change = null;
 }
 
 function UndoLayer.commitChange( name )

@@ -1276,9 +1276,22 @@ function sgs_ui_example_edtr1()
 	UndoLAYER = UndoLayer.create();
 	
 	DragBOX = UI_CreateStatic( SP_Prop_Drag.getPaneB() )[]{ anchorMode = UI_Anchor_All, x = 16, y = 16, width = -32, height = -32, caption = "Drag & drop this to editing area" };
-	UI_MakeDragDrop( DragBOX );
+	UI_MakeDragDrop( DragBOX, true );
+	DragBOX.bindEvent( "ondragstart", function( e )
+	{
+		c = this.backgroundColor;
+		c.a = 0.5;
+		this.backgroundColor = c;
+		this.rx1 += e.x - this.rx0;
+		this.ry1 += e.y - this.ry0;
+		this.rx0 = e.x;
+		this.ry0 = e.y;
+	});
 	DragBOX.bindEvent( "ondragend", function() use( UndoLAYER )
 	{
+		c = this.backgroundColor;
+		c.a = 1;
+		this.backgroundColor = c;
 		// commit insertion if in progress
 		if( UndoLAYER.isMakingChange() )
 			UndoLAYER.commitChange( "item added" );
@@ -1304,7 +1317,10 @@ function sgs_ui_example_edtr1()
 		item = {};
 		foreach( k, v : props )
 			item.(k) = v;
-		item.id = id = DataSET.auto_id++;
+		if( @item.id === null )
+			item.id = id = DataSET.auto_id++;
+		else
+			id = item.id;
 		DataSET.items[ id ] = item;
 		return id;
 	}
@@ -1318,7 +1334,7 @@ function sgs_ui_example_edtr1()
 	{
 		src = DataSET.items[ id ];
 		out = {};
-		foreach( k : ["x","y","type","props"] )
+		foreach( k : ["id","x","y","type","props"] )
 			out[ k ] = src[ k ];
 		return out;
 	}
@@ -1502,11 +1518,8 @@ function sgs_ui_example_edtr1()
 			}
 			if( pmid !== DataSET.mouse_id || DataSET.drag_id !== null )
 				this.invalidateMe();
-		}
-		else if( event.type == EV_MouseEnter )
-		{
+			
 			// check if dragging widget
-			println("enter");
 			if( DragBOX.findComponentByType( "dragdrop" ).data.dragging )
 			{
 				// insert point
@@ -1514,6 +1527,20 @@ function sgs_ui_example_edtr1()
 					UndoLAYER.discardChange();
 				UndoLAYER.beginChange();
 				UndoLAYER.doAdd( "view", "item", { x = event.x - this.rx0, y = event.y - this.ry0, type = "", props = [] } );
+				this.invalidateMe();
+			}
+		}
+		else if( event.type == EV_MouseEnter )
+		{
+			// check if dragging widget
+			if( DragBOX.findComponentByType( "dragdrop" ).data.dragging )
+			{
+				// insert point
+				if( UndoLAYER.isMakingChange() )
+					UndoLAYER.discardChange();
+				UndoLAYER.beginChange();
+				UndoLAYER.doAdd( "view", "item", { x = event.x - this.rx0, y = event.y - this.ry0, type = "", props = [] } );
+				this.invalidateMe();
 			}
 		}
 		else if( event.type == EV_MouseLeave )
@@ -1571,7 +1598,7 @@ function sgs_ui_example_edtr1()
 					if( DataSET.changed )
 						UndoLAYER.commitChange( "item moved" );
 					else
-						UndoLAYER.discardChange();
+						UndoLAYER.discardChange( true );
 				}
 				DataSET.drag_id = null;
 			}
