@@ -264,3 +264,90 @@ function UI_MakeResizable( ctrl, left, top, right, bottom )
 	ctrl.addComponent( "resizable", UI_Resizable_Proc, Resizable_data );
 }
 
+
+//
+// DRAG & DROP
+//
+
+function UI_DragDrop_Proc( event, com )
+{
+	data = com.data;
+	if( event.type == EV_ButtonDown )
+	{
+		if( event.button == Mouse_ButtonL )
+		{
+			data.maydrag = true;
+			data.startcp_x = event.x;
+			data.startcp_y = event.y;
+		}
+	}
+	else if( event.type == EV_ButtonUp )
+	{
+		if( event.button == Mouse_ButtonL )
+		{
+			if( data.dragging )
+			{
+				data.dragging = false;
+				// D&D ENDS
+				data.placeholder.swapOutFor( this );
+				data.placeholder.destroy(true);
+				data.placeholder = null;
+				this.style = data.originalStyle;
+				this.styleParent = null;
+				this._neverHit = false;
+				
+				this.callEvent( "ondragend", event );
+			}
+			data.maydrag = false;
+		}
+	}
+	if( event.type == EV_MouseMove )
+	{
+		function sqr(x) = x * x;
+		if( data.maydrag && !data.dragging &&
+			sqr( event.x - data.startcp_x ) + sqr( event.y - data.startcp_y ) > sqr( data.dist ) )
+		{
+			data.dragging = true;
+			// D&D BEGINS
+			this.callEvent( "ondragstart", event );
+			
+			data.dragoff_x = this.rx0 - data.startcp_x;
+			data.dragoff_y = this.ry0 - data.startcp_y;
+			data.originalStyle = this.style;
+			data.placeholder = UI_CreatePlaceholder( this );
+			UI_PreDetachPreserveControl( this );
+			this.swapOutFor( data.placeholder );
+			this.posMode = UI_Pos_Abs;
+			this.frame.root.addChild( this );
+			this._neverHit = true;
+			this.frame.handleMouseMove();
+		}
+		if( data.dragging )
+		{
+			this.x = data.dragoff_x + event.x;
+			this.y = data.dragoff_y + event.y;
+			
+			this.callEvent( "ondragmove", event );
+		}
+	}
+}
+
+function UI_MakeDragDrop( ctrl, dist )
+{
+	dist ??= 3;
+	DragDrop_Data =
+	{
+		dist = dist,
+		maydrag = false,
+		dragging = false,
+		dragoff_x = null,
+		dragoff_y = null,
+		startcp_x = null,
+		startcp_y = null,
+		originalStyle = null,
+		placeholder = null,
+	};
+	
+	ctrl.addComponent( "dragdrop", UI_DragDrop_Proc, DragDrop_Data );
+}
+

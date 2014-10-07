@@ -545,6 +545,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 				data.sel_to = data.findOffset( this, event.x, event.y );
 				data.updateSelOffsets( this );
 				this._resetCursorTimer( this.frame );
+				this.invalidateMe();
 			}
 		}
 		else if( event.type == EV_ButtonUp )
@@ -571,6 +572,7 @@ function UI_CreateTextbox( parent, name, caption, text )
 						data.sel_from = data.sel_to;
 					data.updateSelOffsets( this );
 					this._resetCursorTimer( this.frame );
+					this.invalidateMe();
 				}
 				else if( key == Key_DelLeft || key == Key_DelRight )
 				{

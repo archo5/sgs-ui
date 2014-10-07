@@ -1275,6 +1275,15 @@ function sgs_ui_example_edtr1()
 	UI_CreateStatic( UndoLIST )[]{ anchorMode = UI_Anchor_Hor, height = 20, caption = "-- start --", posMode = UI_Pos_SideA, backgroundColor = UIColor(0.6,0.7,0.8) };
 	UndoLAYER = UndoLayer.create();
 	
+	DragBOX = UI_CreateStatic( SP_Prop_Drag.getPaneB() )[]{ anchorMode = UI_Anchor_All, x = 16, y = 16, width = -32, height = -32, caption = "Drag & drop this to editing area" };
+	UI_MakeDragDrop( DragBOX );
+	DragBOX.bindEvent( "ondragend", function() use( UndoLAYER )
+	{
+		// commit insertion if in progress
+		if( UndoLAYER.isMakingChange() )
+			UndoLAYER.commitChange( "item added" );
+	});
+	
 	DataSET = {};
 	function DataSET.reset()
 	{
@@ -1466,7 +1475,7 @@ function sgs_ui_example_edtr1()
 	orig_callback = EditSURF.callback;
 	EditSURF._needFocus = true;
 	EditSURF.cursor = UI_Cursor_Crosshair;
-	function EditSURF.callback( event ) use( orig_callback, DataSET, UndoLAYER, DataEDIT, schema )
+	function EditSURF.callback( event ) use( orig_callback, DataSET, UndoLAYER, DataEDIT, DragBOX, schema )
 	{
 		if( event.type == EV_MouseMove )
 		{
@@ -1493,6 +1502,28 @@ function sgs_ui_example_edtr1()
 			}
 			if( pmid !== DataSET.mouse_id || DataSET.drag_id !== null )
 				this.invalidateMe();
+		}
+		else if( event.type == EV_MouseEnter )
+		{
+			// check if dragging widget
+			println("enter");
+			if( DragBOX.findComponentByType( "dragdrop" ).data.dragging )
+			{
+				// insert point
+				if( UndoLAYER.isMakingChange() )
+					UndoLAYER.discardChange();
+				UndoLAYER.beginChange();
+				UndoLAYER.doAdd( "view", "item", { x = event.x - this.rx0, y = event.y - this.ry0, type = "", props = [] } );
+			}
+		}
+		else if( event.type == EV_MouseLeave )
+		{
+			// check if dragging widget
+			if( DragBOX.findComponentByType( "dragdrop" ).data.dragging )
+			{
+				// discard change
+				UndoLAYER.discardChange();
+			}
 		}
 		else if( event.type == EV_ButtonDown )
 		{
@@ -1697,7 +1728,7 @@ function sgs_ui_example_edtr1()
 	{
 		DO_BeginFileBrowse( "Open file...", DO_Open );
 	}
-	function ACT_SaveAs()
+	function _G.ACT_SaveAs()
 	{
 		DO_BeginFileBrowse( "Save file as...", DO_SaveAs );
 	}
