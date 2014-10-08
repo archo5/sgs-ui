@@ -117,6 +117,11 @@ function UI_DataEdit._create_array( name, schema, value, path )
 		
 		rootarr._updatingLayout = true;
 		newsize = this.getValue();
+		
+		if( elements.size == newsize )
+			return;
+		first = dataedit._changeBegin( e );
+		
 		while( elements.size > newsize )
 		{
 			// REMOVE ITEM
@@ -154,6 +159,9 @@ function UI_DataEdit._create_array( name, schema, value, path )
 		}
 		rootarr._updatingLayout = false;
 		rootarr.onLayoutChange();
+		
+		if( first )
+			dataedit._changeEnd( "array resize", e );
 	});
 	if( value )
 	{
@@ -425,6 +433,7 @@ function UI_DataEdit.setItemAdded( obj )
 
 function UI_DataEdit.getSchema(){ return this.data.schema; }
 function UI_DataEdit.getData(){ return this.data.dataobj; }
+function UI_DataEdit.getChangeName(){ return this.data.change_name; }
 
 function UI_DataEdit.setData( dataobj, schema )
 {
@@ -475,6 +484,28 @@ function UI_DataEdit._arrayEvent( addrem, name, idx, event )
 	this.callEvent( "change", event );
 }
 
+function UI_DataEdit._changeBegin( event )
+{
+	data = this.data;
+	if( data.change_count == 0 )
+	{
+		data.change_name = null;
+		this.callEvent( "history", event ?? UI_CreateEvent() );
+	}
+	return 0 == data.change_count++;
+}
+
+function UI_DataEdit._changeEnd( name, event )
+{
+	data = this.data;
+	data.change_count--;
+	if( data.change_count == 0 )
+	{
+		data.change_name = name;
+		this.callEvent( "history", event ?? UI_CreateEvent() );
+	}
+}
+
 function UI_CreateDataEdit( parent, dataobj, schema )
 {
 	DataEdit = parent.frame.createControl( "dataedit" );
@@ -492,6 +523,9 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 		changed_index = null,
 		change_type = null,
 		item_added = null,
+		
+		change_count = 0,
+		change_name = null,
 	};
 	
 	Form = UI_CreateForm( DataEdit );
@@ -519,6 +553,7 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 			return;
 		if( chgname[0] == "_" )
 			return;
+		first = dataedit._changeBegin( e );
 		data = dataedit.data;
 		data.changed_schema = @data.schemap[ chgname ];
 		data.changed_prop = chgname;
@@ -527,6 +562,8 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 		data.item_added = null;
 		dataedit._setValueByName( chgname, this.getString( chgname ) );
 		dataedit.callEvent( "change", e );
+		if( first )
+			dataedit._changeEnd( "form edit", e );
 	});
 	
 	DataEdit.data.AutoLayout = AutoLayout = UI_CreateControl( Form, "datacontainer" )[]{ posMode = UI_Pos_SideA };

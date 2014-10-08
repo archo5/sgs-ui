@@ -1417,9 +1417,6 @@ function sgs_ui_example_edtr1()
 		// assume add/remove is for the property array
 		if( type == "add" )
 		{
-			println( "Change: begin" );
-			UndoLAYER.beginChange();
-			
 			println( "Change: do/prop/add" );
 			item = DataSET.items[ DataSET.active_id ];
 			newval = { name = "", value = "" };
@@ -1427,29 +1424,17 @@ function sgs_ui_example_edtr1()
 			changes.props.insert( idx, newval );
 			UndoLAYER.doChange( "ui", "item", DataSET.active_id, changes );
 			this.setItemAdded( newval );
-			
-			println( "Change: commit" );
-			UndoLAYER.commitChange( "property added" );
 		}
 		else if( type == "remove" )
 		{
-			println( "Change: begin" );
-			UndoLAYER.beginChange();
-			
 			println( "Change: do/prop/remove" );
 			item = DataSET.items[ DataSET.active_id ];
 			changes = { "props" = clone( item.props ) };
 			changes.props.erase( idx );
 			UndoLAYER.doChange( "ui", "item", DataSET.active_id, changes );
-			
-			println( "Change: commit" );
-			UndoLAYER.commitChange( "property removed" );
 		}
 		else
 		{
-			println( "Change: begin" );
-			UndoLAYER.beginChange();
-			
 			println( "Change: do/change" );
 			changes = {};
 			if( path[1] == "props" )
@@ -1460,7 +1445,22 @@ function sgs_ui_example_edtr1()
 			}
 			this.applyChangeToObject( changes );
 			UndoLAYER.doChange( "ui", "item", DataSET.active_id, changes );
-			
+		}
+	});
+	
+	DataEDIT.bindEvent( "history", function() use( UndoLAYER )
+	{
+		if( !UndoLAYER.enabled )
+			return;
+		
+		name = this.getChangeName();
+		if( name == null )
+		{
+			println( "Change: begin" );
+			UndoLAYER.beginChange();
+		}
+		else
+		{
 			println( "Change: commit" );
 			UndoLAYER.commitChange( "item modified" );
 		}
