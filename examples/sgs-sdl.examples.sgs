@@ -1718,7 +1718,9 @@ function sgs_ui_example_edtr1()
 		cwd = io_getcwd();
 		if( io_setcwd( path ) )
 		{
-			data = eval( "return " $ io_file_read( file ) $ ";" );
+			data = @eval( "return " $ io_file_read( file ) $ ";" );
+			if( !is_array( data ) )
+				data = [];
 			io_setcwd( cwd );
 			
 			UndoLAYER.clearHistory();
@@ -1757,7 +1759,7 @@ function sgs_ui_example_edtr1()
 			{
 				outprops.push( sgsquote(k) $ " = " $ sgsquote(v) );
 			}
-			out $= string_implode( outprops, ", " ) $ " } }\r\n";
+			out $= string_implode( outprops, ", " ) $ " } },\r\n";
 		}
 		out $= "]\r\n";
 		
