@@ -327,8 +327,6 @@ function UI_BuildMenu( parent, x, y, items, default )
 		parent_menu = null,
 		menu_open = null,
 		menu_open_for = null,
-		
-		icon_submenu = SS_CreateTexture( "icons/resultset_next.png" ),
 	};
 	
 	if( default !== null && default >= 0 && default < items.size )

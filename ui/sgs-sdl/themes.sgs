@@ -159,7 +159,10 @@ function SS_UI_Theme_Default_menu_renderfunc()
 			SS_Draw({ preset = "tile", position = [x,y], scale = [data.item_width,data.item_height], color = if(disabled,[0.7,0.7,0.7,0.5],[0.4,0.6,0.8,0.8]) });
 		
 		if( isset( item, "menu" ) )
-			SS_DrawFitted( data.icon_submenu, x + data.item_width - data.item_height, y, x + data.item_width, y + data.item_height );
+		{
+			icon_submenu = this.frame.icon_func( "icons/resultset_next.png" );
+			SS_DrawFitted( icon_submenu, x + data.item_width - data.item_height, y, x + data.item_width, y + data.item_height );
+		}
 		
 		if( @item.text !== null )
 			SS_DrawTextLine_VC( item.text, this._cachedFont, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.1,0.1,0.1,1]) );
@@ -771,7 +774,10 @@ function SS_UI_Theme_DarkPixel_menu_renderfunc()
 		}
 		
 		if( isset( item, "menu" ) )
-			SS_DrawFitted( data.icon_submenu, x + data.item_width - data.item_height, y, x + data.item_width, y + data.item_height );
+		{
+			icon_submenu = this.frame.icon_func( "icons/resultset_next.png" );
+			SS_DrawFitted( icon_submenu, x + data.item_width - data.item_height, y, x + data.item_width, y + data.item_height );
+		}
 		
 		if( @item.text !== null )
 			SS_DrawTextLine_VC( item.text, this._cachedFont, x + 32, y + data.item_height / 2, if(disabled,[0.5,0.5,0.5,1],[0.9,0.9,0.9,1]) );
@@ -804,7 +810,7 @@ function SS_UI_Theme_DarkPixel_menu_renderfunc()
 				cby1 = cby0 + cbsz;
 				icon = item.icon;
 				if( typeof(icon) == "string" )
-					icon = SS_CreateTexture( icon );
+					icon = this.frame.icon_func( icon );
 				SS_DrawFitted( icon, cbx0, cby0, cbx1, cby1 );
 			}
 			y += data.item_height;

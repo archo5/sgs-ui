@@ -208,7 +208,7 @@ function UI_CreateMenuPanel( parent, items )
 		item_height = 24,
 		side_padding = 8,
 		
-		items = null,
+		items = [],
 		selected = false,
 		
 		parent_menu = null,

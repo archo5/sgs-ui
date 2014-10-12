@@ -80,6 +80,8 @@ function SS_UI_ConvertAlignment( halign, valign )
 	return out;
 }
 
+global SS_UI_BasePath = "";
+
 function SS_UI_CreateFrame()
 {
 	SS_Frame = UI_CreateFrame();
@@ -112,18 +114,18 @@ function SS_UI_CreateFrame()
 		if( font === null ) font = "fonts/lato-regular.ttf";
 		if( size <= 0 ) size = 12;
 		
-		return SS_CreateFont( font, size );
+		return SS_CreateFont( SS_UI_BasePath $ font, size );
 	}
 	function SS_Frame.image_func( image )
 	{
 		if( typeid( image ) == VT_STRING )
-			image = SS_CreateTexture( image );
+			image = SS_CreateTexture( SS_UI_BasePath $ image );
 		return image;
 	}
 	function SS_Frame.icon_func( icon )
 	{
 		if( typeid( icon ) == VT_STRING )
-			icon = SS_CreateTexture( icon );
+			icon = SS_CreateTexture( SS_UI_BasePath $ icon );
 		return icon;
 	}
 	return SS_Frame;
@@ -133,7 +135,7 @@ function SS_UI_HandleEvent( frame, e )
 {
 	if( e.type == SDL_MOUSEMOTION )
 	{
-		FRAME.doMouseMove( e.x, e.y );
+		frame.doMouseMove( e.x, e.y );
 	}
 	else if( e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP )
 	{
@@ -141,11 +143,11 @@ function SS_UI_HandleEvent( frame, e )
 		if( e.button == 1 ) btn = 0;
 		else if( e.button == 3 ) btn = 1;
 		else if( e.button == 2 ) btn = 2;
-		FRAME.doMouseButton( btn, e.type == SDL_MOUSEBUTTONDOWN );
+		frame.doMouseButton( btn, e.type == SDL_MOUSEBUTTONDOWN );
 	}
 	else if( e.type == SDL_MOUSEWHEEL )
 	{
-		FRAME.doMouseWheel( e.x, -e.y );
+		frame.doMouseWheel( e.x, -e.y );
 	}
 	else if( e.type == SDL_KEYUP || e.type == SDL_KEYDOWN )
 	{
@@ -171,17 +173,17 @@ function SS_UI_HandleEvent( frame, e )
 		{
 			if( e.mod & SDL_KMOD_SHIFT ) key |= KeyMod_Shift;
 			// submit event
-			FRAME.doKeyPress( key, e.type == SDL_KEYDOWN, e.repeat );
+			frame.doKeyPress( key, e.type == SDL_KEYDOWN, e.repeat );
 		}
 	}
 	else if( e.type == SDL_TEXTINPUT )
 	{
 		chrs = string_utf8_decode( e.text );
-		FRAME.doPutChar( chrs[0] );
+		frame.doPutChar( chrs[0] );
 	}
 	else if( e.type == SDL_WINDOWEVENT && e.event == SDL_WINDOWEVENT_RESIZED )
 	{
-		FRAME.resize( e.data1, e.data2 );
+		frame.resize( e.data1, e.data2 );
 		return true;
 	}
 }

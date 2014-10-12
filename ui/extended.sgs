@@ -316,7 +316,7 @@ function UI_ListBoxMenu.addOption( option, func )
 function UI_ListBoxMenu.removeOptions()
 {
 	this.data.options.clear();
-	this.OpCont.destroyChildren(true);
+	this.data.OpCont.destroyAllChildren(true, 1);
 }
 
 function UI_ListBoxMenu.refit()
