@@ -78,6 +78,13 @@ function UI_CreateForm( parent )
 	return Form;
 }
 
+UI_Controls.form_params = [];
+function UI_Controls.form( parent, params )
+{
+	ctrl = UI_CreateForm( parent );
+	UI_ConfigControl( ctrl, params );
+}
+
 function UIForm_GetFromCtrl( ctrl )
 {
 	while( ctrl )
@@ -183,6 +190,13 @@ function UI_CreateHidden( parent, name, value )
 	return Hidden;
 }
 
+UI_Controls.hidden_params = ["value"];
+function UI_Controls.hidden( parent, params )
+{
+	ctrl = UI_CreateHidden( parent, @params.name ?? "", @params.value );
+	UI_ConfigControl( ctrl, params );
+}
+
 
 global UI_GenericToggleControl = {};
 
@@ -274,6 +288,13 @@ function UI_CreateCheckbox( parent, name, value, checked )
 	return Checkbox;
 }
 
+UI_Controls.checkbox_params = ["value","checked"];
+function UI_Controls.checkbox( parent, params )
+{
+	ctrl = UI_CreateCheckbox( parent, @params.name ?? "", @params.value, @params.checked );
+	UI_ConfigControl( ctrl, params );
+}
+
 function UI_CreateRadioButton( parent, name, value, checked )
 {
 	RadioBtn = parent.frame.createControl( "radiobutton" );
@@ -314,6 +335,13 @@ function UI_CreateRadioButton( parent, name, value, checked )
 	RadioBtn.updateTheme();
 	parent.addChild( RadioBtn );
 	return RadioBtn;
+}
+
+UI_Controls.radiobutton_params = ["value","checked"];
+function UI_Controls.radiobutton( parent, params )
+{
+	ctrl = UI_CreateRadioButton( parent, @params.name ?? "", @params.value, @params.checked );
+	UI_ConfigControl( ctrl, params );
 }
 
 
@@ -683,6 +711,13 @@ function UI_CreateTextbox( parent, name, caption, text )
 	return Textbox;
 }
 
+UI_Controls.textbox_params = ["text","value"];
+function UI_Controls.textbox( parent, params )
+{
+	ctrl = UI_CreateTextbox( parent, @params.name ?? "", @params.caption ?? "", @params.text ?? @params.value ?? "" );
+	UI_ConfigControl( ctrl, params );
+}
+
 
 global UI_Slider = {};
 
@@ -814,8 +849,8 @@ function UI_Slider.getMarkerPos()
 
 function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical, value )
 {
-	vmin = if( vmin !== null, vmin, 0.0 );
-	vmax = if( vmax !== null, vmax, 1.0 );
+	vmin ??= 0.0;
+	vmax ??= 1.0;
 	
 	Slider = parent.frame.createControl( "slider" );
 	Slider.name = name;
@@ -877,6 +912,13 @@ function UI_CreateSlider( parent, name, vmin, vmax, stopsize, vertical, value )
 	Slider.updateTheme();
 	parent.addChild( Slider );
 	return Slider;
+}
+
+UI_Controls.slider_params = ["value","vmin","vmax","stopsize","vertical"];
+function UI_Controls.slider( parent, params )
+{
+	ctrl = UI_CreateSlider( parent, @params.name ?? "", @params.vmin, @params.vmax, @params.stopsize, @params.vertical, @params.value );
+	UI_ConfigControl( ctrl, params );
 }
 
 
@@ -1034,6 +1076,13 @@ function UI_CreateSwitchButton( parent, name, options, sidebuttons, value )
 	return SwitchButton;
 }
 
+UI_Controls.switchbutton_params = ["value","options","sidebuttons"];
+function UI_Controls.switchbutton( parent, params )
+{
+	ctrl = UI_CreateSwitchButton( parent, @params.name ?? "", @params.options ?? [], @params.sidebuttons, @params.value );
+	UI_ConfigControl( ctrl, params );
+}
+
 
 global UI_SelectBox = clone( UI_GenericSelectionControl );
 
@@ -1118,11 +1167,18 @@ function UI_CreateSelectBox( parent, name, options, value )
 		lbmenu.refit();
 	});
 	
-	SelectBox._initialize( options, value );
+	SelectBox._initialize( options ?? [], value );
 	
 	SelectBox.updateTheme();
 	parent.addChild( SelectBox );
 	return SelectBox;
+}
+
+UI_Controls.selectbox_params = ["value","options"];
+function UI_Controls.selectbox( parent, params )
+{
+	ctrl = UI_CreateSelectBox( parent, @params.name ?? "", @params.options ?? [], @params.value );
+	UI_ConfigControl( ctrl, params );
 }
 
 
@@ -1179,5 +1235,12 @@ function UI_CreateIntegerBox( parent, name, value )
 	IntegerBox.updateTheme();
 	parent.addChild( IntegerBox );
 	return IntegerBox;
+}
+
+UI_Controls.integerbox_params = ["value"];
+function UI_Controls.integerbox( parent, params )
+{
+	ctrl = UI_CreateIntegerBox( parent, @params.name ?? "", @params.value );
+	UI_ConfigControl( ctrl, params );
 }
 
