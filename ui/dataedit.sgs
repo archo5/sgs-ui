@@ -44,6 +44,14 @@ function UI_DataEdit._create_intbox( name, schema, value, path )
 }
 function UI_DataEdit._update_intbox( ctrl, value ){ ctrl.setValue( value ); }
 
+function UI_DataEdit._create_numbox( name, schema, value, path )
+{
+	this._createDefaultLabel( path.last, schema );
+	ctrl = UI_CreateNumberBox( this.data.OpConts.last, name, value ).addClass( "value" );
+	return ctrl;
+}
+function UI_DataEdit._update_numbox( ctrl, value ){ ctrl.setValue( value ); }
+
 function UI_DataEdit._create_slider( name, schema, value, path )
 {
 	this._createDefaultLabel( path.last, schema );
@@ -218,7 +226,7 @@ function UI_DataEdit._pickCtrlType( schema )
 	
 	if( type == "string" ) return "textbox";
 	if( type == "int" ) return "intbox";
-	if( type == "float" ) return "intbox";
+	if( type == "float" ) return "numbox";
 	return type;
 }
 
@@ -255,6 +263,7 @@ function UI_DataEdit._recreateFromSchema( schema, defval )
 	if( typeof( schema ) == "string" )
 		schema = this.data.schema[ schema ];
 	
+	defval ??= @schema."$default";
 	type = schema."$type";
 	if( type == "bool" ) return tobool(defval);
 	else if( type == "int" ) return toint(defval);

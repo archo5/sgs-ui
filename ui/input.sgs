@@ -1182,49 +1182,56 @@ function UI_Controls.selectbox( parent, params )
 }
 
 
-global UI_IntegerBox = {};
+global UI_NumberBox = {};
 
-function UI_IntegerBox.getValue(){ return toint( this.data.Textbox.getText() ); }
-
-function UI_IntegerBox.setValue( i )
+function UI_NumberBox._filter( v )
 {
-	this.data.Textbox.setText( toint( i ) );
+	ff = this.data.filterfunc;
+	return this!ff( v );
 }
 
-function UI_IntegerBox.increment()
+function UI_NumberBox.getValue(){ return this._filter( this.data.Textbox.getText() ); }
+
+function UI_NumberBox.setValue( i )
+{
+	this.data.Textbox.setText( this._filter( i ) );
+}
+
+function UI_NumberBox.increment()
 {
 	this.setValue( this.getValue() + 1 );
 }
 
-function UI_IntegerBox.decrement()
+function UI_NumberBox.decrement()
 {
 	this.setValue( this.getValue() - 1 );
 }
 
-function UI_CreateIntegerBox( parent, name, value )
+function UI_CreateNumberBox( parent, name, value, filter )
 {
-	value = toint( value );
+	filter ??= toreal;
 	
-	IntegerBox = parent.frame.createControl( "integerbox" )[]{ name = name };
-	IntegerBox.data = {};
-	IntegerBox._interface = UI_IntegerBox;
+	NumberBox = parent.frame.createControl( "numberbox" )[]{ name = name };
+	NumberBox.data = { filterfunc = filter };
+	NumberBox._interface = UI_NumberBox;
 	
-	IntegerBox.data.SliderBtnAdd = SliderBtnAdd = UI_CreateButton( IntegerBox )[]{ class = "slider-btn add" };
-	IntegerBox.data.SliderBtnSub = SliderBtnSub = UI_CreateButton( IntegerBox )[]{ class = "slider-btn sub" };
+	NumberBox.data.SliderBtnAdd = SliderBtnAdd = UI_CreateButton( NumberBox )[]{ class = "slider-btn add" };
+	NumberBox.data.SliderBtnSub = SliderBtnSub = UI_CreateButton( NumberBox )[]{ class = "slider-btn sub" };
 	
 	SliderBtnAdd.bindEvent( "click", function(){ this.parent.increment(); } );
 	SliderBtnSub.bindEvent( "click", function(){ this.parent.decrement(); } );
 	
-	IntegerBox.addChild( SliderBtnAdd );
-	IntegerBox.addChild( SliderBtnSub );
+	NumberBox.addChild( SliderBtnAdd );
+	NumberBox.addChild( SliderBtnSub );
 	
-	IntegerBox.data.Textbox = Textbox = UI_CreateTextbox( IntegerBox, name, "", value );
+	value = NumberBox._filter( value );
+	NumberBox.data.Textbox = Textbox = UI_CreateTextbox( NumberBox, name, "", value );
 	Textbox_data = Textbox.data;
 	Textbox_validator = Textbox_data.validator;
 	function Textbox_data.validator( tb ) use( Textbox_validator )
 	{
 		curstr = tb.getText();
-		intstr = tostring( toint( curstr ) );
+		intstr = tostring( tb.parent._filter( curstr ) );
 		if( curstr != intstr )
 			tb.setText( intstr );
 		return true;
@@ -1232,15 +1239,20 @@ function UI_CreateIntegerBox( parent, name, value )
 	Textbox.bindEvent( "edit", function(e){ this.parent.callEvent( "edit", e ); } );
 	Textbox.bindEvent( "change", function(e){ this.parent.callEvent( "change", e ); } );
 	
-	IntegerBox.updateTheme();
-	parent.addChild( IntegerBox );
-	return IntegerBox;
+	NumberBox.updateTheme();
+	parent.addChild( NumberBox );
+	return NumberBox;
 }
 
-UI_Controls.integerbox_params = ["value"];
-function UI_Controls.integerbox( parent, params )
+function UI_CreateIntegerBox( parent, name, value )
 {
-	ctrl = UI_CreateIntegerBox( parent, @params.name ?? "", @params.value );
+	return UI_CreateNumberBox( parent, name, value, toint );
+}
+
+UI_Controls.numberbox_params = ["value","filter"];
+function UI_Controls.numberbox( parent, params )
+{
+	ctrl = UI_CreateNumberBox( parent, @params.name ?? "", @params.value, @params.filter );
 	UI_ConfigControl( ctrl, params );
 }
 
