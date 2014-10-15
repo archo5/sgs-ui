@@ -969,6 +969,8 @@ function UI_GenericSelectionControl.setValue( value, event )
 	return this.selectIndex( 0 );
 }
 
+function UI_GenericSelectionControl.getValue(){ return this.data.getValue(); }
+
 function UI_GenericSelectionControl.selectIndex( id, event )
 {
 	id = parseint( id );

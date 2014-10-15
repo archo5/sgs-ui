@@ -222,6 +222,10 @@ function UI_DataEdit._pickCtrlType( schema )
 		return this._pickCtrlType( sch ), sch;
 	}
 	type = @schema."$type";
+	if( sch = @this.data.schema[ type ] )
+	{
+		return this._pickCtrlType( sch ), get_merged( sch, schema );
+	}
 	hint = @schema."$hint";
 	
 	if( type == "string" ) return "textbox";
@@ -293,7 +297,19 @@ function UI_DataEdit._recreateFromSchema( schema, defval )
 		}
 		return out;
 	}
-	return WARNING( "unsupported type in schema" );
+	else if( schema = @this.data.schema[ type ] )
+	{
+		return this._recreateFromSchema( schema, defval );
+	}
+	return WARNING( "unsupported type in schema: "$type );
+}
+
+function UI_DataEdit.recreateDataFromSchema( schema, defval )
+{
+	this.data = { schema = schema };
+	out = this._recreateFromSchema( schema."$root", defval );
+	unset( this, "data" );
+	return out;
 }
 
 function UI_DataEdit._push_node_wrapper( name )
@@ -453,9 +469,10 @@ function UI_DataEdit.setData( dataobj, schema )
 	data.schema = schema;
 	data.pathmap = {};
 	data.schemap = {};
-	name = schema."$root";
-	data.dataobj = this._recreateFromSchema( schema.(name), dataobj );
-	this._addCtrls( schema.(name), [name] );
+	root = schema."$root";
+	name = if( typeof(root) == "string", root, root."$type" );
+	data.dataobj = this._recreateFromSchema( root, dataobj );
+	this._addCtrls( root, [name] );
 }
 
 function UI_DataEdit.updateData( dataobj )
@@ -464,9 +481,10 @@ function UI_DataEdit.updateData( dataobj )
 	if( !data.schema )
 		return WARNING( "no data set previously" );
 	schema = data.schema;
-	name = schema."$root";
-	data.dataobj = this._recreateFromSchema( schema.(name), dataobj );
-	this._updateCtrls( schema.(name), [name] );
+	root = schema."$root";
+	name = if( typeof(root) == "string", root, root."$type" );
+	data.dataobj = this._recreateFromSchema( root, dataobj );
+	this._updateCtrls( root, [name] );
 }
 
 function UI_DataEdit.unsetData()
