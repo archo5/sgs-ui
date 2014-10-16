@@ -401,12 +401,22 @@ function UI_DataEdit._getControlByName( name )
 	return @q.find( "@=" $ name )[0];
 }
 
+function UI_DataEdit.getParentName( name )
+{
+	if( name == "" )
+		return null;
+	name = string_explode( name, "$" );
+	name.pop();
+	return string_implode( name, "$" );
+}
+
 function UI_DataEdit.getChangedSchema(){ return this.data.changed_schema; }
 function UI_DataEdit.getChangedProperty(){ return this.data.changed_prop; }
 function UI_DataEdit.getChangedIndex(){ return this.data.changed_index; }
 function UI_DataEdit.getChangeType(){ return this.data.change_type; }
 function UI_DataEdit.getLastChange(){ return this.data.changed_prop, this.data.change_type, this.data.changed_index, this.data.changed_schema; }
 function UI_DataEdit.getPathByName( name ){ return @this.data.pathmap[ name ]; }
+function UI_DataEdit.getSchemaByName( name ){ return @this.data.schemap[ name ]; }
 
 function UI_DataEdit.getValueByName( name )
 {
