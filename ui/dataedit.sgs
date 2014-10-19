@@ -15,7 +15,7 @@ global UI_DataEdit = {};
 
 function UI_DataEdit._create_label( text )
 {
-	return UI_CreateStatic( this.data.OpConts.last )[]{ caption = text }.addClass( "label" );
+	return UI_CreateStatic( this.data.OpConts.last )[]{ caption = text }.addClass( "label col col1" );
 }
 
 function UI_DataEdit._createDefaultLabel( name, schema )
@@ -25,83 +25,113 @@ function UI_DataEdit._createDefaultLabel( name, schema )
 
 function UI_DataEdit._create_separator( name, schema, value, path )
 {
-	return UI_CreateStatic( this.data.OpConts.last )[]{ caption = @schema."$name" ?? value ?? name }.addClass( "separator" );
+	this.data.OpConts.last.addClass( "cols1" );
+	return UI_CreateStatic( this.data.OpConts.last )[]{ caption = @schema."$name" ?? value ?? name }.addClass( "separator col col1" );
 }
 
 function UI_DataEdit._create_checkbox( name, schema, value, path )
 {
+	this.data.OpConts.last.addClass( "cols2" );
 	this._createDefaultLabel( path.last, schema );
-	ctrl = UI_CreateCheckbox( this.data.OpConts.last, name, null, !!value ).addClass( "value" );
+	ctrl = UI_CreateCheckbox( this.data.OpConts.last, name, null, !!value ).addClass( "value col col1" );
 	return ctrl;
 }
 function UI_DataEdit._update_checkbox( ctrl, value ){ ctrl.setChecked( value ); }
 
 function UI_DataEdit._create_intbox( name, schema, value, path )
 {
+	this.data.OpConts.last.addClass( "cols2" );
 	this._createDefaultLabel( path.last, schema );
-	ctrl = UI_CreateIntegerBox( this.data.OpConts.last, name, value ).addClass( "value" );
+	ctrl = UI_CreateIntegerBox( this.data.OpConts.last, name, value ).addClass( "value col col1" );
 	return ctrl;
 }
 function UI_DataEdit._update_intbox( ctrl, value ){ ctrl.setValue( value ); }
 
 function UI_DataEdit._create_numbox( name, schema, value, path )
 {
+	this.data.OpConts.last.addClass( "cols2" );
 	this._createDefaultLabel( path.last, schema );
-	ctrl = UI_CreateNumberBox( this.data.OpConts.last, name, value ).addClass( "value" );
+	ctrl = UI_CreateNumberBox( this.data.OpConts.last, name, value ).addClass( "value col col1" );
 	return ctrl;
 }
 function UI_DataEdit._update_numbox( ctrl, value ){ ctrl.setValue( value ); }
 
 function UI_DataEdit._create_slider( name, schema, value, path )
 {
+	this.data.OpConts.last.addClass( "cols2" );
 	this._createDefaultLabel( path.last, schema );
-	ctrl = UI_CreateSlider( this.data.OpConts.last, name, @schema.min, @schema.max, @schema.stopsize, false, value ).addClass( "value" );
+	ctrl = UI_CreateSlider( this.data.OpConts.last, name, @schema.min, @schema.max, @schema.stopsize, false, value ).addClass( "value col col1" );
 	return ctrl;
 }
 function UI_DataEdit._update_slider( ctrl, value ){ ctrl.setValue( value ); }
 
 function UI_DataEdit._create_textbox( name, schema, value, path )
 {
+	this.data.OpConts.last.addClass( "cols2" );
 	this._createDefaultLabel( path.last, schema );
-	ctrl = UI_CreateTextbox( this.data.OpConts.last, name, @schema.textbox_caption, value ).addClass( "value" );
+	ctrl = UI_CreateTextbox( this.data.OpConts.last, name, @schema.textbox_caption, value ).addClass( "value col col1" );
 	return ctrl;
 }
 function UI_DataEdit._update_textbox( ctrl, value ){ ctrl.setText( value ); }
 
+function UI_DataEdit._create_path( name, schema, value, path )
+{
+	ctrl = this._create_textbox( name, schema, value, path );
+	pick_func = @schema.pick_func;
+	if( pick_func )
+	{
+		this.data.OpConts.last.addClass( "has-choose-btn" );
+		btn = UI_CreateButton( this.data.OpConts.last ).addClass( "choose-btn" );
+		btn.bindEvent( "click", function() use( ctrl, pick_func ){ pick_func( ctrl ); } );
+	}
+	return ctrl;
+}
+function UI_DataEdit._update_path( ctrl, value ){ return this._update_textbox( ctrl, value ); }
+
 function UI_DataEdit._create_switchbutton( name, schema, value, path )
 {
+	this.data.OpConts.last.addClass( "cols2" );
 	this._createDefaultLabel( path.last, schema );
-	ctrl = UI_CreateSwitchButton( this.data.OpConts.last, name, @schema.items, @schema.sidebuttons, value ).addClass( "value" );
+	ctrl = UI_CreateSwitchButton( this.data.OpConts.last, name, @schema.items, @schema.sidebuttons, value ).addClass( "value col col1" );
 	return ctrl;
 }
 function UI_DataEdit._update_switchbutton( ctrl, value ){ ctrl.setValue( value ); }
 
 function UI_DataEdit._create_selectbox( name, schema, value, path )
 {
+	this.data.OpConts.last.addClass( "cols2" );
 	this._createDefaultLabel( path.last, schema );
-	ctrl = UI_CreateSelectBox( this.data.OpConts.last, name, @schema.items, value ).addClass( "value" );
+	ctrl = UI_CreateSelectBox( this.data.OpConts.last, name, @schema.items, value ).addClass( "value col col1" );
 	return ctrl;
 }
 function UI_DataEdit._update_selectbox( ctrl, value ){ ctrl.setValue( value ); }
 
 function UI_DataEdit._create_button( name, schema, value, path )
 {
-	ctrl = UI_CreateButton( this.data.OpConts.last )[]{ caption = @schema."$name" ?? path.last, icon = @schema.icon, class = "value" };
+	this.data.OpConts.last.addClass( "cols1" );
+	ctrl = UI_CreateButton( this.data.OpConts.last )[]{ caption = @schema."$name" ?? path.last, icon = @schema.icon, class = "value col col1" };
 	ctrl.bindEvent( "click", @schema.func || value );
 	return ctrl;
 }
 function UI_DataEdit._update_button( ctrl, value ){} // nothing to update
 
+global UI_DataEdit_Wrapper = {};
+function UI_DataEdit_Wrapper.getContainer(){ return this; }
+
 function UI_DataEdit._create_object( name, schema, value, path )
 {
+	group = @schema."$group" ?? true;
+	if( !group )
+		return UI_CreateControl( this.data.OpConts.last, "wrapper" )[]{ name = name, _interface = UI_DataEdit_Wrapper };
 	return UI_CreateGroupBlock( this.data.OpConts.last, @schema."$name" ?? path.last ?? @schema."$type" ?? "object" )[]{ name = name };
 }
 function UI_DataEdit._update_object( ctrl, value ){} // nothing to update
 
 function UI_DataEdit._create_array( name, schema, value, path )
 {
+	this.data.OpConts.last.addClass( "cols1" );
 	ctrl = UI_CreateGroupBlock( this.data.OpConts.last, @schema."$name" ?? path.last )[]{ name = name };
-	ctrl.addClass( "array" );
+	ctrl.addClass( "array col col1" );
 	cont = ctrl.getContainer();
 	
 	ctrl.data.elements = elements = [];
@@ -196,18 +226,84 @@ function UI_DataEdit._update_array( ctrl, value, schema, path )
 	ctrl.data.updating = false;
 }
 
+UI_DataEdit._fake_schema_vec3_x = { "$type" = "float", "$hint" = ".x" };
+UI_DataEdit._fake_schema_vec3_y = { "$type" = "float", "$hint" = ".y" };
+UI_DataEdit._fake_schema_vec3_z = { "$type" = "float", "$hint" = ".z" };
+function UI_DataEdit._create_vec3( name, schema, value, path )
+{
+	this.data.OpConts.last.addClass( "cols4" );
+	this._createDefaultLabel( path.last, schema );
+	ctrl = UI_CreateControl( this.data.OpConts.last, "vec3cont" )[]{ name = name }.addClass( "value col col3 cols3" );
+	ctrlx = UI_CreateNumberBox( ctrl, name$"$sx", @value.x ).addClass( "value col col1" );
+	ctrly = UI_CreateNumberBox( ctrl, name$"$sy", @value.y ).addClass( "value col col1" );
+	ctrlz = UI_CreateNumberBox( ctrl, name$"$sz", @value.z ).addClass( "value col col1" );
+	this.data.schemap[ name$"$sx" ] = this._fake_schema_vec3_x;
+	this.data.schemap[ name$"$sy" ] = this._fake_schema_vec3_y;
+	this.data.schemap[ name$"$sz" ] = this._fake_schema_vec3_z;
+	this.data.pathmap[ name$"$sx" ] = clone( path ).push( "x" );
+	this.data.pathmap[ name$"$sy" ] = clone( path ).push( "y" );
+	this.data.pathmap[ name$"$sz" ] = clone( path ).push( "z" );
+	return ctrl;
+}
+function UI_DataEdit._update_vec3( ctrl, value )
+{
+	ch = ctrl.children();
+	ch[0].setValue( toreal( @value.x ) );
+	ch[1].setValue( toreal( @value.y ) );
+	ch[2].setValue( toreal( @value.z ) );
+}
+function UI_DataEdit._recreate_vec3( defval )
+{
+	x = toreal( @defval.x );
+	y = toreal( @defval.y );
+	z = toreal( @defval.z );
+	if( @vec3 )
+		return vec3( x, y, z );
+	else
+		return { x = x, y = y, z = z };
+}
+
+UI_DataEdit.typemap =
+{
+	string = "textbox",
+	float = "numbox",
+	int = "intbox",
+	bool = "checkbox",
+	array = "array",
+	object = "object",
+	vec3 = "vec3",
+};
+
 function UI_DataEdit._getDataByPathFrom( obj, path )
 {
-	foreach( item : path.part(1) )
+	foreach( i, item : path.part(1) )
+	{
+		if( !isset( obj, item ) )
+		{
+			if( is_array( obj ) )
+				obj.resize( item + 1 );
+			pathname = this._genPathName( path.part( 0, i + 2 ) );
+			obj[ item ] = this._recreateFromSchema( this.data.schemap[ pathname ] );
+		}
 		obj = obj[ item ];
+	}
 	return obj;
 }
 
 function UI_DataEdit._setDataByPathTo( obj, path, value )
 {
-	foreach( item : path.part(1,path.size-2) )
+	foreach( i, item : path.part(1,path.size-2) )
+	{
+		if( !isset( obj, item ) )
+		{
+			if( is_array( obj ) )
+				obj.resize( item + 1 );
+			pathname = this._genPathName( path.part( 0, i + 2 ) );
+			obj[ item ] = this._recreateFromSchema( this.data.schemap[ pathname ] );
+		}
 		obj = obj[ item ];
-	obj[ path.last ] = value;
+	}
+	@( obj[ path.last ] = value );
 	return true;
 }
 
@@ -227,11 +323,20 @@ function UI_DataEdit._pickCtrlType( schema )
 		return this._pickCtrlType( sch ), get_merged( sch, schema );
 	}
 	hint = @schema."$hint";
+	if( hint )
+	{
+		ctltype = hint;
+		pos = string_find( ctltype, "." );
+		if( pos !== false )
+			ctltype = string_part( ctltype, 0, pos );
+		if( @this.( "_create_" $ ctltype ) )
+			return ctltype;
+	}
 	
-	if( type == "string" ) return "textbox";
-	if( type == "int" ) return "intbox";
-	if( type == "float" ) return "numbox";
-	return type;
+	ctrl = @this.typemap[ type ];
+	if( ctrl )
+		return ctrl;
+	return ERROR( "no control type for data type '" $ type $ "', hint '" $ hint $ "'" );
 }
 
 function UI_DataEdit._genPathName( path )
@@ -300,6 +405,10 @@ function UI_DataEdit._recreateFromSchema( schema, defval )
 	else if( schema = @this.data.schema[ type ] )
 	{
 		return this._recreateFromSchema( schema, defval );
+	}
+	else if( @this.( "_recreate_" $ type ) )
+	{
+		return this.( "_recreate_" $ type )( defval );
 	}
 	return WARNING( "unsupported type in schema: "$type );
 }
@@ -417,6 +526,21 @@ function UI_DataEdit.getChangeType(){ return this.data.change_type; }
 function UI_DataEdit.getLastChange(){ return this.data.changed_prop, this.data.change_type, this.data.changed_index, this.data.changed_schema; }
 function UI_DataEdit.getPathByName( name ){ return @this.data.pathmap[ name ]; }
 function UI_DataEdit.getSchemaByName( name ){ return @this.data.schemap[ name ]; }
+
+function UI_DataEdit.getExtendedHint( name )
+{
+	schemap = this.data.schemap;
+	hint = @schemap[ name ]."$hint";
+	while( hint && hint[0] == "." )
+	{
+		name = this.getParentName( name );
+		addhint = @schemap[ name ]."$hint";
+		if( !addhint )
+			return null;
+		hint = addhint $ hint;
+	}
+	return hint;
+}
 
 function UI_DataEdit.getValueByName( name )
 {

@@ -457,8 +457,9 @@ const char* UI_ParseSelector( UIStyleSelector* sel, sgsString sgsstr, const char
 	return NULL;
 }
 
-bool UI_SelectorTestControl( const UIStyleSelector* sel, UIControl* ctrl )
+bool UI_SelectorTestControl( const UIStyleSelector* sel, UIControl* ctrl, int* out_dist )
 {
+	int dist = 0;
 	int curfrag = sel->fragments.size() - 1;
 	int begfrag = curfrag;
 	bool moveonfail = false;
@@ -471,6 +472,7 @@ bool UI_SelectorTestControl( const UIStyleSelector* sel, UIControl* ctrl )
 			moveonfail = true;
 			begfrag = --curfrag;
 			ctrl = ctrl->getStyleParentPtr();
+			dist++;
 			continue;
 		}
 		else if( F.type == UIS_FRAG::T_ReqNext )
@@ -478,6 +480,7 @@ bool UI_SelectorTestControl( const UIStyleSelector* sel, UIControl* ctrl )
 			moveonfail = false;
 			begfrag = --curfrag;
 			ctrl = ctrl->getStyleParentPtr();
+			dist++;
 			continue;
 		}
 		// matching
@@ -567,11 +570,14 @@ bool UI_SelectorTestControl( const UIStyleSelector* sel, UIControl* ctrl )
 		{
 			curfrag = begfrag;
 			ctrl = ctrl->getStyleParentPtr();
+			dist++;
 		}
 		else
 			return false;
 	}
 	// success is when we didn't run out of controls and matched all fragments
+	if( out_dist )
+		*out_dist = dist;
 	return ctrl && curfrag < 0;
 }
 
@@ -1574,6 +1580,7 @@ UIControl::UIControl() :
 	id( UI_NO_ID ), scroll_x(0.0f), scroll_y(0.0f), nonclient(false),
 	autoWidth(0.0f), autoHeight(0.0f),
 	rx0(0.0f), rx1(0.0f), ry0(0.0f), ry1(0.0f),
+	_changedPosMode(false),
 	_updatingLayout(false), _roundedCoords(true),
 	_stackingEvent(false),
 	_clientRectFromPadded(false), _neverHit(false),
@@ -1783,7 +1790,9 @@ void UIControl::ppgLayoutChange( UIControl* from )
 //	if( !from ) puts("\n");
 //	printf( "updating layout for %s|%s (from %s|%s)\n", caption.c_str(), classes.c_str(), from ? from->caption.c_str() : "event", from ? from->classes.c_str() : "-" );
 //	printf( "parent: %p, stacked: %s\n", (UIControl*) parent, isStacked() ? "yes" : "no" );
-	if( parent.not_null() && isStacked() && parent != from )
+	bool cpm = _changedPosMode;
+	_changedPosMode = false;
+	if( parent.not_null() && ( isStacked() || cpm ) && parent != from )
 	{
 		parent->ppgLayoutChange( this );
 		return;
@@ -2729,17 +2738,22 @@ void UIControl::_refilterStyles( UIFilteredStyleArray& styles )
 			UIStyleRule* SR = SSH->rules[ j ];
 			for( size_t k = 0; k < SR->selectors.size(); ++k )
 			{
-				if( UI_SelectorTestControl( &SR->selectors[ k ], this ) )
+				int dist = 0;
+				if( UI_SelectorTestControl( &SR->selectors[ k ], this, &dist ) )
 				{
-					UIFilteredStyle fs = { SR, k };
+					UIFilteredStyle fs = { SR, k, dist };
 					styles.push_back( fs );
 					
 					// insertion-sort by importance
 					size_t fspos = styles.size() - 1;
-					while( fspos > 0 && UI_CompareSelectors(
-						&styles[ fspos - 1 ].rule->selectors[ styles[ fspos - 1 ].which_sel ],
-						&styles[ fspos ].rule->selectors[ styles[ fspos ].which_sel ] ) <= 0 )
+					while( fspos > 0 )
 					{
+						int comp = UI_CompareSelectors( &styles[ fspos - 1 ].rule->selectors[ styles[ fspos - 1 ].which_sel ],
+							&styles[ fspos ].rule->selectors[ styles[ fspos ].which_sel ] );
+						if( comp > 0 )
+							break;
+						if( comp == 0 && styles[ fspos - 1 ].dist < styles[ fspos ].dist )
+							break;
 						VSWAP( styles, fspos - 1, fspos );
 						fspos--;
 					}
@@ -2787,6 +2801,7 @@ void UIControl::_applyStyle( const UIStyleCache& nsc )
 	bool updatedRenderFunc = NEQ( renderfunc );
 	bool updatedLayout = updatedFont || updatedOrder || updatedBox;
 	bool needsRedraw = updatedRenderFunc || updatedLayout || updatedImage || updatedIcon || updatedCursor;
+	_changedPosMode = NEQ( posMode );
 #undef NEQ
 	
 	// push old position for redraw

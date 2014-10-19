@@ -208,24 +208,24 @@ function UI_GenericToggleControl._notifyChange( event )
 	UIForm_CtrlChanged( this, event );
 }
 function UI_GenericToggleControl.getChecked(){ return this.data.checked; }
-function UI_GenericToggleControl.setChecked( c )
+function UI_GenericToggleControl.setChecked( c, event )
 {
 	c = tobool( c );
 	pc = this.data.checked;
 	this.data.checked = c;
 	this.addRemClass( "checked", c );
 	if( pc !== c )
-		this._notifyChange();
+		this._notifyChange( event );
 }
 function UI_GenericToggleControl.getValue(){ return this.data.value; }
-function UI_GenericToggleControl.setValue( v )
+function UI_GenericToggleControl.setValue( v, event )
 {
 	pv = this.data.value;
 	this.data.value = v;
 	if( pv !== v && this.data.checked )
-		this._notifyChange();
+		this._notifyChange( event );
 }
-function UI_GenericToggleControl._radioSetOnlyThis()
+function UI_GenericToggleControl._radioSetOnlyThis( event )
 {
 	data = this.data;
 	ctrls = UIForm_ControlsByName( this, this.name );
@@ -235,13 +235,13 @@ function UI_GenericToggleControl._radioSetOnlyThis()
 		{
 			if( ctrl.data.checked != false )
 			{
-				ctrl.setChecked( false );
+				ctrl.setChecked( false, event );
 			}
 		}
 	}
 	if( data.checked != true )
 	{
-		this.setChecked( true );
+		this.setChecked( true, event );
 	}
 }
 
@@ -278,7 +278,7 @@ function UI_CreateCheckbox( parent, name, value, checked )
 		}
 		else if( event.type == EV_Activate )
 		{
-			this.setChecked( !this.getChecked() );
+			this.setChecked( !this.getChecked(), event );
 		}
 		return this!orig_callback( event );
 	}
@@ -327,7 +327,7 @@ function UI_CreateRadioButton( parent, name, value, checked )
 		}
 		else if( event.type == EV_Activate )
 		{
-			this._radioSetOnlyThis();
+			this._radioSetOnlyThis( event );
 		}
 		return this!orig_callback( event );
 	}
@@ -384,7 +384,12 @@ function UI_Textbox.setText( text )
 	this.addRemClass( "has-text", !!data.text );
 	this.invalidateMe();
 	if( pt !== text )
-		this._notifyChange();
+	{
+		event = UI_CreateEvent();
+		UIForm_CtrlEdited( this, event );
+		this.callEvent( "edit", event );
+		this._notifyChange( event );
+	}
 }
 
 function UI_Textbox._removeCursorTimer( frame )

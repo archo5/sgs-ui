@@ -695,9 +695,19 @@ global SS_UI_Theme_Default =
 		"dataedit groupblock" = { anchorMode = UI_Anchor_Hor, posMode = UI_Pos_SideA },
 		"dataedit groupblock > container" = { nonClient = 4, nonClientRight = 0 },
 		"dataedit wrapper" = { anchorMode = UI_Anchor_Hor, stackMode = UI_Stack_AutoSizeTop, posMode = UI_Pos_SideA, margin = 4 },
-		"dataedit .label" = { q1x = 0.5, height = 24, marginV = 4, posMode = UI_Pos_SideA, nonClientRight = 4, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
-		"dataedit .value" = { q1x = 0.5, height = 24, marginV = 4, posMode = UI_Pos_SideA },
+		"dataedit .label" = { height = 24, marginV = 4, posMode = UI_Pos_SideA, nonClientRight = 4, backgroundColor = UIColor(0,0.1), halign = UI_Align_Left, valign = UI_Align_VCenter },
+		"dataedit .value" = { height = 24, marginV = 4, posMode = UI_Pos_SideA },
+		"dataedit .has-choose-btn .label" = { width = -24 },
+		"dataedit .has-choose-btn .value" = { x = -24 },
+		"dataedit .choose-btn" = { anchorMode = UI_Anchor_Vert | UI_Anchor_Right, x = -24, width = 24, icon = "icons/folder_magnify.png" },
 		"dataedit .array_size" = { width = 80, height = 24, posMode = UI_Pos_SideA },
+		// column layouts
+		".cols1 .col1, .cols2 .col2, .cols3 .col3, .cols4 .col4" = { q1x = 1.0 },
+		".cols4 .col3" = { q1x = 0.75 },
+		".cols3 .col2" = { q1x = 0.666666 },
+		".cols2 .col1, .cols4 .col2" = { q1x = 0.5 },
+		".cols3 .col1" = { q1x = 0.333333 },
+		".cols4 .col1" = { q1x = 0.25 },
 	}),
 	
 	// BUTTON
@@ -842,7 +852,7 @@ function SS_UI_Theme_DarkPixel_textbox_renderfunc()
 	data = this.data;
 	
 	if( this._cachedImage )
-		SS_DrawButton( this._cachedImage, color(1), this.rx0, this.ry0, this.rx1, this.ry1, 4 );
+		SS_DrawButton( this._cachedImage, color(1), this.cx0, this.cy0, this.cx1, this.cy1, 4 );
 	
 	textbox_render_contents = this.frame.theme.textbox_render_contents;
 	this!textbox_render_contents();

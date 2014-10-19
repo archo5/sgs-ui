@@ -454,7 +454,7 @@ typedef std::vector< UIStyleSheet::Handle > StyleSheetArray;
 
 
 const char* UI_ParseSelector( UIStyleSelector* sel, sgsString sgsstr, const char* str, size_t size );
-bool UI_SelectorTestControl( const UIStyleSelector* sel, struct UIControl* ctrl );
+bool UI_SelectorTestControl( const UIStyleSelector* sel, struct UIControl* ctrl, int* out_dist = NULL );
 int UI_CompareSelectors( const UIStyleSelector* sel1, const UIStyleSelector* sel2 );
 void UI_StyleMerge( UIStyle* style, UIStyle* add );
 void UI_ToStyleCache( UIStyleCache* cache, UIStyle* style );
@@ -468,6 +468,7 @@ struct UIFilteredStyle
 {
 	UIStyleRule* rule;
 	size_t which_sel; // selector number
+	int dist; // distance walked to match selector
 };
 typedef std::vector< UIFilteredStyle > UIFilteredStyleArray;
 
@@ -974,6 +975,8 @@ struct UIControl
 	SGS_METHOD void _updateFullRect();
 	SGS_METHOD void _updateChildRects();
 	SGS_METHOD void _changedFullRect();
+	
+	bool _changedPosMode : 1;
 	
 	SGS_PROPERTY bool _updatingLayout : 1; /* true if updating layout and don't want to trigger further layout changes */
 	SGS_PROPERTY bool _roundedCoords : 1; /* true if final coords (r[xy][01]) should be rounded */

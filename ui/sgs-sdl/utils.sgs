@@ -119,13 +119,21 @@ function SS_UI_CreateFrame()
 	function SS_Frame.image_func( image )
 	{
 		if( typeid( image ) == VT_STRING )
+		{
+			if( !image )
+				return null;
 			image = SS_CreateTexture( SS_UI_BasePath $ image );
+		}
 		return image;
 	}
 	function SS_Frame.icon_func( icon )
 	{
 		if( typeid( icon ) == VT_STRING )
+		{
+			if( !icon )
+				return null;
 			icon = SS_CreateTexture( SS_UI_BasePath $ icon );
+		}
 		return icon;
 	}
 	return SS_Frame;

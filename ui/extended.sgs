@@ -311,6 +311,7 @@ function UI_ListBoxMenu.addOption( option, func )
 	fn = func || @option.func;
 	if( fn )
 		btn.bindEvent( "click", fn );
+	return btn;
 }
 
 function UI_ListBoxMenu.removeOptions()
