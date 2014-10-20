@@ -691,7 +691,7 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 	
 	Form = UI_CreateForm( DataEdit );
 	DataEdit.data.Form = Form;
-	Form.bindEvent( "edit", function( e )
+	Form.bindEvent( "edit", function DataEdit_Form_Edit( e )
 	{
 		dataedit = this.parent;
 		chgname = this.getLastChange();
@@ -706,7 +706,7 @@ function UI_CreateDataEdit( parent, dataobj, schema )
 		dataedit._setValueByName( chgname, this.getString( chgname ) );
 		dataedit.callEvent( "edit", e );
 	});
-	Form.bindEvent( "change", function( e )
+	Form.bindEvent( "change", function DataEdit_Form_Change( e )
 	{
 		dataedit = this.parent;
 		(chgname,chgtype) = this.getLastChange();

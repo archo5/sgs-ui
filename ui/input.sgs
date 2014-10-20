@@ -92,6 +92,8 @@ function UIForm_GetFromCtrl( ctrl )
 		if( ctrl.type == "form" )
 			return ctrl;
 		ctrl = ctrl.parent;
+		if( @ctrl.data._blockChildControls )
+			return null;
 	}
 	return null;
 }
